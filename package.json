@@ -33,10 +33,10 @@
     "trailingComma": "es5"
   },
   "dependencies": {
-    "@rapidmx/activesync": "file:../activesync",
-    "@rapidmx/autodiscover": "file:../autodiscover",
-    "@rapidmx/mapi": "file:../mapi",
-    "@rapidmx/restapi": "file:../restapi",
+    "@rapidmx/activesync": "portal:../activesync",
+    "@rapidmx/autodiscover": "portal:../autodiscover",
+    "@rapidmx/mapi": "portal:../mapi",
+    "@rapidmx/restapi": "^0.1.0",
     "@rapidrest/core": "^5.1.0",
     "@rapidrest/react": "^1.1.0",
     "@rapidrest/service-core": "^1.4.0",
@@ -99,7 +99,8 @@
   "resolutions": {
     "semver": "^7.5.2",
     "axios": "^1.19.0",
-    "json-schema": "^0.4.0"
+    "json-schema": "^0.4.0",
+    "@rapidrest/core": "5.1.0"
   },
   "packageManager": "yarn@4.2.2",
   "engines": {

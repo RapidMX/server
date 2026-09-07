@@ -37,6 +37,18 @@ Keep entries terse — this is a reference, not a transcript.
   `node_modules`. For an immediate fix ahead of a real publish, `yarn patch`/`yarn patch-commit`
   the installed copy rather than bumping any version field (`^1.0.1` currently does **not** need a
   patch — see Session Log 2026-08-22).
+- **Update (2026-09-06, rapidmx split): `@rapidmx/restapi` is now published to npm (`0.1.0`) and
+  this repo (`@rapidmx/server`, the post-split successor to `mail-server`) consumes it as a plain
+  registry dependency (`"@rapidmx/restapi": "^0.1.0"`) — not `portal:`, not `yarn patch`.** This
+  sidesteps the dual-module-instance problem below entirely, since a real npm-installed package has
+  no bundled `devDependencies`/`node_modules` to shadow the consumer's copies of
+  `@rapidrest/core`/`@rapidrest/service-core`. The `portal:`-is-broken finding below still applies
+  in full to `@rapidmx/activesync`/`@rapidmx/autodiscover`/`@rapidmx/mapi`, which remain
+  `portal:../X` links in this repo (not yet published) — currently harmless only because nothing in
+  `server`'s `src`/`apps`/`test` imports from them yet. The moment any of them is actually wired in,
+  re-check for the same failure mode this caused for `restapi` (see the new Session Log entry below
+  for how subtle/silent it can be — it does not surface as a resolution error, it surfaces as a real
+  network call inside what should be a fully-mocked test).
 - **`@rapidmx/restapi` must also be consumed via `yarn patch`/`yarn patch-commit`, never
   `portal:../mail` — confirmed broken, not just "unconventional."** `@rapidmx/restapi` declares
   `@rapidrest/core`/`@rapidrest/service-core` as `peerDependencies` but *also* has its own
@@ -530,3 +542,84 @@ usable without standing up the separate `auth-server` deployment locally. New: `
   itself throws (already caught by the surrounding `try/catch`) if that were ever absent or malformed; a
   *non-throwing* decode therefore always has a usable profile. Removed the redundant check instead of writing
   a test that could only reach it by mocking `JWTUtils` internals.
+
+### 2026-09-06 — rapidmx split: root-caused and fixed the long-standing `ECONNREFUSED :6379` Redis
+flake; fixed the coverage-threshold gate it had been masking
+
+This repo is `@rapidmx/server`, the post-split successor to `mail-server` (the old
+`@rapidrest/mail` monolith is now four sibling repos: `@rapidmx/restapi`, `@rapidmx/activesync`,
+`@rapidmx/autodiscover`, `@rapidmx/mapi`). Picking up the "finish converting so it builds and
+tests" work, two blockers stood between a fresh `yarn install` and a clean `yarn build`/`yarn test`.
+
+- **Root cause of the `ECONNREFUSED ::1:6379`/`127.0.0.1:6379` flake, finally found** — flagged as
+  an unsolved pre-existing issue in every session entry above since 2026-09-05, always on
+  `test/Server.mongo.test.ts`/`Server.sql.test.ts` despite both mocking `redis` via
+  `vi.mock("redis", ...)`. Confirmed first that it's **not** new to the split — it reproduces
+  identically on a fresh run of the original `mail-server` repo too (the old NOTES.md entries'
+  "534/540"-style pass counts were stale snapshots, not evidence it was ever actually fixed).
+  Diagnosed by temporarily instrumenting `@rapidrest/service-core`'s `ConnectionKinds.ts`
+  `importRedis()` (`console.error(Object.keys(await import("redis")), new Error().stack)`) to see,
+  per call site, whether it resolved the fake module (`['createClient', 'RedisClient']`) or the
+  real one (the full node-redis export list) — reverted before finishing, not a real code change.
+  Every call site resolved the fake **except** the one reached through
+  `PushRoute extends MailPushRoute` (`MailPushRoute` from `@rapidmx/restapi`) → `BasePushRoute.init()`'s
+  `await importRedis()`. Root cause: `@rapidmx/restapi` was not in `vitest.config.ts`'s SSR
+  `noExternal` list, so Vite/Vitest treats it as external and lets Node's own native ESM loader
+  load it (and everything it transitively imports, including `@rapidrest/service-core` and its
+  `import("redis")`) — a completely separate module registry from Vite's own SSR graph, invisible
+  to `vi.mock`, which only intercepts modules Vite itself resolves. Every *other* redis-backed class
+  in the same test (`ConnectionManager`, `BaseAdminRoute`) is reached via a route/class that imports
+  `@rapidrest/service-core` directly rather than through `@rapidmx/restapi`, so it stayed inside
+  Vite's graph and got mocked correctly — which is exactly why the failure looked so
+  inconsistent/mysterious across every prior session that poked at it. **Fix**: add
+  `'@rapidmx/restapi'` to the existing `noExternal` array (same file, same rationale as the existing
+  `@rapidrest/auth` entry — see its comment). Same class of bug as that one, different symptom (a
+  real network call instead of a silent `instanceof` failure). **Any future sibling package
+  (`activesync`/`autodiscover`/`mapi`, once wired in) that itself does a dynamic
+  `import("redis")`/`import("mongodb")`/etc., or extends a `@rapidrest/service-core` base class that
+  does, will need the same `noExternal` entry** — this is a general hazard of externalized packages
+  that transitively touch anything `vi.mock`'d in a test, not specific to `restapi` or `redis`.
+- **This unblocked `test/Server.*.test.ts` for the first time, which surfaced a second, previously-
+  invisible problem**: the Phase 3 entry above predicted this exactly ("Fixing the Redis flake ...
+  is real, valuable, pre-existing follow-up work" that would make backend route coverage "visible/
+  enforced in CI"). Once those two files ran to completion, `yarn test`'s coverage gate failed —
+  `src/mongo/routes/*ConsoleRoute.ts`, `src/*/routes/wwwRoute.ts`, and `src/routes/
+  BaseMailComposeRoute.ts` sit at 28–87% (exactly the "known, accepted, pre-existing gap" the Phase 3
+  entry already documented and deliberately declined to fix with real tests, since only
+  `Server.*.test.ts`'s `ClassLoader`-driven boot exercises these files at all). The **config**
+  meant to accept that gap was itself broken, independent of the redis fix: `vitest.config.ts`'s
+  `coverage.thresholds` had top-level (`branches: 99, functions: 100, lines: 100, statements: 100`)
+  values with a comment claiming backend `src/**` "keeps the relaxed 0% fallback above" — but no
+  such fallback existed. **The bug**: Vitest's per-glob coverage thresholds (the `'apps/www/**':
+  {...}` -style entries) are checked *in addition to* the top-level ones, not instead of them — the
+  top-level numbers gate the *overall combined* coverage across every included file. A `'src/**'`
+  override alone (tried first) changed nothing, because the aggregate-wide top-level check still
+  failed regardless of any glob-specific override. **Fix**: moved the strict 100% requirement
+  entirely into an explicit `'apps/**'` glob (previously only `apps/www/**`/`apps/admin/**`/two
+  specific `apps/shared/*` paths were listed — `apps/**` is a superset that also now covers
+  `apps/_lib`, `apps/_components`, etc., all already at 100% anyway, so this is non-regressive), and
+  dropped the top-level/global numbers to `0` — making it the actual backend fallback the comment
+  always claimed it was. No test files changed; this is purely a coverage-gate config fix for a
+  pre-existing, already-accepted gap, not new backend test coverage.
+- Also fixed along the way, both prerequisites just to get a clean `yarn install`/`yarn build` at
+  all on this fresh `rapidmx/server` checkout (neither is a `redis`/coverage issue, both were purely
+  this-session, first-time-setup problems):
+  - `portal:../activesync`/`portal:../autodiscover`/`portal:../mapi`/`portal:../restapi` (as
+    initially declared in `package.json`) failed **resolution**, not linking — Yarn 4.2.2 threw
+    `Couldn't allocate enough memory` from its libzip-wasm cache writer specifically for `file:`-
+    protocol locators, reproducible even packing a single sibling repo alone is instant/fine, and
+    unrelated to actual system memory (66GB, mostly free). Switching `file:` → `portal:` avoided the
+    zip-cache step entirely (portal is symlink-based) and resolved cleanly. `restapi` was then
+    switched again, from `portal:` to the real published `^0.1.0` (see the standing-decision update
+    above) once it became clear `restapi` specifically needed to not be portal-linked anyway.
+  - A bare `^5.1.0` range let a fresh install pick up `@rapidrest/core@5.2.0` (vs. the original
+    repo's resolved `5.1.0`) — pinned back via `resolutions` while diagnosing the redis flake, in
+    case the newer minor was the actual cause (it wasn't — the `noExternal` fix above is what
+    mattered; verified by trying `5.2.0` again after the real fix, still green). Left the pin in
+    place regardless, since nothing calls for the newer minor specifically and it removes one
+    variable from future diagnosis.
+- Verification: `yarn install`, `yarn build` (backend `tsc` + client `tsc` + Vite frontend build),
+  `yarn lint`, and `yarn test` all clean from a fresh checkout — 245/245 tests, no coverage-threshold
+  errors. This is the first time (per every prior NOTES.md entry above) this project's full
+  `yarn test` has actually passed end-to-end rather than being reported as "clean except the
+  pre-existing Redis flake."

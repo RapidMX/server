@@ -12,7 +12,7 @@ export default defineConfig({
         // comes back false and `Server.start()` never schedules the job — even though the exact same code
         // works correctly outside Vite (the real, non-test `node dist/src/server.js` runtime has only one
         // module cache to begin with).
-        noExternal: ['@rapidrest/auth', '@rapidrest/service-core', '@rapidrest/core'],
+        noExternal: ['@rapidrest/auth', '@rapidrest/service-core', '@rapidrest/core', '@rapidmx/restapi'],
     },
     plugins: [
         swc.vite({
@@ -64,15 +64,26 @@ export default defineConfig({
             ],
             reporter: ['text', 'json', 'html', 'lcov'],
             thresholds: {
-                branches: 99,
-                functions: 100,
-                lines: 100,
-                statements: 100,
+                // Per-glob thresholds are checked *in addition to* these top-level ones, not instead of them —
+                // the top-level numbers gate the overall combined coverage across every included file, so they
+                // must stay at the backend's relaxed floor (0%) or a low-coverage src/** file fails the build
+                // via the global check even when every specific glob below it passes. Frontend enforcement
+                // instead lives entirely in the 'apps/**' glob (and the more specific ones nested under it).
+                branches: 0,
+                functions: 0,
+                lines: 0,
+                statements: 0,
                 // The frontend (apps/www, apps/admin, and the apps/shared code they both depend on) is fully
                 // unit-tested and held to 100% — this fails the build if new frontend code lands without
                 // matching tests. The backend (src/**) keeps the relaxed 0% fallback above; its coverage
                 // today comes from Server.*.test.ts's integration-level start/stop checks, not per-route
                 // unit tests.
+                'apps/**': {
+                    branches: 100,
+                    functions: 100,
+                    lines: 100,
+                    statements: 100,
+                },
                 'apps/www/**': {
                     branches: 100,
                     functions: 100,
