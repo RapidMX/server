@@ -1,0 +1,164 @@
+/*
+ * RapidREST mail-server UI — Tailwind entry point.
+ *
+ * Design tokens are still defined as plain CSS custom properties (ported from auth-server's
+ * `public/styles/globals.css`, itself from rapidrest.dev's Infima-based cyan/gold palette) rather than
+ * inside the `@theme` block directly, so the existing `prefers-color-scheme`/`[data-theme]` dark-mode
+ * mechanism keeps working exactly as before. The `@theme` block below just aliases Tailwind's own color/
+ * radius/shadow/font tokens to these variables, so `bg-primary`, `text-muted`, `rounded-md`, `shadow-card`,
+ * etc. resolve through the same live-swappable custom properties instead of static values.
+ */
+@import "tailwindcss";
+
+:root {
+    --rr-color-primary: #0891b2;
+    --rr-color-primary-dark: #0e7490;
+    --rr-color-primary-darker: #155e75;
+    --rr-color-primary-darkest: #164e63;
+    --rr-color-primary-light: #06b6d4;
+    --rr-color-primary-lighter: #22d3ee;
+    --rr-color-primary-lightest: #67e8f9;
+    --rr-color-accent: #f0b429;
+    --rr-color-accent-dark: #c98a0a;
+
+    --rr-color-danger: #dc2626;
+    --rr-color-danger-bg: #fef2f2;
+    --rr-color-success: #16a34a;
+    --rr-color-warning: #f0b429;
+    --rr-color-warning-contrast: #1c2526;
+
+    --rr-color-bg: #ffffff;
+    --rr-color-surface: #ffffff;
+    --rr-color-surface-alt: #f5f7f8;
+    --rr-color-border: #e3e8ea;
+    --rr-color-text: #1c2526;
+    --rr-color-text-muted: #5a6b6e;
+    --rr-color-text-on-primary: #ffffff;
+
+    --rr-radius-sm: 0.4rem;
+    --rr-radius-md: 0.8rem;
+    --rr-radius-lg: 1rem;
+    --rr-radius-pill: 999px;
+
+    --rr-shadow-lw: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+    --rr-shadow-md: 0 5px 40px rgba(0, 0, 0, 0.12);
+
+    --rr-font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif,
+        BlinkMacSystemFont;
+
+    color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --rr-color-primary: #22d3ee;
+        --rr-color-primary-dark: #06b6d4;
+        --rr-color-primary-darker: #0891b2;
+        --rr-color-primary-darkest: #0e7490;
+        --rr-color-primary-light: #67e8f9;
+        --rr-color-primary-lighter: #a5f3fc;
+        --rr-color-primary-lightest: #cffafe;
+        --rr-color-accent: #fbbf24;
+        --rr-color-accent-dark: #f59e0b;
+
+        --rr-color-danger: #f87171;
+        --rr-color-danger-bg: #3f1d1d;
+        --rr-color-success: #4ade80;
+        --rr-color-warning: #fbbf24;
+        --rr-color-warning-contrast: #1c2526;
+
+        --rr-color-bg: #14181a;
+        --rr-color-surface: #1b2022;
+        --rr-color-surface-alt: #20262a;
+        --rr-color-border: #313a3d;
+        --rr-color-text: #eef2f3;
+        --rr-color-text-muted: #9fb0b3;
+        --rr-color-text-on-primary: #0b1416;
+
+        color-scheme: dark;
+    }
+}
+
+:root[data-theme="dark"] {
+    --rr-color-primary: #22d3ee;
+    --rr-color-primary-dark: #06b6d4;
+    --rr-color-primary-darker: #0891b2;
+    --rr-color-primary-darkest: #0e7490;
+    --rr-color-primary-light: #67e8f9;
+    --rr-color-primary-lighter: #a5f3fc;
+    --rr-color-primary-lightest: #cffafe;
+    --rr-color-accent: #fbbf24;
+    --rr-color-accent-dark: #f59e0b;
+
+    --rr-color-danger: #f87171;
+    --rr-color-danger-bg: #3f1d1d;
+    --rr-color-success: #4ade80;
+    --rr-color-warning: #fbbf24;
+    --rr-color-warning-contrast: #1c2526;
+
+    --rr-color-bg: #14181a;
+    --rr-color-surface: #1b2022;
+    --rr-color-surface-alt: #20262a;
+    --rr-color-border: #313a3d;
+    --rr-color-text: #eef2f3;
+    --rr-color-text-muted: #9fb0b3;
+    --rr-color-text-on-primary: #0b1416;
+
+    color-scheme: dark;
+}
+
+@theme {
+    --color-primary: var(--rr-color-primary);
+    --color-primary-dark: var(--rr-color-primary-dark);
+    --color-primary-darker: var(--rr-color-primary-darker);
+    --color-primary-darkest: var(--rr-color-primary-darkest);
+    --color-primary-light: var(--rr-color-primary-light);
+    --color-primary-lighter: var(--rr-color-primary-lighter);
+    --color-primary-lightest: var(--rr-color-primary-lightest);
+    --color-accent: var(--rr-color-accent);
+    --color-accent-dark: var(--rr-color-accent-dark);
+
+    --color-danger: var(--rr-color-danger);
+    --color-danger-bg: var(--rr-color-danger-bg);
+    --color-success: var(--rr-color-success);
+    --color-warning: var(--rr-color-warning);
+    --color-warning-contrast: var(--rr-color-warning-contrast);
+
+    --color-bg: var(--rr-color-bg);
+    --color-surface: var(--rr-color-surface);
+    --color-surface-alt: var(--rr-color-surface-alt);
+    --color-border: var(--rr-color-border);
+    --color-text: var(--rr-color-text);
+    --color-text-muted: var(--rr-color-text-muted);
+    --color-text-on-primary: var(--rr-color-text-on-primary);
+
+    --radius-sm: var(--rr-radius-sm);
+    --radius-md: var(--rr-radius-md);
+    --radius-lg: var(--rr-radius-lg);
+    --radius-pill: var(--rr-radius-pill);
+
+    --shadow-card: var(--rr-shadow-lw);
+    --shadow-modal: var(--rr-shadow-md);
+
+    --font-sans: var(--rr-font-family);
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--rr-font-family);
+    background: var(--rr-color-bg);
+    color: var(--rr-color-text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}

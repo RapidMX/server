@@ -1,0 +1,102 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: service-config
+data:
+  cookie_secret: {{ tpl $.Values.cookies.secret . | quote }}
+  session__secret: {{ tpl $.Values.sessions.secret . | quote }}
+  NODE_ENV: "{{ $.Values.environment }}"
+  {{- $publicScheme := ternary "https" "http" $.Values.gateway.tls }}
+  {{- $corsHosts := list "http://localhost:3000" (printf "%s://%s" $publicScheme $.Values.host) }}
+  cors__origins: {{ $corsHosts | toJson | quote }}
+  {{- range $k, $v := $.Values.service.config }}
+  {{- if kindIs "string" $v }}
+  {{ $k }}: {{ tpl $v $ | quote }}
+  {{- else if kindIs "slice" $v }}
+  {{ $k }}: {{ $v | toJson | quote }}
+  {{- else if kindIs "map" $v }}
+  {{ $k }}: {{ $v | toJson | quote }}
+  {{- else }}
+  {{ $k }}: {{ $v | quote }}
+  {{- end }}
+  {{- end }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: service-db-info
+type: Opaque
+data:
+  {{- $mongoRootUser := "" }}
+  {{- $mongoRootPassword := "" }}
+  {{- if and $.Values.mongodb.create $.Values.mongodb.auth.enabled }}
+  {{- $mongoSecret := (lookup "v1" "Secret" $.Release.Namespace $.Values.mongodb.fullnameOverride) | default dict }}
+  {{- $mongoSecretData := (get $mongoSecret "data") | default dict }}
+  {{- $mongoRootUser = "root" }}
+  {{- $mongoRootPassword = (get $mongoSecretData "mongodb-root-password") | default "" | b64dec }}
+  {{- end }}
+  {{- $postgresUser := "" }}
+  {{- $postgresPassword := "" }}
+  {{- if and $.Values.postgresql.create $.Values.postgresql.auth.enablePostgresUser }}
+  {{- $postgresSecret := (lookup "v1" "Secret" $.Release.Namespace $.Values.postgresql.fullnameOverride) | default dict }}
+  {{- $postgresSecretData := (get $postgresSecret "data") | default dict }}
+  {{- $postgresUser = "postgres" }}
+  {{- $postgresPassword = (get $postgresSecretData "postgres-password") | default "" | b64dec }}
+  {{- end }}
+  {{- if $.Values.mongodb.create }}
+  datastores__acl__database: {{ include "rrst.render" (dict "value" $.Values.service.mongodb.acl.name "context" $) | b64enc | quote }}
+  datastores__acl__host: {{ include "rrst.render" (dict "value" $.Values.service.mongodb.acl.host "context" $) | default (printf "%s" $.Values.mongodb.fullnameOverride) | b64enc | quote }}
+  datastores__acl__type: {{ print "mongodb" | b64enc | quote }}
+  {{- if $.Values.mongodb.url }}
+  datastores__acl__url: {{ (include "rrst.render" (dict "value" $.Values.mongodb.url "context" $) | b64enc | quote) }}
+  {{- else if $.Values.service.mongodb.acl.url }}
+  datastores__acl__url: {{ (include "rrst.render" (dict "value" $.Values.service.mongodb.acl.url "context" $) | b64enc | quote) }}
+  {{- else if $mongoRootPassword }}
+  datastores__acl__username: {{ $mongoRootUser | b64enc | quote }}
+  datastores__acl__password: {{ $mongoRootPassword | b64enc | quote }}
+  datastores__acl__options: {{ print "authSource=admin" | b64enc | quote }}
+  {{- end }}
+  datastores__mongo__database: {{ include "rrst.render" (dict "value" $.Values.service.mongodb.mongo.name "context" $) | b64enc | quote }}
+  datastores__mongo__host: {{ include "rrst.render" (dict "value" $.Values.service.mongodb.mongo.host "context" $) | default (printf "%s" $.Values.mongodb.fullnameOverride) | b64enc | quote }}
+  datastores__mongo__type: {{ print "mongodb" | b64enc | quote }}
+  {{- if $.Values.mongodb.url }}
+  datastores__mongo__url: {{ include "rrst.render" (dict "value" $.Values.mongodb.url "context" $) | b64enc | quote }}
+  {{- else if $.Values.service.mongodb.mongo.url }}
+  datastores__mongo__url: {{ include "rrst.render" (dict "value" $.Values.service.mongodb.mongo.url "context" $) | b64enc | quote }}
+  {{- else if $mongoRootPassword }}
+  datastores__mongo__username: {{ $mongoRootUser | b64enc | quote }}
+  datastores__mongo__password: {{ $mongoRootPassword | b64enc | quote }}
+  datastores__mongo__options: {{ print "authSource=admin" | b64enc | quote }}
+  {{- end }}
+  {{- else if $.Values.postgresql.create }}
+  datastores__acl__database: {{ include "rrst.render" (dict "value" $.Values.service.postgresql.acl.name "context" $) | b64enc | quote }}
+  datastores__acl__host: {{ include "rrst.render" (dict "value" $.Values.service.postgresql.acl.host "context" $) | default (printf "%s" $.Values.postgresql.fullnameOverride) | b64enc | quote }}
+  datastores__acl__type: {{ print "postgres" | b64enc | quote }}
+  {{- if $.Values.postgresql.url }}
+  datastores__acl__url: {{ (include "rrst.render" (dict "value" $.Values.postgresql.url "context" $) | b64enc | quote) }}
+  {{- else if $.Values.service.postgresql.acl.url }}
+  datastores__acl__url: {{ (include "rrst.render" (dict "value" $.Values.service.postgresql.acl.url "context" $) | b64enc | quote) }}
+  {{- else if $postgresPassword }}
+  datastores__acl__username: {{ $postgresUser | b64enc | quote }}
+  datastores__acl__password: {{ $postgresPassword | b64enc | quote }}
+  {{- end }}
+  datastores__sql__type: {{ print "postgres" | b64enc | quote }}
+  {{- /*
+  server.ts picks its config module with `!!process.env.datastores__sql__url` - a bare presence
+  check on this exact combined-URL var, not on any of the separate host/username/password fields
+  used above for acl. So unlike acl, sql must always end up with a `url` key or the app silently
+  loads config.mongo.ts instead, regardless of how the rest of these datastore fields are set.
+  */}}
+  {{- $sqlHost := include "rrst.render" (dict "value" $.Values.service.postgresql.sql.host "context" $) | default (printf "%s" $.Values.postgresql.fullnameOverride) }}
+  {{- $sqlDatabase := include "rrst.render" (dict "value" $.Values.service.postgresql.sql.name "context" $) }}
+  {{- if $.Values.postgresql.url }}
+  datastores__sql__url: {{ include "rrst.render" (dict "value" $.Values.postgresql.url "context" $) | b64enc | quote }}
+  {{- else if $.Values.service.postgresql.sql.url }}
+  datastores__sql__url: {{ include "rrst.render" (dict "value" $.Values.service.postgresql.sql.url "context" $) | b64enc | quote }}
+  {{- else if $postgresPassword }}
+  datastores__sql__url: {{ (printf "postgres://%s:%s@%s/%s" $postgresUser $postgresPassword $sqlHost $sqlDatabase) | b64enc | quote }}
+  {{- else }}
+  datastores__sql__url: {{ (printf "postgres://%s/%s" $sqlHost $sqlDatabase) | b64enc | quote }}
+  {{- end }}
+  {{- end }}

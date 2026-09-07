@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+      "types": ["@types/node"],
+      "noEmit": true,
+      "allowJs": true,
+      "jsx": "react-jsx"
+    },
+    "extends": "./tsconfig.json",
+    "include": [
+      "test/**/*.ts",
+      "test/**/*.tsx",
+      ".eslintrc.js"
+    ]
+  }

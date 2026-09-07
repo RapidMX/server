@@ -1,0 +1,13 @@
+///////////////////////////////////////////////////////////////////////////////
+// Copyright (C) 2026 Jean-Philippe Steinmetz
+///////////////////////////////////////////////////////////////////////////////
+import { AccessControlListSQL, BaseACLRoute, RouteDecorators } from "@rapidrest/service-core";
+
+const { ApiRoute, Model } = RouteDecorators;
+
+// The mechanism for granting/revoking a mailbox's shared/delegate access (Exchange-style shared mailboxes) —
+// see @rapidmx/restapi's BaseMailboxRoute doc comment. Generic, not mail-specific: any ACL-protected entity's
+// access can be managed through this same route.
+@Model(AccessControlListSQL)
+@ApiRoute("acls")
+export class ACLRoute extends BaseACLRoute<AccessControlListSQL> {}

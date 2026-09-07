@@ -1,0 +1,603 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="239" failures="0" errors="0" time="13.4093592">
+    <testsuite name="test/config.defaults.test.ts" timestamp="2026-09-07T02:24:55.160Z" hostname="Jane" tests="4" failures="0" errors="0" skipped="0" time="0.0032648">
+        <testcase classname="test/config.defaults.test.ts" name="assertProductionSecretsAreSet &gt; is a no-op outside production, even with every default secret still in effect" time="0.0016304">
+        </testcase>
+        <testcase classname="test/config.defaults.test.ts" name="assertProductionSecretsAreSet &gt; throws in production when all three secrets still hold their default values" time="0.0002365">
+        </testcase>
+        <testcase classname="test/config.defaults.test.ts" name="assertProductionSecretsAreSet &gt; throws naming only the specific secret(s) still at their default" time="0.0001664">
+        </testcase>
+        <testcase classname="test/config.defaults.test.ts" name="assertProductionSecretsAreSet &gt; does not throw in production once all three secrets have been overridden" time="0.0001312">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/index.test.tsx" timestamp="2026-09-07T02:24:55.163Z" hostname="Jane" tests="14" failures="0" errors="0" skipped="0" time="0.9483673">
+        <testcase classname="test/apps/index.test.tsx" name="InboxPage &gt; shows a message when no mailbox is available yet" time="0.0650017">
+        </testcase>
+        <testcase classname="test/apps/index.test.tsx" name="InboxPage &gt; shows a loading indicator while messages are being fetched" time="0.0296049">
+        </testcase>
+        <testcase classname="test/apps/index.test.tsx" name="InboxPage &gt; shows an empty-state message when the folder has no messages" time="0.0159206">
+        </testcase>
+        <testcase classname="test/apps/index.test.tsx" name="InboxPage &gt; shows an error message when loading messages fails" time="0.0157921">
+        </testcase>
+        <testcase classname="test/apps/index.test.tsx" name="InboxPage &gt; shows a generic error message when loading messages fails with a non-API error" time="0.0154961">
+        </testcase>
+        <testcase classname="test/apps/index.test.tsx" name="InboxPage &gt; lists messages and shows a placeholder until one is selected" time="0.0327434">
+        </testcase>
+        <testcase classname="test/apps/index.test.tsx" name="InboxPage &gt; selects a message, marks it read, and shows its reading pane" time="0.1555559">
+        </testcase>
+        <testcase classname="test/apps/index.test.tsx" name="InboxPage &gt; does not re-mark an already-read message as read" time="0.0762392">
+        </testcase>
+        <testcase classname="test/apps/index.test.tsx" name="InboxPage &gt; swallows a failed mark-as-read update rather than blocking the reading pane" time="0.0941886">
+        </testcase>
+        <testcase classname="test/apps/index.test.tsx" name="InboxPage &gt; lists and links to attachments for a message that has them" time="0.0698085">
+        </testcase>
+        <testcase classname="test/apps/index.test.tsx" name="InboxPage &gt; silently shows no attachments when the attachment list fails to load" time="0.0876838">
+        </testcase>
+        <testcase classname="test/apps/index.test.tsx" name="InboxPage &gt; falls back to the raw address and &apos;(no subject)&apos; when displayName/subject are absent" time="0.0519323">
+        </testcase>
+        <testcase classname="test/apps/index.test.tsx" name="InboxPage &gt; formats attachment sizes across byte/KB/MB tiers" time="0.0774414">
+        </testcase>
+        <testcase classname="test/apps/index.test.tsx" name="InboxPage &gt; clears the attachment list when a message without attachments is reselected" time="0.1588927">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/_404.test.tsx" timestamp="2026-09-07T02:24:55.165Z" hostname="Jane" tests="1" failures="0" errors="0" skipped="0" time="0.0190934">
+        <testcase classname="test/apps/_404.test.tsx" name="NotFoundPage &gt; renders a not-found message" time="0.0173072">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/_500.test.tsx" timestamp="2026-09-07T02:24:55.165Z" hostname="Jane" tests="1" failures="0" errors="0" skipped="0" time="0.0197423">
+        <testcase classname="test/apps/_500.test.tsx" name="ErrorPage &gt; renders an internal-server-error message" time="0.017911">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/_layout.test.tsx" timestamp="2026-09-07T02:24:55.166Z" hostname="Jane" tests="1" failures="0" errors="0" skipped="0" time="0.0081647">
+        <testcase classname="test/apps/_layout.test.tsx" name="Layout &gt; renders the document shell with the given children inside the body" time="0.006245">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/dev/DevAutoAuthStrategy.test.ts" timestamp="2026-09-07T02:24:55.166Z" hostname="Jane" tests="9" failures="0" errors="0" skipped="0" time="0.0210766">
+        <testcase classname="test/dev/DevAutoAuthStrategy.test.ts" name="DevAutoAuthStrategy Tests &gt; has the name &apos;jwt&apos; so it can replace the real JWTStrategy in AuthMiddleware." time="0.0009363">
+        </testcase>
+        <testcase classname="test/dev/DevAutoAuthStrategy.test.ts" name="DevAutoAuthStrategy Tests &gt; authenticate() &gt; mints a fresh token and sets it as the jwt cookie when no cookie is present." time="0.0040881">
+            <system-out>
+[DevAutoAuthStrategy.emit] 2026-09-07T02:24:45.118Z [33mwarn[39m: [DevAutoAuthStrategy] No valid session for /test — auto-authenticated as &apos;dev-user&apos; (roles: admin). yarn dev only; never active in production.
+
+            </system-out>
+        </testcase>
+        <testcase classname="test/dev/DevAutoAuthStrategy.test.ts" name="DevAutoAuthStrategy Tests &gt; authenticate() &gt; honors an already-valid jwt cookie without minting or setting a new one." time="0.0012717">
+        </testcase>
+        <testcase classname="test/dev/DevAutoAuthStrategy.test.ts" name="DevAutoAuthStrategy Tests &gt; authenticate() &gt; falls back to minting a fresh token when the existing cookie fails to verify." time="0.0012477">
+            <system-out>
+[DevAutoAuthStrategy.emit] 2026-09-07T02:24:45.122Z [33mwarn[39m: [DevAutoAuthStrategy] No valid session for /test — auto-authenticated as &apos;dev-user&apos; (roles: admin). yarn dev only; never active in production.
+
+            </system-out>
+        </testcase>
+        <testcase classname="test/dev/DevAutoAuthStrategy.test.ts" name="DevAutoAuthStrategy Tests &gt; authenticate() &gt; still mints successfully when no response object is given (never throws on a missing res)." time="0.0017993">
+            <system-out>
+[DevAutoAuthStrategy.emit] 2026-09-07T02:24:45.124Z [33mwarn[39m: [DevAutoAuthStrategy] No valid session for /test — auto-authenticated as &apos;dev-user&apos; (roles: admin). yarn dev only; never active in production.
+
+            </system-out>
+        </testcase>
+        <testcase classname="test/dev/DevAutoAuthStrategy.test.ts" name="DevAutoAuthStrategy Tests &gt; authenticate() &gt; falls back to a generic label in its log message when the request has no path." time="0.000908">
+            <system-out>
+[DevAutoAuthStrategy.emit] 2026-09-07T02:24:45.125Z [33mwarn[39m: [DevAutoAuthStrategy] No valid session for request — auto-authenticated as &apos;dev-user&apos; (roles: admin). yarn dev only; never active in production.
+
+            </system-out>
+        </testcase>
+        <testcase classname="test/dev/DevAutoAuthStrategy.test.ts" name="DevAutoAuthStrategy Tests &gt; authenticateSync() &gt; returns undefined when no cookie is present (no synchronous mint path exists)." time="0.0001553">
+        </testcase>
+        <testcase classname="test/dev/DevAutoAuthStrategy.test.ts" name="DevAutoAuthStrategy Tests &gt; authenticateSync() &gt; returns the decoded user for an already-valid jwt cookie." time="0.0004167">
+        </testcase>
+        <testcase classname="test/dev/DevAutoAuthStrategy.test.ts" name="DevAutoAuthStrategy Tests &gt; authenticateSync() &gt; returns undefined for an invalid cookie." time="0.0001032">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/dev/DevImpersonationRoute.test.ts" timestamp="2026-09-07T02:24:55.168Z" hostname="Jane" tests="9" failures="0" errors="0" skipped="0" time="0.01977">
+        <testcase classname="test/dev/DevImpersonationRoute.test.ts" name="DevImpersonationRoute Tests &gt; impersonate() &gt; throws INVALID_REQUEST when userUid is missing from the body." time="0.0013915">
+        </testcase>
+        <testcase classname="test/dev/DevImpersonationRoute.test.ts" name="DevImpersonationRoute Tests &gt; impersonate() &gt; throws INTERNAL_ERROR when the auth config is unavailable." time="0.0001756">
+        </testcase>
+        <testcase classname="test/dev/DevImpersonationRoute.test.ts" name="DevImpersonationRoute Tests &gt; impersonate() &gt; mints an unprivileged token for the target uid and sets it as the jwt cookie." time="0.0043407">
+            <system-out>
+[DevImpersonationRoute.emit] 2026-09-07T02:24:37.389Z [33mwarn[39m: [DevImpersonationRoute] &apos;admin&apos; started impersonating &apos;target-user&apos;. yarn dev only; never active in production.
+
+            </system-out>
+        </testcase>
+        <testcase classname="test/dev/DevImpersonationRoute.test.ts" name="DevImpersonationRoute Tests &gt; impersonate() &gt; stashes the caller&apos;s current jwt cookie under jwt_impersonator when one is present." time="0.0008715">
+            <system-out>
+[DevImpersonationRoute.emit] 2026-09-07T02:24:37.392Z [33mwarn[39m: [DevImpersonationRoute] &apos;admin&apos; started impersonating &apos;target-user&apos;. yarn dev only; never active in production.
+
+            </system-out>
+        </testcase>
+        <testcase classname="test/dev/DevImpersonationRoute.test.ts" name="DevImpersonationRoute Tests &gt; impersonate() &gt; does not stash jwt_impersonator when the caller has no current jwt cookie." time="0.0008447">
+            <system-out>
+[DevImpersonationRoute.emit] 2026-09-07T02:24:37.392Z [33mwarn[39m: [DevImpersonationRoute] &apos;admin&apos; started impersonating &apos;target-user&apos;. yarn dev only; never active in production.
+
+            </system-out>
+        </testcase>
+        <testcase classname="test/dev/DevImpersonationRoute.test.ts" name="DevImpersonationRoute Tests &gt; impersonate() &gt; works even when no caller user is provided (never throws on a missing @User)." time="0.0010788">
+            <system-out>
+[DevImpersonationRoute.emit] 2026-09-07T02:24:37.393Z [33mwarn[39m: [DevImpersonationRoute] &apos;unknown&apos; started impersonating &apos;target-user&apos;. yarn dev only; never active in production.
+
+            </system-out>
+        </testcase>
+        <testcase classname="test/dev/DevImpersonationRoute.test.ts" name="DevImpersonationRoute Tests &gt; stopImpersonating() &gt; returns restored:false and sets no cookies when there is no jwt_impersonator cookie." time="0.0001797">
+        </testcase>
+        <testcase classname="test/dev/DevImpersonationRoute.test.ts" name="DevImpersonationRoute Tests &gt; stopImpersonating() &gt; restores the stashed jwt and clears jwt_impersonator when one is present." time="0.000798">
+            <system-out>
+[DevImpersonationRoute.emit] 2026-09-07T02:24:37.395Z [33mwarn[39m: [DevImpersonationRoute] Stopped impersonating (was acting as &apos;target-user&apos;). yarn dev only.
+
+            </system-out>
+        </testcase>
+        <testcase classname="test/dev/DevImpersonationRoute.test.ts" name="DevImpersonationRoute Tests &gt; stopImpersonating() &gt; works even when no caller user is provided (never throws on a missing @User)." time="0.0007586">
+            <system-out>
+[DevImpersonationRoute.emit] 2026-09-07T02:24:37.396Z [33mwarn[39m: [DevImpersonationRoute] Stopped impersonating (was acting as &apos;undefined&apos;). yarn dev only.
+
+            </system-out>
+        </testcase>
+    </testsuite>
+    <testsuite name="test/dev/enableDevAutoLogin.test.ts" timestamp="2026-09-07T02:24:55.169Z" hostname="Jane" tests="10" failures="0" errors="0" skipped="0" time="0.0072782">
+        <testcase classname="test/dev/enableDevAutoLogin.test.ts" name="isRunningUnderYarnDev Tests &gt; is true for a .ts entry point with no NODE_ENV/VITEST/JEST_WORKER_ID set." time="0.001347">
+        </testcase>
+        <testcase classname="test/dev/enableDevAutoLogin.test.ts" name="isRunningUnderYarnDev Tests &gt; is false for a compiled .js entry point (production)." time="0.0001683">
+        </testcase>
+        <testcase classname="test/dev/enableDevAutoLogin.test.ts" name="isRunningUnderYarnDev Tests &gt; is false when NODE_ENV is &apos;production&apos;, even from a .ts entry point." time="0.0001163">
+        </testcase>
+        <testcase classname="test/dev/enableDevAutoLogin.test.ts" name="isRunningUnderYarnDev Tests &gt; is false under Vitest, even from a .ts entry point." time="0.0001131">
+        </testcase>
+        <testcase classname="test/dev/enableDevAutoLogin.test.ts" name="isRunningUnderYarnDev Tests &gt; is false under Jest, even from a .ts entry point." time="0.0001216">
+        </testcase>
+        <testcase classname="test/dev/enableDevAutoLogin.test.ts" name="isRunningUnderYarnDev Tests &gt; is false when there is no entry point at all." time="0.0001145">
+        </testcase>
+        <testcase classname="test/dev/enableDevAutoLogin.test.ts" name="enableDevAutoLoginIfApplicable Tests &gt; does nothing outside of yarn dev — never touches AuthMiddleware." time="0.0010669">
+        </testcase>
+        <testcase classname="test/dev/enableDevAutoLogin.test.ts" name="enableDevAutoLoginIfApplicable Tests &gt; registers DevAutoAuthStrategy under the &apos;jwt&apos; name when running under yarn dev." time="0.0022236">
+        </testcase>
+        <testcase classname="test/dev/enableDevAutoLogin.test.ts" name="mountDevImpersonationRouteIfApplicable Tests &gt; does nothing outside of yarn dev — never touches RouteUtils or the server." time="0.0003086">
+        </testcase>
+        <testcase classname="test/dev/enableDevAutoLogin.test.ts" name="mountDevImpersonationRouteIfApplicable Tests &gt; registers a DevImpersonationRoute against the server&apos;s application when running under yarn dev." time="0.0005081">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/routes/BaseMailComposeRoute.test.ts" timestamp="2026-09-07T02:24:55.170Z" hostname="Jane" tests="1" failures="0" errors="0" skipped="0" time="0.0098817">
+        <testcase classname="test/routes/BaseMailComposeRoute.test.ts" name="BaseMailComposeRoute Tests (dependency guard clause only) &gt; assemble() throws INTERNAL_ERROR when blobStore/aclUtils are not set." time="0.0087949">
+            <system-out>
+[DerivedLogger.emit] 2026-09-07T02:24:48.943Z [32minfo[39m: Registering class TestMailComposeRoute
+[DerivedLogger.emit] 2026-09-07T02:24:48.947Z [34mdebug[39m: Creating new instance of class [TestMailComposeRoute] with name [TestMailComposeRoute:f18f8438-0195-4cf1-b269-4f21c3c9895c]
+
+            </system-out>
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/compose/index.test.tsx" timestamp="2026-09-07T02:24:55.170Z" hostname="Jane" tests="13" failures="0" errors="0" skipped="0" time="2.8730047">
+        <testcase classname="test/apps/compose/index.test.tsx" name="ComposePage &gt; creates a blank draft once the mailbox/Drafts folder resolve" time="0.0484827">
+        </testcase>
+        <testcase classname="test/apps/compose/index.test.tsx" name="ComposePage &gt; shows an error message when starting the draft fails" time="0.0208235">
+        </testcase>
+        <testcase classname="test/apps/compose/index.test.tsx" name="ComposePage &gt; shows a generic error message when starting the draft fails with a non-API error" time="0.0158031">
+        </testcase>
+        <testcase classname="test/apps/compose/index.test.tsx" name="ComposePage &gt; does nothing if the form is somehow submitted before the draft has loaded" time="0.0833123">
+            <system-err>
+An update to ComposeContent inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() =&gt; {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you&apos;re testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+            </system-err>
+        </testcase>
+        <testcase classname="test/apps/compose/index.test.tsx" name="ComposePage &gt; requires at least one recipient before sending" time="0.1709104">
+        </testcase>
+        <testcase classname="test/apps/compose/index.test.tsx" name="ComposePage &gt; reveals Cc/Bcc fields on request" time="0.6274639">
+        </testcase>
+        <testcase classname="test/apps/compose/index.test.tsx" name="ComposePage &gt; assembles and sends the draft, then shows a confirmation" time="0.9753512">
+        </testcase>
+        <testcase classname="test/apps/compose/index.test.tsx" name="ComposePage &gt; shows an error message when assembling fails" time="0.3453839">
+        </testcase>
+        <testcase classname="test/apps/compose/index.test.tsx" name="ComposePage &gt; shows a generic error message when sending fails with a non-API error" time="0.3460743">
+        </testcase>
+        <testcase classname="test/apps/compose/index.test.tsx" name="ComposePage &gt; uploads a selected attachment against the draft and lists it" time="0.0783241">
+        </testcase>
+        <testcase classname="test/apps/compose/index.test.tsx" name="ComposePage &gt; shows an error message when an attachment upload fails" time="0.0786004">
+        </testcase>
+        <testcase classname="test/apps/compose/index.test.tsx" name="ComposePage &gt; shows a generic error message when an attachment upload fails with a non-API error" time="0.0659056">
+        </testcase>
+        <testcase classname="test/apps/compose/index.test.tsx" name="ComposePage &gt; ignores a change event with no file list" time="0.0145221">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/admin/index.test.tsx" timestamp="2026-09-07T02:24:55.172Z" hostname="Jane" tests="4" failures="0" errors="0" skipped="0" time="0.3011084">
+        <testcase classname="test/apps/admin/index.test.tsx" name="MailboxesListPage &gt; lists mailboxes once authorized" time="0.1298825">
+        </testcase>
+        <testcase classname="test/apps/admin/index.test.tsx" name="MailboxesListPage &gt; shows an error message when loading mailboxes fails" time="0.0105127">
+        </testcase>
+        <testcase classname="test/apps/admin/index.test.tsx" name="MailboxesListPage &gt; shows a generic error message when loading mailboxes fails with a non-API error" time="0.0151636">
+        </testcase>
+        <testcase classname="test/apps/admin/index.test.tsx" name="MailboxesListPage &gt; paginates: Next fetches the following page, Previous returns to the first" time="0.1435046">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/admin/_404.test.tsx" timestamp="2026-09-07T02:24:55.172Z" hostname="Jane" tests="1" failures="0" errors="0" skipped="0" time="0.0198818">
+        <testcase classname="test/apps/admin/_404.test.tsx" name="NotFoundPage &gt; renders a not-found message" time="0.0180591">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/admin/_500.test.tsx" timestamp="2026-09-07T02:24:55.173Z" hostname="Jane" tests="1" failures="0" errors="0" skipped="0" time="0.0191952">
+        <testcase classname="test/apps/admin/_500.test.tsx" name="ErrorPage &gt; renders an internal-server-error message" time="0.0173824">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/admin/_layout.test.tsx" timestamp="2026-09-07T02:24:55.173Z" hostname="Jane" tests="1" failures="0" errors="0" skipped="0" time="0.0078534">
+        <testcase classname="test/apps/admin/_layout.test.tsx" name="Layout &gt; renders the document shell with the given children inside the body" time="0.0060249">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/_components/MailShell.test.tsx" timestamp="2026-09-07T02:24:55.173Z" hostname="Jane" tests="22" failures="0" errors="0" skipped="0" time="0.9652482">
+        <testcase classname="test/apps/_components/MailShell.test.tsx" name="MailShell &gt; redirects to auth-server&apos;s sign-in page when there is no userUid" time="0.0350429">
+        </testcase>
+        <testcase classname="test/apps/_components/MailShell.test.tsx" name="MailShell &gt; shows an error message when loading mailboxes fails" time="0.02247">
+        </testcase>
+        <testcase classname="test/apps/_components/MailShell.test.tsx" name="MailShell &gt; shows a generic error message when loading mailboxes fails with a non-API error" time="0.0158109">
+        </testcase>
+        <testcase classname="test/apps/_components/MailShell.test.tsx" name="MailShell &gt; shows a no-mailboxes message and renders no compose/switcher chrome when the caller has none" time="0.0773393">
+        </testcase>
+        <testcase classname="test/apps/_components/MailShell.test.tsx" name="MailShell &gt; renders a single mailbox&apos;s folders (well-known order) with no mailbox switcher" time="0.0355198">
+        </testcase>
+        <testcase classname="test/apps/_components/MailShell.test.tsx" name="MailShell &gt; defaults to the mailbox&apos;s Inbox folder and highlights it" time="0.0311825">
+        </testcase>
+        <testcase classname="test/apps/_components/MailShell.test.tsx" name="MailShell &gt; shows the mailbox switcher when more than one mailbox is accessible, marking a shared one" time="0.0201639">
+        </testcase>
+        <testcase classname="test/apps/_components/MailShell.test.tsx" name="MailShell &gt; navigates to the chosen mailbox when the switcher&apos;s selection changes" time="0.0868887">
+        </testcase>
+        <testcase classname="test/apps/_components/MailShell.test.tsx" name="MailShell &gt; shows an error message when loading folders fails" time="0.0154294">
+        </testcase>
+        <testcase classname="test/apps/_components/MailShell.test.tsx" name="MailShell &gt; shows a generic error message when loading folders fails with a non-API error" time="0.0160871">
+        </testcase>
+        <testcase classname="test/apps/_components/MailShell.test.tsx" name="MailShell &gt; signs out to auth-server" time="0.125179">
+        </testcase>
+        <testcase classname="test/apps/_components/MailShell.test.tsx" name="MailShell &gt; signs out to &apos;/&apos; when authServerUrl is not configured" time="0.1076869">
+        </testcase>
+        <testcase classname="test/apps/_components/MailShell.test.tsx" name="MailShell &gt; sorts folders not in the well-known order alphabetically by name, after well-known folders" time="0.0221868">
+        </testcase>
+        <testcase classname="test/apps/_components/MailShell.test.tsx" name="MailShell &gt; honors a ?mailboxUid= query param that names an accessible mailbox" time="0.0053461">
+        </testcase>
+        <testcase classname="test/apps/_components/MailShell.test.tsx" name="MailShell &gt; ignores a ?mailboxUid= query param that isn&apos;t one of the caller&apos;s accessible mailboxes" time="0.0177878">
+        </testcase>
+        <testcase classname="test/apps/_components/MailShell.test.tsx" name="MailShell &gt; honors a ?folderUid= query param that names one of the mailbox&apos;s folders" time="0.0304236">
+        </testcase>
+        <testcase classname="test/apps/_components/MailShell.test.tsx" name="MailShell &gt; ignores a ?folderUid= query param that isn&apos;t one of the mailbox&apos;s folders" time="0.0323039">
+        </testcase>
+        <testcase classname="test/apps/_components/MailShell.test.tsx" name="MailShell &gt; does not show the impersonation banner when impersonating is not set" time="0.0057367">
+        </testcase>
+        <testcase classname="test/apps/_components/MailShell.test.tsx" name="MailShell &gt; shows the impersonation banner and returns to admin when &apos;Return to admin&apos; is clicked" time="0.0878658">
+        </testcase>
+        <testcase classname="test/apps/_components/MailShell.test.tsx" name="MailShell &gt; still returns to admin even when the stop-impersonating request fails" time="0.0792691">
+        </testcase>
+        <testcase classname="test/apps/_components/MailShell.test.tsx" name="MailShell &gt; calls this app&apos;s own local dev-only stop endpoint when impersonationBaseUrl isn&apos;t provided (yarn dev)" time="0.0782074">
+        </testcase>
+        <testcase classname="test/apps/_components/MailShell.test.tsx" name="MailShell &gt; provides the resolved mailbox/folder/lists to children via useMailShell()" time="0.0151592">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/_components/MonacoHtmlEditor.test.tsx" timestamp="2026-09-07T02:24:55.185Z" hostname="Jane" tests="4" failures="0" errors="0" skipped="0" time="0.1481254">
+        <testcase classname="test/apps/_components/MonacoHtmlEditor.test.tsx" name="MonacoHtmlEditor &gt; creates the editor against its container with the initial value, and reports edits via onChange" time="0.0732832">
+        </testcase>
+        <testcase classname="test/apps/_components/MonacoHtmlEditor.test.tsx" name="MonacoHtmlEditor &gt; disposes the editor on unmount" time="0.0575372">
+        </testcase>
+        <testcase classname="test/apps/_components/MonacoHtmlEditor.test.tsx" name="MonacoHtmlEditor &gt; does not create an editor if unmounted before monaco finishes loading" time="0.013834">
+        </testcase>
+        <testcase classname="test/apps/_components/MonacoHtmlEditor.test.tsx" name="MonacoHtmlEditor &gt; accepts a custom height" time="0.0015928">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/_components/UserMenu.test.tsx" timestamp="2026-09-07T02:24:55.186Z" hostname="Jane" tests="11" failures="0" errors="0" skipped="0" time="0.941586">
+        <testcase classname="test/apps/_components/UserMenu.test.tsx" name="UserMenu &gt; shows the uid&apos;s initial as a fallback avatar with no authServerUrl configured" time="0.030978">
+        </testcase>
+        <testcase classname="test/apps/_components/UserMenu.test.tsx" name="UserMenu &gt; is closed by default and opens the menu when the trigger is clicked" time="0.1138108">
+        </testcase>
+        <testcase classname="test/apps/_components/UserMenu.test.tsx" name="UserMenu &gt; falls back to the uid when no authServerUrl is configured (no profile to fetch)" time="0.0582266">
+        </testcase>
+        <testcase classname="test/apps/_components/UserMenu.test.tsx" name="UserMenu &gt; shows the trusted-role-only Admin item when showAdminLink is set" time="0.0712013">
+        </testcase>
+        <testcase classname="test/apps/_components/UserMenu.test.tsx" name="UserMenu &gt; hides the Admin item when showAdminLink is not set" time="0.0702208">
+        </testcase>
+        <testcase classname="test/apps/_components/UserMenu.test.tsx" name="UserMenu &gt; calls onSignOut when &apos;Sign Out&apos; is clicked" time="0.1077347">
+        </testcase>
+        <testcase classname="test/apps/_components/UserMenu.test.tsx" name="UserMenu &gt; closes the menu when clicking outside of it" time="0.1252662">
+        </testcase>
+        <testcase classname="test/apps/_components/UserMenu.test.tsx" name="UserMenu &gt; closes the menu when Escape is pressed" time="0.1102162">
+        </testcase>
+        <testcase classname="test/apps/_components/UserMenu.test.tsx" name="UserMenu &gt; stays open when a key other than Escape is pressed" time="0.1137762">
+        </testcase>
+        <testcase classname="test/apps/_components/UserMenu.test.tsx" name="UserMenu &gt; fetches the caller&apos;s own profile from auth-server and shows the formatted name/avatar image" time="0.0768662">
+        </testcase>
+        <testcase classname="test/apps/_components/UserMenu.test.tsx" name="UserMenu &gt; falls back to the uid/initials when the profile fetch fails" time="0.0608592">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/_lib/api.test.ts" timestamp="2026-09-07T02:24:55.188Z" hostname="Jane" tests="13" failures="0" errors="0" skipped="0" time="0.0114914">
+        <testcase classname="test/apps/_lib/api.test.ts" name="ApiRequestError &gt; carries status and code" time="0.0011634">
+        </testcase>
+        <testcase classname="test/apps/_lib/api.test.ts" name="ApiRequestError &gt; code is optional" time="0.0001615">
+        </testcase>
+        <testcase classname="test/apps/_lib/api.test.ts" name="apiFetch &gt; prefixes the path with /api and parses a JSON response" time="0.0042365">
+        </testcase>
+        <testcase classname="test/apps/_lib/api.test.ts" name="apiFetch &gt; leaves a caller-supplied Authorization header untouched" time="0.0003283">
+        </testcase>
+        <testcase classname="test/apps/_lib/api.test.ts" name="apiFetch &gt; sends no Authorization header by default (auth rides the jwt cookie instead)" time="0.0002815">
+        </testcase>
+        <testcase classname="test/apps/_lib/api.test.ts" name="apiFetch &gt; returns undefined for a non-JSON response body" time="0.0002127">
+        </testcase>
+        <testcase classname="test/apps/_lib/api.test.ts" name="apiFetch &gt; treats an unparseable JSON body as no body" time="0.0002273">
+        </testcase>
+        <testcase classname="test/apps/_lib/api.test.ts" name="apiFetch &gt; throws ApiRequestError using the body&apos;s message field on a non-ok response" time="0.001003">
+        </testcase>
+        <testcase classname="test/apps/_lib/api.test.ts" name="apiFetch &gt; falls back to the body&apos;s error field when message is absent" time="0.0003314">
+        </testcase>
+        <testcase classname="test/apps/_lib/api.test.ts" name="apiFetch &gt; falls back to statusText when the error response has no JSON body" time="0.0002626">
+        </testcase>
+        <testcase classname="test/apps/_lib/api.test.ts" name="apiFetch &gt; falls back to a generic message when there is no body and no statusText" time="0.0002105">
+        </testcase>
+        <testcase classname="test/apps/_lib/api.test.ts" name="authApiFetch &gt; prefixes the path with the given origin&apos;s /api and includes credentials" time="0.000771">
+        </testcase>
+        <testcase classname="test/apps/_lib/api.test.ts" name="authApiFetch &gt; decodes an error response the same way apiFetch does" time="0.000344">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/_lib/mailApi.test.ts" timestamp="2026-09-07T02:24:55.191Z" hostname="Jane" tests="36" failures="0" errors="0" skipped="0" time="0.0262864">
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="listMailboxes &gt; fetches with default pagination" time="0.0100038">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="listMailboxes &gt; forwards a custom page/limit" time="0.0004589">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="getMailbox &gt; fetches the encoded uid" time="0.0003432">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="createMailbox &gt; posts the input with aliasAddresses/usedBytes defaults" time="0.0006683">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="createMailbox &gt; omits ownerUserUid when not given, for a true ownerless shared mailbox" time="0.0002806">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="updateMailbox &gt; PUTs the encoded uid with the input" time="0.0004298">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="deleteMailbox &gt; DELETEs the encoded uid with the version query param" time="0.000256">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="listQuarantine &gt; fetches with the mailboxUid query param and default pagination" time="0.0002761">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="releaseQuarantineEntry &gt; PUTs releasedAt/releasedByUserUid for the encoded uid" time="0.0016532">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="listIngestQueue &gt; fetches with the mailboxUid query param and default pagination" time="0.0003792">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="getMailboxAcl &gt; fetches the encoded mailbox uid" time="0.0003075">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="grantMailboxAccess &gt; reads the current ACL then PUTs it with the new record appended" time="0.0004899">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="grantMailboxAccess &gt; replaces an existing record for the same userOrRoleId rather than duplicating it" time="0.0003748">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="revokeMailboxAccess &gt; reads the current ACL then PUTs it with the matching record removed" time="0.0003506">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="listFolders &gt; fetches with the mailboxUid query param" time="0.0002902">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="listMessages &gt; fetches with the folderUid query param and a newest-first sort" time="0.0003452">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="getMessage &gt; fetches the encoded uid" time="0.0002853">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="setMessageRead &gt; PUTs the message&apos;s uid/version with only the read flag changed" time="0.00028">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="listAttachments &gt; fetches with the folderUid/messageUid query params" time="0.000273">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="attachmentContentUrl &gt; builds the same-origin download URL for an encoded uid" time="0.0001017">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="uploadAttachment &gt; posts the file&apos;s raw bytes with its own content-type, not JSON" time="0.0008742">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="uploadAttachment &gt; falls back to application/octet-stream when the file has no type" time="0.0002871">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="uploadAttachment &gt; throws ApiRequestError using the body&apos;s message field on a non-ok response" time="0.0010812">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="uploadAttachment &gt; falls back to the body&apos;s error field when message is absent" time="0.0003346">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="uploadAttachment &gt; treats an unparseable JSON body as no body" time="0.0002684">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="uploadAttachment &gt; returns undefined for a non-JSON success response body" time="0.0002046">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="uploadAttachment &gt; falls back to statusText when the error response has no JSON body" time="0.000235">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="uploadAttachment &gt; falls back to statusText when the JSON body has neither message nor error" time="0.0002591">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="uploadAttachment &gt; falls back to a generic message when there is no body and no statusText" time="0.0002592">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="createDraft &gt; posts the mailboxUid/folderUid with a generated messageId" time="0.000509">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="assembleDraft &gt; posts the compose input to the encoded draft&apos;s assemble endpoint" time="0.0003512">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="sendMessage &gt; posts to the encoded message&apos;s send endpoint" time="0.000289">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="impersonateUser &gt; posts the target user&apos;s uid to auth-server, with credentials included" time="0.0003757">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="impersonateUser &gt; posts to this app&apos;s own local dev-only endpoint when impersonationBaseUrl is empty" time="0.0002752">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="stopImpersonating &gt; GETs auth-server&apos;s stop endpoint with credentials included" time="0.0003005">
+        </testcase>
+        <testcase classname="test/apps/_lib/mailApi.test.ts" name="stopImpersonating &gt; GETs this app&apos;s own local dev-only stop endpoint when impersonationBaseUrl is empty" time="0.0002482">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/_lib/Modal.test.tsx" timestamp="2026-09-07T02:24:55.196Z" hostname="Jane" tests="10" failures="0" errors="0" skipped="0" time="0.5536637">
+        <testcase classname="test/apps/_lib/Modal.test.tsx" name="Modal &gt; renders nothing when closed" time="0.0176546">
+        </testcase>
+        <testcase classname="test/apps/_lib/Modal.test.tsx" name="Modal &gt; renders its title and children into a portal on document.body when open" time="0.0592018">
+        </testcase>
+        <testcase classname="test/apps/_lib/Modal.test.tsx" name="Modal &gt; calls onClose when the backdrop is clicked" time="0.0665442">
+        </testcase>
+        <testcase classname="test/apps/_lib/Modal.test.tsx" name="Modal &gt; does not call onClose when the dialog body itself is clicked" time="0.063311">
+        </testcase>
+        <testcase classname="test/apps/_lib/Modal.test.tsx" name="Modal &gt; calls onClose when the close button is clicked" time="0.0464426">
+        </testcase>
+        <testcase classname="test/apps/_lib/Modal.test.tsx" name="Modal &gt; calls onClose when Escape is pressed" time="0.0479596">
+        </testcase>
+        <testcase classname="test/apps/_lib/Modal.test.tsx" name="Modal &gt; does not call onClose for a non-Escape key" time="0.0460783">
+        </testcase>
+        <testcase classname="test/apps/_lib/Modal.test.tsx" name="Modal &gt; does not attempt to restore focus to a previously-focused element that isn&apos;t an HTMLElement" time="0.0472793">
+        </testcase>
+        <testcase classname="test/apps/_lib/Modal.test.tsx" name="Modal &gt; moves focus into the dialog on open and restores it to the trigger on close" time="0.1100951">
+        </testcase>
+        <testcase classname="test/apps/_lib/Modal.test.tsx" name="Modal &gt; stops listening for Escape after unmount" time="0.0469414">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/_lib/profileApi.test.ts" timestamp="2026-09-07T02:24:55.199Z" hostname="Jane" tests="10" failures="0" errors="0" skipped="0" time="0.0082567">
+        <testcase classname="test/apps/_lib/profileApi.test.ts" name="getMyProfile &gt; fetches auth-server&apos;s /profiles/me with credentials included" time="0.0053006">
+        </testcase>
+        <testcase classname="test/apps/_lib/profileApi.test.ts" name="formatProfileName &gt; joins givenName and familyName" time="0.0002567">
+        </testcase>
+        <testcase classname="test/apps/_lib/profileApi.test.ts" name="formatProfileName &gt; uses just givenName when familyName is absent" time="0.0001181">
+        </testcase>
+        <testcase classname="test/apps/_lib/profileApi.test.ts" name="formatProfileName &gt; uses just familyName when givenName is absent" time="0.0001034">
+        </testcase>
+        <testcase classname="test/apps/_lib/profileApi.test.ts" name="formatProfileName &gt; returns undefined when neither is set" time="0.0001173">
+        </testcase>
+        <testcase classname="test/apps/_lib/profileApi.test.ts" name="formatProfileName &gt; returns undefined when the profile itself is undefined" time="0.0000839">
+        </testcase>
+        <testcase classname="test/apps/_lib/profileApi.test.ts" name="profileInitials &gt; combines the first letter of givenName and familyName" time="0.000132">
+        </testcase>
+        <testcase classname="test/apps/_lib/profileApi.test.ts" name="profileInitials &gt; falls back to the uid&apos;s first letter when the profile has no name" time="0.0000829">
+        </testcase>
+        <testcase classname="test/apps/_lib/profileApi.test.ts" name="profileInitials &gt; falls back to the uid&apos;s first letter when the profile itself is undefined" time="0.0000834">
+        </testcase>
+        <testcase classname="test/apps/_lib/profileApi.test.ts" name="profileInitials &gt; falls back to &apos;?&apos; when there is no name and no uid" time="0.0000702">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/_lib/session.test.tsx" timestamp="2026-09-07T02:24:55.201Z" hostname="Jane" tests="3" failures="0" errors="0" skipped="0" time="0.0344632">
+        <testcase classname="test/apps/_lib/session.test.tsx" name="useRedirectIfUnauthenticated &gt; redirects to auth-server&apos;s sign-in page with return_to when there is no userUid" time="0.0181202">
+        </testcase>
+        <testcase classname="test/apps/_lib/session.test.tsx" name="useRedirectIfUnauthenticated &gt; does not redirect once userUid is present" time="0.0010305">
+        </testcase>
+        <testcase classname="test/apps/_lib/session.test.tsx" name="useRedirectIfUnauthenticated &gt; logs an error instead of redirecting when authServerUrl is not configured" time="0.0132833">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/admin/ingest-queue/index.ssr.test.tsx" timestamp="2026-09-07T02:24:55.201Z" hostname="Jane" tests="2" failures="0" errors="0" skipped="0" time="0.00703">
+        <testcase classname="test/apps/admin/ingest-queue/index.ssr.test.tsx" name="IngestQueuePage SSR guard (no window) &gt; renders without throwing when there is no window global" time="0.005849">
+        </testcase>
+        <testcase classname="test/apps/admin/ingest-queue/index.ssr.test.tsx" name="IngestQueuePage SSR guard (no window) &gt; readMailboxUid() returns null when there is no window global" time="0.000158">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/admin/ingest-queue/index.test.tsx" timestamp="2026-09-07T02:24:55.202Z" hostname="Jane" tests="6" failures="0" errors="0" skipped="0" time="0.2023519">
+        <testcase classname="test/apps/admin/ingest-queue/index.test.tsx" name="IngestQueuePage &gt; shows an alert when no mailboxUid is given" time="0.0338084">
+        </testcase>
+        <testcase classname="test/apps/admin/ingest-queue/index.test.tsx" name="IngestQueuePage &gt; shows an empty-state message when there is nothing queued" time="0.0189368">
+        </testcase>
+        <testcase classname="test/apps/admin/ingest-queue/index.test.tsx" name="IngestQueuePage &gt; lists entries with their status and error message" time="0.0286084">
+        </testcase>
+        <testcase classname="test/apps/admin/ingest-queue/index.test.tsx" name="IngestQueuePage &gt; shows an error message when loading fails" time="0.0171981">
+        </testcase>
+        <testcase classname="test/apps/admin/ingest-queue/index.test.tsx" name="IngestQueuePage &gt; shows a generic error message when loading fails with a non-API error" time="0.0155978">
+        </testcase>
+        <testcase classname="test/apps/admin/ingest-queue/index.test.tsx" name="IngestQueuePage &gt; links back to the mailbox&apos;s detail page" time="0.0863343">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/admin/_components/AdminShell.test.tsx" timestamp="2026-09-07T02:24:55.203Z" hostname="Jane" tests="6" failures="0" errors="0" skipped="0" time="0.4363566">
+        <testcase classname="test/apps/admin/_components/AdminShell.test.tsx" name="AdminShell &gt; redirects to auth-server&apos;s sign-in page, carrying return_to, when there is no userUid" time="0.032976">
+        </testcase>
+        <testcase classname="test/apps/admin/_components/AdminShell.test.tsx" name="AdminShell &gt; shows an access-denied message when the /admin canary returns 403" time="0.0248253">
+        </testcase>
+        <testcase classname="test/apps/admin/_components/AdminShell.test.tsx" name="AdminShell &gt; shows an error message when the authorization check fails for a reason other than 401/403" time="0.0165027">
+        </testcase>
+        <testcase classname="test/apps/admin/_components/AdminShell.test.tsx" name="AdminShell &gt; shows a generic error message when the authorization check fails with a non-API error" time="0.0142525">
+        </testcase>
+        <testcase classname="test/apps/admin/_components/AdminShell.test.tsx" name="AdminShell &gt; renders the nav chrome and children once authorized, and signs out to auth-server" time="0.2031108">
+        </testcase>
+        <testcase classname="test/apps/admin/_components/AdminShell.test.tsx" name="AdminShell &gt; signs out to &apos;/&apos; when authServerUrl is not configured" time="0.1422198">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/admin/_components/MailboxTable.test.tsx" timestamp="2026-09-07T02:24:55.204Z" hostname="Jane" tests="4" failures="0" errors="0" skipped="0" time="0.0971466">
+        <testcase classname="test/apps/admin/_components/MailboxTable.test.tsx" name="MailboxTable &gt; shows an empty-state message when there are no mailboxes" time="0.0178353">
+        </testcase>
+        <testcase classname="test/apps/admin/_components/MailboxTable.test.tsx" name="MailboxTable &gt; renders a row per mailbox with a link to its detail page" time="0.0719107">
+        </testcase>
+        <testcase classname="test/apps/admin/_components/MailboxTable.test.tsx" name="MailboxTable &gt; shows a &apos;Shared&apos; badge instead of an owner uid for an ownerless mailbox" time="0.003445">
+        </testcase>
+        <testcase classname="test/apps/admin/_components/MailboxTable.test.tsx" name="MailboxTable &gt; formats a sub-KB and sub-MB quota correctly" time="0.0019458">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/admin/_components/ShareAccessCard.test.tsx" timestamp="2026-09-07T02:24:55.205Z" hostname="Jane" tests="11" failures="0" errors="0" skipped="0" time="1.3234296">
+        <testcase classname="test/apps/admin/_components/ShareAccessCard.test.tsx" name="ShareAccessCard &gt; shows an empty-state message when the mailbox&apos;s ACL has no records" time="0.0379282">
+        </testcase>
+        <testcase classname="test/apps/admin/_components/ShareAccessCard.test.tsx" name="ShareAccessCard &gt; lists existing grants with their actions" time="0.0156707">
+        </testcase>
+        <testcase classname="test/apps/admin/_components/ShareAccessCard.test.tsx" name="ShareAccessCard &gt; shows an error message when loading the ACL fails" time="0.0153179">
+        </testcase>
+        <testcase classname="test/apps/admin/_components/ShareAccessCard.test.tsx" name="ShareAccessCard &gt; shows a generic error message when loading the ACL fails with a non-API error" time="0.0162025">
+        </testcase>
+        <testcase classname="test/apps/admin/_components/ShareAccessCard.test.tsx" name="ShareAccessCard &gt; grants access to a new delegate and reloads the list" time="0.3157001">
+        </testcase>
+        <testcase classname="test/apps/admin/_components/ShareAccessCard.test.tsx" name="ShareAccessCard &gt; does not submit the grant form when the input is blank" time="0.0768784">
+        </testcase>
+        <testcase classname="test/apps/admin/_components/ShareAccessCard.test.tsx" name="ShareAccessCard &gt; shows an error when granting access fails" time="0.3143665">
+        </testcase>
+        <testcase classname="test/apps/admin/_components/ShareAccessCard.test.tsx" name="ShareAccessCard &gt; shows a generic error message when granting access fails with a non-API error" time="0.2950329">
+        </testcase>
+        <testcase classname="test/apps/admin/_components/ShareAccessCard.test.tsx" name="ShareAccessCard &gt; revokes an existing delegate&apos;s access and reloads the list" time="0.0792559">
+        </testcase>
+        <testcase classname="test/apps/admin/_components/ShareAccessCard.test.tsx" name="ShareAccessCard &gt; shows an error when revoking access fails" time="0.092835">
+        </testcase>
+        <testcase classname="test/apps/admin/_components/ShareAccessCard.test.tsx" name="ShareAccessCard &gt; shows a generic error message when revoking access fails with a non-API error" time="0.0621248">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/admin/quarantine/index.ssr.test.tsx" timestamp="2026-09-07T02:24:55.206Z" hostname="Jane" tests="2" failures="0" errors="0" skipped="0" time="0.0077906">
+        <testcase classname="test/apps/admin/quarantine/index.ssr.test.tsx" name="QuarantinePage SSR guard (no window) &gt; renders without throwing when there is no window global" time="0.0063485">
+        </testcase>
+        <testcase classname="test/apps/admin/quarantine/index.ssr.test.tsx" name="QuarantinePage SSR guard (no window) &gt; readMailboxUid() returns null when there is no window global" time="0.0002546">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/admin/quarantine/index.test.tsx" timestamp="2026-09-07T02:24:55.207Z" hostname="Jane" tests="8" failures="0" errors="0" skipped="0" time="0.4345162">
+        <testcase classname="test/apps/admin/quarantine/index.test.tsx" name="QuarantinePage &gt; shows an alert when no mailboxUid is given" time="0.0345146">
+        </testcase>
+        <testcase classname="test/apps/admin/quarantine/index.test.tsx" name="QuarantinePage &gt; shows an empty-state message when nothing is quarantined" time="0.0213871">
+        </testcase>
+        <testcase classname="test/apps/admin/quarantine/index.test.tsx" name="QuarantinePage &gt; lists held entries and releases one" time="0.1646266">
+        </testcase>
+        <testcase classname="test/apps/admin/quarantine/index.test.tsx" name="QuarantinePage &gt; shows an error message when loading fails" time="0.0237973">
+        </testcase>
+        <testcase classname="test/apps/admin/quarantine/index.test.tsx" name="QuarantinePage &gt; shows a generic error message when loading fails with a non-API error" time="0.0158028">
+        </testcase>
+        <testcase classname="test/apps/admin/quarantine/index.test.tsx" name="QuarantinePage &gt; shows an error message when releasing fails" time="0.0785584">
+        </testcase>
+        <testcase classname="test/apps/admin/quarantine/index.test.tsx" name="QuarantinePage &gt; shows a generic error message when releasing fails with a non-API error" time="0.0628529">
+        </testcase>
+        <testcase classname="test/apps/admin/quarantine/index.test.tsx" name="QuarantinePage &gt; links back to the mailbox&apos;s detail page" time="0.0310241">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/admin/mailboxes/detail/index.ssr.test.tsx" timestamp="2026-09-07T02:24:55.208Z" hostname="Jane" tests="2" failures="0" errors="0" skipped="0" time="0.0077221">
+        <testcase classname="test/apps/admin/mailboxes/detail/index.ssr.test.tsx" name="MailboxDetailPage SSR guard (no window) &gt; renders without throwing when there is no window global" time="0.0064357">
+        </testcase>
+        <testcase classname="test/apps/admin/mailboxes/detail/index.ssr.test.tsx" name="MailboxDetailPage SSR guard (no window) &gt; readTargetUid() returns null when there is no window global" time="0.0001885">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/admin/mailboxes/detail/index.test.tsx" timestamp="2026-09-07T02:24:55.208Z" hostname="Jane" tests="13" failures="0" errors="0" skipped="0" time="0.5132797">
+        <testcase classname="test/apps/admin/mailboxes/detail/index.test.tsx" name="MailboxDetailPage &gt; shows an alert when no uid is given" time="0.0349046">
+        </testcase>
+        <testcase classname="test/apps/admin/mailboxes/detail/index.test.tsx" name="MailboxDetailPage &gt; renders mailbox details, links to quarantine/ingest-queue, and the share panel once loaded" time="0.1129556">
+        </testcase>
+        <testcase classname="test/apps/admin/mailboxes/detail/index.test.tsx" name="MailboxDetailPage &gt; formats sub-GB and sub-KB quota sizes correctly" time="0.0107009">
+        </testcase>
+        <testcase classname="test/apps/admin/mailboxes/detail/index.test.tsx" name="MailboxDetailPage &gt; formats a sub-MB, KB-range quota correctly" time="0.011134">
+        </testcase>
+        <testcase classname="test/apps/admin/mailboxes/detail/index.test.tsx" name="MailboxDetailPage &gt; shows &apos;None (shared mailbox)&apos; for an ownerless mailbox" time="0.0107301">
+        </testcase>
+        <testcase classname="test/apps/admin/mailboxes/detail/index.test.tsx" name="MailboxDetailPage &gt; shows &apos;None&apos; when the mailbox has no alias addresses" time="0.0108684">
+        </testcase>
+        <testcase classname="test/apps/admin/mailboxes/detail/index.test.tsx" name="MailboxDetailPage &gt; shows an error message when the mailbox fails to load" time="0.0220492">
+        </testcase>
+        <testcase classname="test/apps/admin/mailboxes/detail/index.test.tsx" name="MailboxDetailPage &gt; shows a generic error message when loading the mailbox fails with a non-API error" time="0.0157695">
+        </testcase>
+        <testcase classname="test/apps/admin/mailboxes/detail/index.test.tsx" name="MailboxDetailPage &gt; falls back to &apos;Mailbox not found.&apos; when the load succeeds with no mailbox and no error" time="0.0159778">
+        </testcase>
+        <testcase classname="test/apps/admin/mailboxes/detail/index.test.tsx" name="MailboxDetailPage &gt; hides the &apos;Access this mailbox&apos; button for an ownerless mailbox" time="0.0220953">
+        </testcase>
+        <testcase classname="test/apps/admin/mailboxes/detail/index.test.tsx" name="MailboxDetailPage &gt; shows an error message when impersonation fails" time="0.0874783">
+        </testcase>
+        <testcase classname="test/apps/admin/mailboxes/detail/index.test.tsx" name="MailboxDetailPage &gt; shows a generic error message when impersonation fails with a non-API error" time="0.079168">
+        </testcase>
+        <testcase classname="test/apps/admin/mailboxes/detail/index.test.tsx" name="MailboxDetailPage &gt; impersonates via this app&apos;s own local endpoint and redirects when impersonationBaseUrl isn&apos;t provided" time="0.0773883">
+        </testcase>
+    </testsuite>
+    <testsuite name="test/apps/admin/mailboxes/new/index.test.tsx" timestamp="2026-09-07T02:24:55.210Z" hostname="Jane" tests="6" failures="0" errors="0" skipped="0" time="3.4129324">
+        <testcase classname="test/apps/admin/mailboxes/new/index.test.tsx" name="NewMailboxPage &gt; validates required fields before submitting" time="0.572651">
+        </testcase>
+        <testcase classname="test/apps/admin/mailboxes/new/index.test.tsx" name="NewMailboxPage &gt; creates the mailbox (with custom timezone/quota) and redirects to its detail page" time="1.0900318">
+        </testcase>
+        <testcase classname="test/apps/admin/mailboxes/new/index.test.tsx" name="NewMailboxPage &gt; creates a mailbox with an explicit owner when one is provided" time="0.545991">
+        </testcase>
+        <testcase classname="test/apps/admin/mailboxes/new/index.test.tsx" name="NewMailboxPage &gt; shows an error message when creation fails" time="0.6080645">
+        </testcase>
+        <testcase classname="test/apps/admin/mailboxes/new/index.test.tsx" name="NewMailboxPage &gt; shows a generic error message when creation fails with a non-API error" time="0.5776218">
+        </testcase>
+        <testcase classname="test/apps/admin/mailboxes/new/index.test.tsx" name="NewMailboxPage &gt; the Cancel link returns to the mailboxes list" time="0.0165654">
+        </testcase>
+    </testsuite>
+</testsuites>

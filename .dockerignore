@@ -1,0 +1,13 @@
+.claude
+.git
+.github
+.vscode
+*.log
+coverage
+dist
+helm
+junit.xml
+k6-tests
+node_modules
+passwords
+test

@@ -1,0 +1,9 @@
+services:
+    server:
+        command: ["yarn", "debug"]
+        ports:
+            - "3000:3000"
+            - "9229:9229"
+        volumes:
+            - ./apps:/app/apps
+            - ./src:/app/src

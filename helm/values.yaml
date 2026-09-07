@@ -1,0 +1,88 @@
+host: localhost
+environment: dev
+auth:
+  audience: '{{ .Values.host }}'
+  issuer: 'api.{{ .Values.host }}'
+  expiresIn: 1 hour
+  secret: '{{ randAlphaNum 32 }}'
+cookies:
+  secret: '{{ randAlphaNum 32 }}'
+sessions:
+  secret: '{{ randAlphaNum 32 }}'
+common:
+  storageClass: default
+  logs:
+    level: info
+gateway:
+  name: api-gateway
+  namespace: '{{ .Release.Namespace }}'
+  hsts: true
+  tls: true
+
+redis:
+  create: true
+  url: 'redis://db-redis-master'
+  architecture: standalone
+  auth:
+    enabled: true
+  fullnameOverride: db-redis
+  master:
+    persistence:
+      enabled: false
+  replica:
+    persistence:
+      enabled: false
+  networkPolicy:
+    enabled: true
+    allowExternal: false
+
+
+mongodb:
+  create: true
+  architecture: standalone
+  fullnameOverride: mongodb
+  auth:
+    enabled: true
+
+postgresql:
+  create: false
+  architecture: standalone
+  fullnameOverride: postgresql
+  auth:
+    enablePostgresUser: true
+    # PostgreSQL (unlike MongoDB) won't create databases on first connection, so only one
+    # extra database is auto-provisioned here. The acl datastore below defaults to the
+    # built-in "postgres" database; override service.postgresql.acl.name if you provision a
+    # dedicated database for it out-of-band.
+    database: rrst_auth
+
+service:
+  image:
+    registry: ghcr.io
+    repository: rapidrest/mail-server
+    tag: ""
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+  mongodb:
+    acl:
+      name: access_control_lists
+      host: ''
+    mongo:
+      name: rrst_auth
+      host: ''
+  postgresql:
+    acl:
+      name: postgres
+      host: ''
+    sql:
+      name: rrst_auth
+      host: ''
+  config:
+    logs: true
+    metrics: true
+    releaseNotes: true
