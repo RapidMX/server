@@ -49,7 +49,7 @@ export class DevAutoAuthStrategy implements AuthStrategy {
     private logger: any;
 
     private buildDevUser(): JWTUser {
-        return { uid: this.devUid, roles: this.devRoles, scopes: [] };
+        return { uid: this.devUid, roles: this.devRoles, scopes: [], elevated: Date.now() };
     }
 
     /** Plain http (no TLS) in local dev — a `Secure` cookie would never be sent back by the browser at all,
