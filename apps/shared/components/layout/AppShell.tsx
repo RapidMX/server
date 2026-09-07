@@ -1,0 +1,142 @@
+///////////////////////////////////////////////////////////////////////////////
+// Copyright (C) 2026 Jean-Philippe Steinmetz
+// SPDX-License-Identifier: MPL-2.0
+///////////////////////////////////////////////////////////////////////////////
+import "../../styles/app.css";
+import React, { PropsWithChildren, useState } from "react";
+import type { IconType } from "react-icons";
+import { HiOutlineCalendarDays, HiOutlineClipboardDocumentList, HiOutlineEnvelope, HiOutlineUsers } from "react-icons/hi2";
+import { useRedirectIfUnauthenticated } from "../../lib/session.js";
+import { stopImpersonating } from "../../lib/mailApi.js";
+import UserMenu from "./UserMenu.js";
+
+export type AppShellApp = "mail" | "calendar" | "contacts" | "tasks";
+
+export interface AppShellProps {
+    /** Which icon in the rail is highlighted as the current app. */
+    active: AppShellApp;
+    /** Populated automatically by the framework from an authenticated request (e.g. a valid `jwt` cookie). */
+    userUid?: string;
+    /** auth-server's base URL, injected via the route's `fetchProps`. */
+    authServerUrl?: string;
+    /**
+     * `true` when this session is an admin "log in as user" impersonation (a `jwt_impersonator` cookie is
+     * present) — see `MailShell`'s original doc comment, unchanged now that this lives here. Drives the
+     * "you are viewing as this user — stop impersonating" banner below.
+     */
+    impersonating?: boolean;
+    /** Where `mailApi.ts`'s `stopImpersonating()` should call — see `MailShell`'s original doc comment. */
+    impersonationBaseUrl?: string;
+    /** `true` when the caller's JWT carries a trusted role — shows an "Admin" item in the user menu below. */
+    trusted?: boolean;
+}
+
+interface AppDef {
+    id: AppShellApp;
+    href: string;
+    label: string;
+    icon: IconType;
+}
+
+const APPS: AppDef[] = [
+    { id: "mail", href: "/", label: "Mail", icon: HiOutlineEnvelope },
+    { id: "calendar", href: "/calendar", label: "Calendar", icon: HiOutlineCalendarDays },
+    { id: "contacts", href: "/contacts", label: "Contacts", icon: HiOutlineUsers },
+    { id: "tasks", href: "/tasks", label: "Tasks", icon: HiOutlineClipboardDocumentList },
+];
+
+/**
+ * The persistent chrome shared by every webmail app (Mail, Calendar, Contacts, Tasks): a left icon rail for
+ * switching apps (full page loads — see `MailShell`'s original doc comment on this framework having no
+ * client-side router), a header with the current app's name and `UserMenu`, and the impersonation banner.
+ * Each app's own shell (e.g. `MailShell`) renders its own contextual sidebar + content as `children`, inside
+ * the area to the right of the icon rail and below the header.
+ */
+export default function AppShell({
+    active,
+    userUid,
+    authServerUrl,
+    impersonating,
+    impersonationBaseUrl,
+    trusted,
+    children,
+}: PropsWithChildren<AppShellProps>) {
+    const [stoppingImpersonation, setStoppingImpersonation] = useState(false);
+
+    useRedirectIfUnauthenticated(userUid, authServerUrl);
+
+    function handleSignOut() {
+        window.location.href = authServerUrl ?? "/";
+    }
+
+    async function handleStopImpersonating() {
+        setStoppingImpersonation(true);
+        try {
+            await stopImpersonating(impersonationBaseUrl ?? "");
+        } catch {
+            // Navigate either way: a failed call leaves the impersonator cookie (and this banner) exactly as
+            // they were, so there's nothing else useful to show — matching this app's other network-error
+            // handling, which surfaces via a full reload rather than an inline retry affordance.
+        } finally {
+            window.location.href = "/admin";
+        }
+    }
+
+    if (!userUid) {
+        return <div className="min-h-screen" />;
+    }
+
+    const activeApp = APPS.find((app) => app.id === active);
+
+    return (
+        <div className="min-h-screen flex flex-col bg-surface-alt">
+            {impersonating && (
+                <div className="h-10 shrink-0 bg-warning text-warning-contrast flex items-center justify-center gap-3 text-sm font-medium px-4">
+                    <span>
+                        You are viewing as <strong>{userUid}</strong>.
+                    </span>
+                    <button
+                        type="button"
+                        onClick={handleStopImpersonating}
+                        disabled={stoppingImpersonation}
+                        className="underline hover:no-underline disabled:opacity-60"
+                    >
+                        {stoppingImpersonation ? "Returning to admin…" : "Return to admin"}
+                    </button>
+                </div>
+            )}
+            <div className="flex-1 flex min-h-0">
+                <nav
+                    aria-label="Apps"
+                    className="w-14 shrink-0 bg-surface border-r border-border flex flex-col items-center py-3 gap-1"
+                >
+                    <img src="/images/logo.svg" width="28" height="28" alt="" className="mb-3" />
+                    {APPS.map(({ id, href, label, icon: Icon }) => (
+                        <a
+                            key={id}
+                            href={href}
+                            aria-label={label}
+                            aria-current={id === active ? "page" : undefined}
+                            title={label}
+                            className={[
+                                "w-10 h-10 flex items-center justify-center rounded-sm",
+                                id === active
+                                    ? "bg-primary/10 text-primary-dark"
+                                    : "text-text-muted hover:bg-surface-alt hover:text-text",
+                            ].join(" ")}
+                        >
+                            <Icon size={20} aria-hidden="true" />
+                        </a>
+                    ))}
+                </nav>
+                <div className="flex-1 flex flex-col min-w-0">
+                    <header className="h-16 shrink-0 bg-surface border-b border-border flex items-center justify-between gap-4 px-6">
+                        <span className="font-bold text-lg tracking-tight">{activeApp?.label}</span>
+                        <UserMenu userUid={userUid} authServerUrl={authServerUrl} onSignOut={handleSignOut} showAdminLink={trusted} />
+                    </header>
+                    <div className="flex-1 flex min-h-0">{children}</div>
+                </div>
+            </div>
+        </div>
+    );
+}

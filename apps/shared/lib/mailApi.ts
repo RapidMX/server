@@ -11,6 +11,9 @@
  */
 
 import { ApiRequestError, apiFetch, authApiFetch } from "./api.js";
+import { ListParams, buildQuery } from "./apiQuery.js";
+
+export type { ListParams };
 
 export interface Mailbox {
     uid: string;
@@ -25,21 +28,6 @@ export interface Mailbox {
     timezone: string;
     quotaBytes: number;
     usedBytes: number;
-}
-
-export interface ListParams {
-    page?: number;
-    limit?: number;
-}
-
-const DEFAULT_PAGE_SIZE = 25;
-
-function buildQuery(params: ListParams, extra: Record<string, string> = {}): string {
-    const parts: string[] = [`limit=${params.limit ?? DEFAULT_PAGE_SIZE}`, `page=${params.page ?? 0}`];
-    for (const [key, value] of Object.entries(extra)) {
-        parts.push(`${key}=${encodeURIComponent(value)}`);
-    }
-    return parts.join("&");
 }
 
 /** Lists mailboxes the caller can access (owned, shared with them, or — for a trusted caller — every one). */

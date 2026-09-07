@@ -1,0 +1,168 @@
+// @vitest-environment jsdom
+///////////////////////////////////////////////////////////////////////////////
+// Copyright (C) 2026 Jean-Philippe Steinmetz. All rights reserved.
+///////////////////////////////////////////////////////////////////////////////
+import React from "react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { jsonResponse, mockFetch, mockLocation } from "../testUtils.js";
+import TasksShell, { useTasksShell } from "../../../apps/shared/components/tasks/layout/TasksShell.js";
+
+const mailboxA = {
+    uid: "mb-a",
+    version: 0,
+    dateCreated: "2026-01-01T00:00:00.000Z",
+    dateModified: "2026-01-01T00:00:00.000Z",
+    ownerUserUid: "u1",
+    primarySmtpAddress: "a@example.com",
+    aliasAddresses: [],
+    displayName: "Mailbox A",
+    timezone: "UTC",
+    quotaBytes: 1_000_000_000,
+    usedBytes: 0,
+};
+const mailboxB = { ...mailboxA, uid: "mb-b", displayName: "Mailbox B", ownerUserUid: undefined };
+
+const tasksFolder = {
+    uid: "f-tasks",
+    version: 0,
+    dateCreated: "2026-01-01T00:00:00.000Z",
+    dateModified: "2026-01-01T00:00:00.000Z",
+    mailboxUid: "mb-a",
+    name: "Tasks",
+    type: "tasks" as const,
+    unreadCount: 0,
+    totalCount: 0,
+};
+
+function mockMailboxesAndFolders(mailboxes: unknown[], folders: unknown[]) {
+    return mockFetch((url) => {
+        if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, mailboxes);
+        if (url.startsWith("/api/mail/folders")) return jsonResponse(200, folders);
+        throw new Error(`unexpected ${url}`);
+    });
+}
+
+afterEach(() => {
+    vi.unstubAllGlobals();
+});
+
+describe("TasksShell", () => {
+    it("redirects to auth-server's sign-in page when there is no userUid", async () => {
+        const location = mockLocation();
+        location.href = "https://mail.example.com/tasks";
+        render(<TasksShell authServerUrl="https://auth.example.com">content</TasksShell>);
+        await waitFor(() =>
+            expect(location.href).toBe(
+                `https://auth.example.com/auth/signin?return_to=${encodeURIComponent("https://mail.example.com/tasks")}`,
+            ),
+        );
+        expect(screen.queryByText("content")).not.toBeInTheDocument();
+    });
+
+    it("shows an error message when loading mailboxes fails", async () => {
+        mockFetch(() => jsonResponse(500, { message: "boom" }));
+        render(<TasksShell userUid="u1">content</TasksShell>);
+        expect(await screen.findByText("boom")).toBeInTheDocument();
+    });
+
+    it("shows a generic error message when loading mailboxes fails with a non-API error", async () => {
+        mockFetch(() => {
+            throw new TypeError("network down");
+        });
+        render(<TasksShell userUid="u1">content</TasksShell>);
+        expect(await screen.findByText("Could not load your mailboxes.")).toBeInTheDocument();
+    });
+
+    it("shows a no-mailboxes message and renders no switcher when the caller has none", async () => {
+        mockMailboxesAndFolders([], []);
+        render(<TasksShell userUid="u1">content</TasksShell>);
+        expect(await screen.findByText("No mailboxes available.")).toBeInTheDocument();
+        expect(screen.getByText("content")).toBeInTheDocument();
+        expect(screen.queryByLabelText("Mailbox")).not.toBeInTheDocument();
+    });
+
+    it("renders a single mailbox's tasks folder with no mailbox switcher", async () => {
+        mockMailboxesAndFolders([mailboxA], [tasksFolder]);
+        render(<TasksShell userUid="u1">content</TasksShell>);
+
+        await screen.findByText("content");
+        expect(screen.queryByLabelText("Mailbox")).not.toBeInTheDocument();
+    });
+
+    it("shows the mailbox switcher when more than one mailbox is accessible, marking a shared one", async () => {
+        mockMailboxesAndFolders([mailboxA, mailboxB], [tasksFolder]);
+        render(<TasksShell userUid="u1">content</TasksShell>);
+
+        await screen.findByLabelText("Mailbox");
+        expect(screen.getByRole("option", { name: "Mailbox A" })).toBeInTheDocument();
+        expect(screen.getByRole("option", { name: "Mailbox B (shared)" })).toBeInTheDocument();
+    });
+
+    it("navigates to the chosen mailbox when the switcher's selection changes", async () => {
+        mockMailboxesAndFolders([mailboxA, mailboxB], [tasksFolder]);
+        const location = mockLocation();
+        const user = userEvent.setup();
+        render(<TasksShell userUid="u1">content</TasksShell>);
+
+        const select = await screen.findByLabelText("Mailbox");
+        await user.selectOptions(select, "mb-b");
+
+        expect(location.href).toBe("/tasks?mailboxUid=mb-b");
+    });
+
+    it("shows an error message when loading folders fails", async () => {
+        mockFetch((url) => {
+            if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailboxA]);
+            if (url.startsWith("/api/mail/folders")) return jsonResponse(500, { message: "folder boom" });
+            throw new Error(`unexpected ${url}`);
+        });
+        render(<TasksShell userUid="u1">content</TasksShell>);
+        expect(await screen.findByText("folder boom")).toBeInTheDocument();
+    });
+
+    it("shows a generic error message when loading folders fails with a non-API error", async () => {
+        mockFetch((url) => {
+            if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailboxA]);
+            throw new TypeError("network down");
+        });
+        render(<TasksShell userUid="u1">content</TasksShell>);
+        expect(await screen.findByText("Could not load this mailbox's tasks folder.")).toBeInTheDocument();
+    });
+
+    it("honors a ?mailboxUid= query param that names an accessible mailbox", async () => {
+        const location = mockLocation();
+        (location as any).search = "?mailboxUid=mb-b";
+        mockMailboxesAndFolders([mailboxA, mailboxB], [tasksFolder]);
+        render(<TasksShell userUid="u1">content</TasksShell>);
+
+        const select = await screen.findByLabelText("Mailbox");
+        expect(select).toHaveValue("mb-b");
+    });
+
+    it("ignores a ?mailboxUid= query param that isn't one of the caller's accessible mailboxes", async () => {
+        const location = mockLocation();
+        (location as any).search = "?mailboxUid=not-mine";
+        mockMailboxesAndFolders([mailboxA, mailboxB], [tasksFolder]);
+        render(<TasksShell userUid="u1">content</TasksShell>);
+
+        const select = await screen.findByLabelText("Mailbox");
+        expect(select).toHaveValue("mb-a");
+    });
+
+    it("provides the resolved mailbox/folder/mailboxes to children via useTasksShell()", async () => {
+        function Probe() {
+            const { mailboxUid, folderUid, mailboxes } = useTasksShell();
+            return <span>{`${mailboxUid}/${folderUid}/${mailboxes.length}`}</span>;
+        }
+        mockMailboxesAndFolders([mailboxA], [tasksFolder]);
+        render(
+            <TasksShell userUid="u1">
+                <Probe />
+            </TasksShell>,
+        );
+
+        expect(await screen.findByText("mb-a/f-tasks/1")).toBeInTheDocument();
+    });
+});

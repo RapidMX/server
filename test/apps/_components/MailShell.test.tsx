@@ -239,7 +239,7 @@ describe("MailShell", () => {
         mockMailboxesAndFolders([mailboxA], [inboxFolder]);
         render(<MailShell userUid="u1">content</MailShell>);
         await screen.findByText("content");
-        expect(screen.queryByText(/You are viewing this mailbox as/)).not.toBeInTheDocument();
+        expect(screen.queryByText(/You are viewing as/)).not.toBeInTheDocument();
     });
 
     it("shows the impersonation banner and returns to admin when 'Return to admin' is clicked", async () => {
@@ -259,7 +259,7 @@ describe("MailShell", () => {
             </MailShell>,
         );
 
-        expect(await screen.findByText(/You are viewing this mailbox as/)).toBeInTheDocument();
+        expect(await screen.findByText(/You are viewing as/)).toBeInTheDocument();
         expect(screen.getByText("u1", { selector: "strong" })).toBeInTheDocument();
         await user.click(screen.getByRole("button", { name: "Return to admin" }));
 

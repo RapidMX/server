@@ -33,15 +33,17 @@
     "trailingComma": "es5"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
     "@rapidmx/activesync": "portal:../activesync",
     "@rapidmx/autodiscover": "portal:../autodiscover",
     "@rapidmx/mapi": "portal:../mapi",
-    "@rapidmx/restapi": "patch:@rapidmx/restapi@npm%3A0.1.0#~/.yarn/patches/@rapidmx-restapi-npm-0.1.0-3ebefc6f72.patch",
+    "@rapidmx/restapi": "^0.2.0",
     "@rapidrest/core": "^5.1.0",
     "@rapidrest/react": "^1.1.0",
     "@rapidrest/service-core": "^1.4.0",
     "@types/node": "^26.4.0",
     "axios": "^1.20.0",
+    "date-fns": "^4.4.0",
     "lodash-es": "^4.18.1",
     "monaco-editor": "^0.56.0",
     "mongodb": "^7.6.0",
@@ -54,6 +56,7 @@
     "react-icons": "^5.7.0",
     "redis": "^6.2.1",
     "reflect-metadata": "^0.2.2",
+    "rrule": "^2.8.1",
     "typeorm": "^1.1.0",
     "winston": "^3.19.0",
     "winston-transport": "^4.9.0"

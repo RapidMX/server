@@ -206,6 +206,42 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@dnd-kit/accessibility@npm:^3.1.1":
+  version: 3.1.1
+  resolution: "@dnd-kit/accessibility@npm:3.1.1"
+  dependencies:
+    tslib: "npm:^2.0.0"
+  peerDependencies:
+    react: ">=16.8.0"
+  checksum: 10c0/be0bf41716dc58f9386bc36906ec1ce72b7b42b6d1d0e631d347afe9bd8714a829bd6f58a346dd089b1519e93918ae2f94497411a61a4f5e4d9247c6cfd1fef8
+  languageName: node
+  linkType: hard
+
+"@dnd-kit/core@npm:^6.3.1":
+  version: 6.3.1
+  resolution: "@dnd-kit/core@npm:6.3.1"
+  dependencies:
+    "@dnd-kit/accessibility": "npm:^3.1.1"
+    "@dnd-kit/utilities": "npm:^3.2.2"
+    tslib: "npm:^2.0.0"
+  peerDependencies:
+    react: ">=16.8.0"
+    react-dom: ">=16.8.0"
+  checksum: 10c0/196db95d81096d9dc248983533eab91ba83591770fa5c894b1ac776f42af0d99522b3fd5bb3923411470e4733fcfa103e6ee17adc17b9b7eb54c7fbec5ff7c52
+  languageName: node
+  linkType: hard
+
+"@dnd-kit/utilities@npm:^3.2.2":
+  version: 3.2.2
+  resolution: "@dnd-kit/utilities@npm:3.2.2"
+  dependencies:
+    tslib: "npm:^2.0.0"
+  peerDependencies:
+    react: ">=16.8.0"
+  checksum: 10c0/9aa90526f3e3fd567b5acc1b625a63177b9e8d00e7e50b2bd0e08fa2bf4dba7e19529777e001fdb8f89a7ce69f30b190c8364d390212634e0afdfa8c395e85a0
+  languageName: node
+  linkType: hard
+
 "@embedded-postgres/darwin-arm64@npm:^18.3.0-beta.17":
   version: 18.3.0-beta.17
   resolution: "@embedded-postgres/darwin-arm64@npm:18.3.0-beta.17"
@@ -1296,9 +1332,9 @@ __metadata:
   languageName: node
   linkType: soft
 
-"@rapidmx/restapi@npm:0.1.0":
-  version: 0.1.0
-  resolution: "@rapidmx/restapi@npm:0.1.0"
+"@rapidmx/restapi@npm:^0.2.0":
+  version: 0.2.0
+  resolution: "@rapidmx/restapi@npm:0.2.0"
   dependencies:
     html-to-text: "npm:^9.0.5"
     mailparser: "npm:^3.7.2"
@@ -1317,32 +1353,7 @@ __metadata:
       optional: true
     pdf-parse:
       optional: true
-  checksum: 10c0/c1a9eb6f3d576362d9ff6d40c6c2e2e900f950c1a0bd2177e5152b6eae89795e05131870b6fb5df6cb019b101aaf0953bc0e86c635072a4e66576cf781e55c40
-  languageName: node
-  linkType: hard
-
-"@rapidmx/restapi@patch:@rapidmx/restapi@npm%3A0.1.0#~/.yarn/patches/@rapidmx-restapi-npm-0.1.0-3ebefc6f72.patch":
-  version: 0.1.0
-  resolution: "@rapidmx/restapi@patch:@rapidmx/restapi@npm%3A0.1.0#~/.yarn/patches/@rapidmx-restapi-npm-0.1.0-3ebefc6f72.patch::version=0.1.0&hash=663894"
-  dependencies:
-    html-to-text: "npm:^9.0.5"
-    mailparser: "npm:^3.7.2"
-    nodemailer: "npm:^7.0.3"
-    sanitize-html: "npm:^2.14.0"
-  peerDependencies:
-    "@opensearch-project/opensearch": ">=3.0.0"
-    "@rapidrest/core": 5.x
-    "@rapidrest/service-core": 1.x
-    mammoth: ">=1.8.0"
-    pdf-parse: ">=1.1.1"
-  peerDependenciesMeta:
-    "@opensearch-project/opensearch":
-      optional: true
-    mammoth:
-      optional: true
-    pdf-parse:
-      optional: true
-  checksum: 10c0/ab4709a816ab556bfc07b07fe920dce618cd87eae857a407a7c9100b0fcbf6946aa620fe8ddc0d9597d4a4b65488474b5d2b19b1320c64286e092aa46ffbfe49
+  checksum: 10c0/6518a7481da3326d1804c7e8a3cbcc5ef3fb82327a7cf1b51f889bb1c13126efa41b2fc19f9a278541050fb194f35c5a3a25ae2cea2909e4409b79e2d7705eb9
   languageName: node
   linkType: hard
 
@@ -1350,10 +1361,11 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rapidmx/server@workspace:."
   dependencies:
+    "@dnd-kit/core": "npm:^6.3.1"
     "@rapidmx/activesync": "portal:../activesync"
     "@rapidmx/autodiscover": "portal:../autodiscover"
     "@rapidmx/mapi": "portal:../mapi"
-    "@rapidmx/restapi": "patch:@rapidmx/restapi@npm%3A0.1.0#~/.yarn/patches/@rapidmx-restapi-npm-0.1.0-3ebefc6f72.patch"
+    "@rapidmx/restapi": "npm:^0.2.0"
     "@rapidrest/cli": "npm:^1.0.1"
     "@rapidrest/core": "npm:^5.1.0"
     "@rapidrest/react": "npm:^1.1.0"
@@ -1375,6 +1387,7 @@ __metadata:
     axios: "npm:^1.20.0"
     better-sqlite3: "npm:^13.0.3"
     coveralls: "npm:^3.1.1"
+    date-fns: "npm:^4.4.0"
     eslint: "npm:^10.9.1"
     eslint-plugin-import: "npm:^2.32.0"
     eslint-plugin-jsdoc: "npm:^64.2.1"
@@ -1396,6 +1409,7 @@ __metadata:
     redis: "npm:^6.2.1"
     reflect-metadata: "npm:^0.2.2"
     rimraf: "npm:^6.1.3"
+    rrule: "npm:^2.8.1"
     semver: "npm:^7.8.5"
     sqlite3: "npm:^6.0.1"
     tailwindcss: "npm:^4.3.3"
@@ -3732,6 +3746,13 @@ __metadata:
     es-errors: "npm:^1.3.0"
     is-data-view: "npm:^1.0.1"
   checksum: 10c0/fa7aa40078025b7810dcffc16df02c480573b7b53ef1205aa6a61533011005c1890e5ba17018c692ce7c900212b547262d33279fde801ad9843edc0863bf78c4
+  languageName: node
+  linkType: hard
+
+"date-fns@npm:^4.4.0":
+  version: 4.4.0
+  resolution: "date-fns@npm:4.4.0"
+  checksum: 10c0/988f0a13db183f5dfc85c36bbb6847a9c135a9225888bbea4005876ec15539a8613c21a07370a4e7ea543918d5a1cafb423c528b42cdbbde5fdfddb178126b21
   languageName: node
   linkType: hard
 
@@ -8715,6 +8736,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"rrule@npm:^2.8.1":
+  version: 2.8.1
+  resolution: "rrule@npm:2.8.1"
+  dependencies:
+    tslib: "npm:^2.4.0"
+  checksum: 10c0/c9350620bbd57d0cdf99320b576121a2d7ed579fda4ae50891e2779c7dfd6dc7b174b558b6598adefb1f0e053549dc977740e1a265f77dcf0827aaeea60b45e7
+  languageName: node
+  linkType: hard
+
 "safe-array-concat@npm:^1.1.3":
   version: 1.1.4
   resolution: "safe-array-concat@npm:1.1.4"
@@ -9684,7 +9714,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tslib@npm:^2.4.0, tslib@npm:^2.8.1":
+"tslib@npm:^2.0.0, tslib@npm:^2.4.0, tslib@npm:^2.8.1":
   version: 2.8.1
   resolution: "tslib@npm:2.8.1"
   checksum: 10c0/9c4759110a19c53f992d9aae23aac5ced636e99887b51b9e61def52611732872ff7668757d4e4c61f19691e36f4da981cd9485e869b4a7408d689f6bf1f14e62

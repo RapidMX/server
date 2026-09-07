@@ -650,3 +650,31 @@ third-party deps you can't touch"). Full root cause and fix are in `@rapidmx/res
   `GET /api/mail/folders?mailboxUid=...` now returns both an `inbox` and `drafts` folder (previously
   empty), and `GET /admin/mailboxes/detail?uid=...` / `GET /?mailboxUid=...` both render `200`.
   `yarn build`/`yarn test` both still clean (245/245) with the patch applied.
+
+### 2026-09-06 — Refreshed the same patch for Calendar/Contacts/Tasks folder provisioning
+
+While building the new Calendar/Contacts/Tasks views (this repo, `apps/www` — see below), extended
+the eager-folder-provisioning fix above in `@rapidmx/restapi` to also cover those three folder
+types (full details in restapi's own NOTES.md). Refreshed via the identical `yarn patch
+@rapidmx/restapi` → replace extracted `dist/` → `yarn patch-commit` workflow — same patch file path
+(`.yarn/patches/@rapidmx-restapi-npm-0.1.0-3ebefc6f72.patch`, since it's still version `0.1.0`), new
+content (`yarn install`'s resolution hash moved `663894` → `00bf07`, confirming the refresh actually
+took). The "follow-up once JP publishes" note above still applies unchanged — this just updates what
+the temporary patch contains in the meantime.
+
+### 2026-09-06 — Moved off the temporary patch: `@rapidmx/restapi` published as `0.2.0`
+
+JP published `@rapidmx/restapi@0.2.0` (includes both folder-provisioning fixes above, plus his own
+unrelated EAS Sync/RemoteWipe/OOF model work from the same release). Followed the exact "once
+published" steps from the entry two above: `package.json`'s dependency changed from the `patch:`
+range back to a plain `"^0.2.0"`, deleted
+`.yarn/patches/@rapidmx-restapi-npm-0.1.0-3ebefc6f72.patch`, `yarn install`. `yarn build`/`yarn test`
+both clean after (275/275 — the coverage-gate failure seen immediately after the version bump was
+`ContactsShell.tsx` sitting untested mid-implementation, unrelated to the restapi upgrade itself; see
+the Contacts/Calendar/Tasks entry below once that work is complete).
+- **New, expected peer-dependency warning**: `@rapidmx/activesync` (still `portal:../activesync`,
+  unpublished) declares a peer range of `~0.1.0` for `@rapidmx/restapi`, now behind this repo's
+  `^0.2.0` — `YN0060` warning only, not an error, and harmless today since nothing in this repo
+  actually imports from `@rapidmx/activesync` yet (see the split-repo NOTES.md entry above). Will
+  need `activesync`'s own peer range bumped, in that repo, once/if this repo ever actually wires it
+  in — not this session's concern.
