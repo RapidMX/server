@@ -19,5 +19,6 @@ export {
     QuarantineEntrySQL,
     ScanResultSQL,
     SearchIndexStateSQL,
+    TaskListSQL,
     TaskSQL,
 } from "@rapidmx/restapi/sql";

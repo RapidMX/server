@@ -883,4 +883,29 @@ elevation," and auto-provisioning itself didn't work at all.
   since that repo's initial commit, unrelated to anything in this entry, left alone rather than
   chased as scope creep. Worth a `/* c8 ignore */`-style documented exception (matching this
   project's existing convention for `@Config`/`@Inject`-injected structurally-unreachable branches)
-  if a future session is already touching that file for another reason.
+  if a future session is already touching that file for another reason. **Update: fixed in the
+  2026-09-07 Outlook-parity Phase 0 entry below** — the guard turned out to be simply dead code,
+  removed rather than worked around.
+
+### 2026-09-07 — Outlook-parity redesign, Phase 0: mounted the new `TaskList` route here
+
+JP asked for a large, multi-phase redesign of Compose/Contacts/Tasks/Calendar to closely mirror
+Outlook's UI — full plan (all 5 phases) captured via plan mode; see the plan file referenced in that
+session, and `@rapidmx/restapi`'s own NOTES.md for the backend-entity details this phase's real work
+landed in (a new `TaskList` entity mirroring `ContactList`, plus `Task.taskListUid`/`assignedTo`,
+`Contact.categories`, `Folder.color` fields — including a genuine SQL-migration bug found and fixed
+along the way: a required boolean field with only a TypeScript-level default breaks real `ALTER
+TABLE` schema sync against existing rows, since `@rapidrest/service-core`'s own `@Column()` decorator
+has no way to declare a SQL-level default at all).
+
+- **This repo's own Phase 0 work is just the usual two pieces**: `src/{mongo,sql}/routes/TaskListRoute.ts`
+  (one-line `@ApiRoute("mail/task-lists")` subclasses, exact same pattern as the existing
+  `ContactListRoute.ts`) and one new re-export line each in `src/{mongo,sql}/Models.ts` for
+  `TaskListMongo`/`TaskListSQL` (so the `ClassLoader` picks up the new model/its Mongo indexes).
+- **Patch refresh workflow used again** (see the many prior entries in this file for the exact
+  steps) — `package.json`'s `@rapidmx/restapi` patch hash moved `2f5f20` → `749269`, confirming the
+  refresh took. `yarn tsc --noEmit` and full `yarn test` (477/477, `apps/**` still 100%) both clean
+  after.
+- Committed here as its own commit (JP: "commit each phase separately, when finished"), separate
+  from the `@rapidmx/restapi` commit for this phase's model/entity work.
+

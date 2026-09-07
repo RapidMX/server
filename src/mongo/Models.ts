@@ -19,5 +19,6 @@ export {
     QuarantineEntryMongo,
     ScanResultMongo,
     SearchIndexStateMongo,
+    TaskListMongo,
     TaskMongo,
 } from "@rapidmx/restapi/mongo";
