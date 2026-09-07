@@ -623,3 +623,30 @@ tests" work, two blockers stood between a fresh `yarn install` and a clean `yarn
   errors. This is the first time (per every prior NOTES.md entry above) this project's full
   `yarn test` has actually passed end-to-end rather than being reported as "clean except the
   pre-existing Redis flake."
+
+### 2026-09-06 — Fixed: newly created mailbox showed "no mailbox available" in webmail/admin
+
+JP reported that a mailbox created via the admin console couldn't be accessed afterward — the
+webmail inbox showed "No mailbox available yet." Root cause was in `@rapidmx/restapi`
+(`BaseMailboxRoute.create()` never provisioned any folders for a brand-new mailbox, and this
+frontend's `MailShell`/Compose both need an Inbox/Drafts folder to already exist to render
+anything) — fixed at the source there per this repo's own standing rule ("these aren't
+third-party deps you can't touch"). Full root cause and fix are in `@rapidmx/restapi`'s own
+`.claude/NOTES.md` (2026-09-06 entry) — no code in this repo changed.
+
+- **Verified the fix end-to-end from this repo**, since that's where the symptom was reported:
+  `yarn patch @rapidmx/restapi` here, replaced the extracted copy's `dist/` with restapi's
+  freshly-rebuilt one, `yarn patch-commit` — this is a **temporary local patch for verification
+  only**, not a real dependency bump. `package.json`'s `@rapidmx/restapi` entry is now
+  `patch:@rapidmx/restapi@npm%3A0.1.0#~/.yarn/patches/@rapidmx-restapi-npm-0.1.0-3ebefc6f72.patch`
+  instead of the plain `^0.1.0` registry range from the previous entry above.
+  **Follow-up needed once JP publishes a new `@rapidmx/restapi` version with the real fix**: run
+  `yarn remove` isn't necessary — just edit `package.json`'s dependency back to a plain `^X.Y.Z`
+  registry range (matching whatever he publishes) and delete
+  `.yarn/patches/@rapidmx-restapi-npm-0.1.0-3ebefc6f72.patch`, then `yarn install`. Don't leave the
+  patch in place indefinitely — it pins to a specific extracted `0.1.0` tarball and won't pick up
+  any other changes he publishes to that package in the meantime.
+- Confirmed via real `yarn dev` + `curl`: `POST /api/mail/mailboxes` followed immediately by
+  `GET /api/mail/folders?mailboxUid=...` now returns both an `inbox` and `drafts` folder (previously
+  empty), and `GET /admin/mailboxes/detail?uid=...` / `GET /?mailboxUid=...` both render `200`.
+  `yarn build`/`yarn test` both still clean (245/245) with the patch applied.
