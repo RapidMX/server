@@ -56,6 +56,36 @@ export function createMailbox(input: CreateMailboxInput): Promise<Mailbox> {
     });
 }
 
+/** This server's configured domain list (`mail:domains`) — empty when unconfigured, meaning no
+ * restriction applies and a `primarySmtpAddress` may be on any domain. */
+export function listMailboxDomains(): Promise<string[]> {
+    return apiFetch("/mail/mailboxes/domains");
+}
+
+/** One (name alias, domain) combination the caller could register as their mailbox address. */
+export interface MailboxAutoProvisionAliasOption {
+    alias: string;
+    domain: string;
+    primarySmtpAddress: string;
+}
+
+export type MailboxAutoProvisionResult =
+    | { status: "created"; mailbox: Mailbox }
+    | { status: "existing"; mailbox: Mailbox }
+    | { status: "needs_selection"; options: MailboxAutoProvisionAliasOption[] };
+
+/**
+ * Self-service mailbox creation for a user with none yet — see `BaseMailboxRoute.autoProvision()`'s own
+ * doc comment in `@rapidmx/restapi` for the full contract. Call with no `selection` first; if the
+ * result is `needs_selection`, call again with the option the user picked from that list.
+ */
+export function autoProvisionMailbox(selection?: { alias: string; domain: string }): Promise<MailboxAutoProvisionResult> {
+    return apiFetch("/mail/mailboxes/auto-provision", {
+        method: "POST",
+        body: JSON.stringify(selection ?? {}),
+    });
+}
+
 export interface UpdateMailboxInput {
     uid: string;
     version: number;

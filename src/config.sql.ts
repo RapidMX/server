@@ -95,6 +95,11 @@ conf.defaults({
     // unauthenticated visitor here to sign in, then back with a valid session.
     mail: {
         auth_server_url: "http://localhost:3001",
+        auto_provision: {
+            enabled: true,
+            quota_bytes: 5_000_000_000,
+            timeout_ms: 10_000
+        },
         blob: {
             local: {
                 // Local filesystem root for raw MIME sources, sanitized HTML, attachment binaries, extracted

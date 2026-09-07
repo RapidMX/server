@@ -11,7 +11,11 @@ import { ObjectFactory, Server } from "@rapidrest/service-core";
 import { LocalFsBlobStore, PostfixSendmailTransport } from "@rapidmx/restapi";
 import { PostgresFullTextSearchProvider } from "@rapidmx/restapi/search";
 import { ClamAvScanProvider, RspamdSpamScanProvider } from "@rapidmx/restapi/scan";
-import { enableDevAutoLoginIfApplicable, mountDevImpersonationRouteIfApplicable } from "./dev/enableDevAutoLogin.js";
+import {
+    configureDevAutoProvisioningIfApplicable,
+    enableDevAutoLoginIfApplicable,
+    mountDevImpersonationRouteIfApplicable,
+} from "./dev/enableDevAutoLogin.js";
 
 import * as fs from "fs";
 import { readFile } from "fs/promises";
@@ -68,8 +72,9 @@ const start = async function (config: any, logger: any) {
         });
     await EventUtils.init(config, logger, token);
 
-    // DEV-ONLY (see enableDevAutoLogin.ts) — a no-op outside of `yarn dev`.
+    // DEV-ONLY (see enableDevAutoLogin.ts) — both a no-op outside of `yarn dev`.
     await enableDevAutoLoginIfApplicable(objectFactory, logger);
+    configureDevAutoProvisioningIfApplicable(config, logger);
 
     // Create and start the server
     server = new Server({ config, basePath: config.get("base_path"), logger, objectFactory });

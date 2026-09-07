@@ -1,0 +1,351 @@
+diff --git a/dist/lib/routes/BaseMailboxRoute.js b/dist/lib/routes/BaseMailboxRoute.js
+index 4ab62189462ec0b40c39e18eff7f1b8b91884bc9..c154baf11423ca176d1a4ca4ffea58b714a2367d 100644
+--- a/dist/lib/routes/BaseMailboxRoute.js
++++ b/dist/lib/routes/BaseMailboxRoute.js
+@@ -19,7 +19,7 @@ import { ACLAction, ApiErrorMessages, ApiErrors, CRUDRoute, RouteDecorators } fr
+ import { FolderType } from "../models/types.js";
+ import { findOrCreateWellKnownFolder } from "../util/FolderUtils.js";
+ import { RecoverableRepoUtils } from "../util/RecoverableRepoUtils.js";
+-const { Param, Query, Request, Response, User: AuthUser } = RouteDecorators;
++const { Auth, Get, Param, Post, Query, Request, Response, User: AuthUser } = RouteDecorators;
+ const { Config } = ObjectDecorators;
+ /**
+  * Extends the standard `CRUDRoute` CRUD scaffolding for `Mailbox` with ACL-driven `find`/`count` overrides,
+@@ -67,6 +67,40 @@ export class BaseMailboxRoute extends CRUDRoute {
+     constructor() {
+         super(...arguments);
+         this.trustedRoles = ["admin"];
++        /**
++         * Base URL of the auth-server whose `GET /api/aliases/me?type=name` `autoProvision()` below calls.
++         * Falls back to `""` (rather than leaving this `@Config` field with no default at all) so
++         * instantiating this route never throws in a deployment/test context that hasn't set this key —
++         * `autoProvision()` already treats an empty value the same as "not configured" below, unless
++         * `staticAliases` is set instead (see its own doc comment).
++         */
++        this.authServerUrl = "";
++        /**
++         * A fixed alias list to use instead of ever calling auth-server, bypassing `fetchNameAliases()`'s
++         * real HTTP call entirely when non-empty. Exists for a deployment with no real auth-server to call
++         * at all (e.g. local development against a synthetic single-identity session) — a genuine HTTP
++         * round-trip back to *this same process* isn't just unnecessary there, it can outright fail
++         * (confirmed directly: a Node `fetch()` to this server's own listening address, issued from inside
++         * a request handler already running on it, was refused at the TCP level — the underlying HTTP
++         * server apparently doesn't accept a new connection to itself while still mid-request). Not
++         * specific to any notion of "dev mode" from this class's own point of view — just another config
++         * override, same category as every other one here.
++         */
++        this.staticAliases = [];
++        /** Master switch for `autoProvision()` — off by default, since silently minting mailboxes is a real
++         * behavior change a deployment must opt into, not something safe to default on. */
++        this.autoProvisionEnabled = false;
++        /**
++         * The single source of truth for every domain this mail server accepts mail for — a deployment
++         * serving more than one domain lists all of them here. Governs *every* mailbox this route creates,
++         * not just auto-provisioned ones: `create()` below rejects a `primarySmtpAddress` on any other
++         * domain once this is non-empty (an empty list is the "unconfigured, no restriction" default, for
++         * backward compatibility with a deployment that hasn't set this up). `autoProvision()` offers the
++         * caller the cross product of their name aliases and this list to choose their own address from.
++         */
++        this.domains = [];
++        this.autoProvisionQuotaBytes = 5000000000;
++        this.autoProvisionTimeoutMs = 10000;
+     }
+     async getFolderRepo() {
+         if (!this.folderRepo) {
+@@ -88,6 +122,16 @@ export class BaseMailboxRoute extends CRUDRoute {
+                 o.ownerUserUid = user.uid;
+             }
+         }
++        // Applies to every caller, trusted or not — `mail:domains` (once configured) is this server's
++        // one source of truth for which domains it accepts mail on at all, not just a self-service guard.
++        if (this.domains.length > 0) {
++            for (const o of objs) {
++                const domain = o.primarySmtpAddress?.split("@")[1];
++                if (!domain || !this.domains.includes(domain)) {
++                    throw new ApiError(ApiErrors.INVALID_REQUEST, 400, `Mailbox addresses must be on one of this server's configured domains: ${this.domains.join(", ")}.`);
++                }
++            }
++        }
+         const created = Array.isArray(obj)
+             ? await this.doBulkCreate(objs, { req, user, ignoreACL: true })
+             : [await this.doCreateObject(objs[0], { req, user, ignoreACL: true })];
+@@ -109,6 +153,107 @@ export class BaseMailboxRoute extends CRUDRoute {
+         }
+         return Array.isArray(obj) ? created : created[0];
+     }
++    /**
++     * Self-service mailbox creation with no `Mailbox` object required from the caller — for a deployment
++     * where users only ever come from an external auth-server and are never manually provisioned a
++     * mailbox first. Disabled unless `mail:auto_provision:enabled` is on and `mail:domains` is non-empty
++     * (see the `@Config` fields above).
++     *
++     * A mailbox needs a `primarySmtpAddress`, which this route has no way to know on its own — the caller
++     * has no email registered anywhere in this system yet by definition. Instead, this derives candidates
++     * from the identity auth-server already has for them: it calls auth-server's own `GET /api/aliases/me?
++     * type=name` (forwarding the caller's own `jwt` cookie, so it only ever sees that user's own aliases)
++     * and offers the caller the full cross product of those aliases against `mail:domains` — a deployment
++     * can serve more than one domain, and the caller should get to pick which (alias, domain) pair they
++     * want, not have one silently chosen for them even when there's only one possible combination. So
++     * with no `body.alias`/`body.domain`, this *always* returns `needs_selection` rather than creating
++     * anything; only a call that supplies both, validated fresh against the real alias list and the
++     * configured domain list (never trusted blindly), actually creates the mailbox.
++     *
++     * Idempotent: a caller who already owns a mailbox gets it back (`status: "existing"`) rather than a
++     * second one, since nothing prevents this being called more than once (e.g. two tabs racing on first
++     * login) — checked before ever contacting auth-server.
++     */
++    async autoProvision(req, body, user) {
++        if (!user) {
++            throw new ApiError(ApiErrors.AUTH_PERMISSION_FAILURE, 403, ApiErrorMessages.AUTH_PERMISSION_FAILURE);
++        }
++        const hasAliasSource = this.staticAliases.length > 0 || !!this.authServerUrl;
++        if (!this.autoProvisionEnabled || this.domains.length === 0 || !hasAliasSource) {
++            throw new ApiError(ApiErrors.NOT_FOUND, 404, "Automatic mailbox provisioning is not enabled.");
++        }
++        if (!this.repoUtils) {
++            throw new ApiError(ApiErrors.INTERNAL_ERROR, 500, ApiErrorMessages.INTERNAL_ERROR);
++        }
++        const existing = await this.repoUtils.find({ ownerUserUid: user.uid }, {
++            ignoreACL: true,
++            limit: 1,
++        });
++        if (existing.length > 0) {
++            return { status: "existing", mailbox: existing[0] };
++        }
++        const aliases = await this.fetchNameAliases(req);
++        if (aliases.length === 0) {
++            throw new ApiError(ApiErrors.NOT_FOUND, 404, "No username is registered for this account.");
++        }
++        if (!body?.alias || !body?.domain) {
++            return {
++                status: "needs_selection",
++                options: aliases.flatMap((alias) => this.domains.map((domain) => ({ alias, domain, primarySmtpAddress: `${alias}@${domain}` }))),
++            };
++        }
++        if (!aliases.includes(body.alias) || !this.domains.includes(body.domain)) {
++            throw new ApiError(ApiErrors.INVALID_REQUEST, 400, ApiErrorMessages.INVALID_REQUEST);
++        }
++        const mailbox = (await this.create({
++            primarySmtpAddress: `${body.alias}@${body.domain}`,
++            displayName: body.alias,
++            ownerUserUid: user.uid,
++            timezone: "UTC",
++            quotaBytes: this.autoProvisionQuotaBytes,
++        }, req, user));
++        return { status: "created", mailbox };
++    }
++    /** This server's configured domain list (`mail:domains`) — lets a client (e.g. the admin console's
++     * "New mailbox" form) constrain the domain half of an address to what this server actually accepts,
++     * without hardcoding or duplicating that list client-side. */
++    async listDomains() {
++        return this.domains;
++    }
++    /** The caller's own auth-server "name" aliases (e.g. usernames), via `GET /api/aliases/me?type=name` —
++     * forwarding their `jwt` cookie is what scopes the call to *their* aliases specifically. Skips that
++     * call entirely (see `staticAliases`'s own doc comment for why) when a fixed list is configured. */
++    async fetchNameAliases(req) {
++        if (this.staticAliases.length > 0) {
++            return this.staticAliases;
++        }
++        const jwtCookie = req.cookies?.["jwt"];
++        if (!jwtCookie) {
++            throw new ApiError(ApiErrors.INTERNAL_ERROR, 502, "Could not verify your identity with the identity service.");
++        }
++        const controller = new AbortController();
++        const timeoutHandle = setTimeout(() => controller.abort(), this.autoProvisionTimeoutMs);
++        let response;
++        try {
++            response = await fetch(`${this.authServerUrl}/api/aliases/me?type=name`, {
++                headers: { Cookie: `jwt=${jwtCookie}` },
++                signal: controller.signal,
++            });
++        }
++        catch {
++            throw new ApiError(ApiErrors.INTERNAL_ERROR, 502, "Could not reach the identity service to determine your mailbox address.");
++        }
++        finally {
++            clearTimeout(timeoutHandle);
++        }
++        if (!response.ok) {
++            throw new ApiError(ApiErrors.INTERNAL_ERROR, 502, "Could not reach the identity service to determine your mailbox address.");
++        }
++        const data = (await response.json());
++        return Array.isArray(data)
++            ? data.map((entry) => entry.value ?? entry.name).filter((value) => !!value)
++            : [];
++    }
+     async find(params, query, user) {
+         if (!this.repoUtils || !user) {
+             return [];
+@@ -179,6 +324,30 @@ __decorate([
+     Config("trusted_roles", ["admin"]),
+     __metadata("design:type", Array)
+ ], BaseMailboxRoute.prototype, "trustedRoles", void 0);
++__decorate([
++    Config("mail:auth_server_url", ""),
++    __metadata("design:type", String)
++], BaseMailboxRoute.prototype, "authServerUrl", void 0);
++__decorate([
++    Config("mail:auto_provision:static_aliases", []),
++    __metadata("design:type", Array)
++], BaseMailboxRoute.prototype, "staticAliases", void 0);
++__decorate([
++    Config("mail:auto_provision:enabled", false),
++    __metadata("design:type", Boolean)
++], BaseMailboxRoute.prototype, "autoProvisionEnabled", void 0);
++__decorate([
++    Config("mail:domains", []),
++    __metadata("design:type", Array)
++], BaseMailboxRoute.prototype, "domains", void 0);
++__decorate([
++    Config("mail:auto_provision:quota_bytes", 5000000000),
++    __metadata("design:type", Number)
++], BaseMailboxRoute.prototype, "autoProvisionQuotaBytes", void 0);
++__decorate([
++    Config("mail:auto_provision:timeout_ms", 10000),
++    __metadata("design:type", Number)
++], BaseMailboxRoute.prototype, "autoProvisionTimeoutMs", void 0);
+ __decorate([
+     __param(1, Request),
+     __param(2, AuthUser),
+@@ -186,6 +355,22 @@ __decorate([
+     __metadata("design:paramtypes", [Object, Object, Object]),
+     __metadata("design:returntype", Promise)
+ ], BaseMailboxRoute.prototype, "create", null);
++__decorate([
++    Auth(["jwt"]),
++    Post("/auto-provision"),
++    __param(0, Request),
++    __param(2, AuthUser),
++    __metadata("design:type", Function),
++    __metadata("design:paramtypes", [Object, Object, Object]),
++    __metadata("design:returntype", Promise)
++], BaseMailboxRoute.prototype, "autoProvision", null);
++__decorate([
++    Auth(["jwt"]),
++    Get("/domains"),
++    __metadata("design:type", Function),
++    __metadata("design:paramtypes", []),
++    __metadata("design:returntype", Promise)
++], BaseMailboxRoute.prototype, "listDomains", null);
+ __decorate([
+     __param(0, Param()),
+     __param(1, Query()),
+diff --git a/dist/lib/routes/BaseMailboxRoute.js.map b/dist/lib/routes/BaseMailboxRoute.js.map
+index e1444f1bd7bb3ac47d86b6ed4c5f78ed36799b18..98bacbbe982ce43a50665ab5fc164ec7e938e76f 100644
+--- a/dist/lib/routes/BaseMailboxRoute.js.map
++++ b/dist/lib/routes/BaseMailboxRoute.js.map
+@@ -1 +1 @@
+-{"version":3,"file":"BaseMailboxRoute.js","sourceRoot":"","sources":["../../../src/routes/BaseMailboxRoute.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
++{"version":3,"file":"BaseMailboxRoute.js","sourceRoot":"","sources":["../../../src/routes/BaseMailboxRoute.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
+diff --git a/dist/types/routes/BaseMailboxRoute.d.ts b/dist/types/routes/BaseMailboxRoute.d.ts
+index fcf7599ac98b70941bff336bd6c8349f129fd5d1..f680306b1f30a6cce4499d4565cfc9b7bcb91103 100644
+--- a/dist/types/routes/BaseMailboxRoute.d.ts
++++ b/dist/types/routes/BaseMailboxRoute.d.ts
+@@ -1,6 +1,23 @@
+ import { type JWTUser } from "@rapidrest/core";
+ import { CRUDRoute, HttpRequest, HttpResponse } from "@rapidrest/service-core";
+ import { Mailbox } from "../models/types.js";
++/** One (name alias, domain) combination the caller could register as their mailbox address — the full
++ * cross product of their auth-server name aliases and this server's configured `mail:domains` list. */
++export interface MailboxAutoProvisionAliasOption {
++    alias: string;
++    domain: string;
++    primarySmtpAddress: string;
++}
++export type MailboxAutoProvisionResult<T> = {
++    status: "created";
++    mailbox: T;
++} | {
++    status: "existing";
++    mailbox: T;
++} | {
++    status: "needs_selection";
++    options: MailboxAutoProvisionAliasOption[];
++};
+ /**
+  * Extends the standard `CRUDRoute` CRUD scaffolding for `Mailbox` with ACL-driven `find`/`count` overrides,
+  * plus a `create` override that bypasses the ACL system entirely. `Mailbox` has a real per-record
+@@ -45,6 +62,40 @@ import { Mailbox } from "../models/types.js";
+  */
+ export declare abstract class BaseMailboxRoute<T extends Mailbox> extends CRUDRoute<T> {
+     protected trustedRoles: string[];
++    /**
++     * Base URL of the auth-server whose `GET /api/aliases/me?type=name` `autoProvision()` below calls.
++     * Falls back to `""` (rather than leaving this `@Config` field with no default at all) so
++     * instantiating this route never throws in a deployment/test context that hasn't set this key —
++     * `autoProvision()` already treats an empty value the same as "not configured" below, unless
++     * `staticAliases` is set instead (see its own doc comment).
++     */
++    protected authServerUrl: string;
++    /**
++     * A fixed alias list to use instead of ever calling auth-server, bypassing `fetchNameAliases()`'s
++     * real HTTP call entirely when non-empty. Exists for a deployment with no real auth-server to call
++     * at all (e.g. local development against a synthetic single-identity session) — a genuine HTTP
++     * round-trip back to *this same process* isn't just unnecessary there, it can outright fail
++     * (confirmed directly: a Node `fetch()` to this server's own listening address, issued from inside
++     * a request handler already running on it, was refused at the TCP level — the underlying HTTP
++     * server apparently doesn't accept a new connection to itself while still mid-request). Not
++     * specific to any notion of "dev mode" from this class's own point of view — just another config
++     * override, same category as every other one here.
++     */
++    protected staticAliases: string[];
++    /** Master switch for `autoProvision()` — off by default, since silently minting mailboxes is a real
++     * behavior change a deployment must opt into, not something safe to default on. */
++    protected autoProvisionEnabled: boolean;
++    /**
++     * The single source of truth for every domain this mail server accepts mail for — a deployment
++     * serving more than one domain lists all of them here. Governs *every* mailbox this route creates,
++     * not just auto-provisioned ones: `create()` below rejects a `primarySmtpAddress` on any other
++     * domain once this is non-empty (an empty list is the "unconfigured, no restriction" default, for
++     * backward compatibility with a deployment that hasn't set this up). `autoProvision()` offers the
++     * caller the cross product of their name aliases and this list to choose their own address from.
++     */
++    protected domains: string[];
++    protected autoProvisionQuotaBytes: number;
++    protected autoProvisionTimeoutMs: number;
+     /**
+      * Supplied by the Mongo/SQL concrete subclasses so `create()` can provision a new mailbox's Inbox/Drafts
+      * folders (see below) without depending on either backend directly — same pattern as
+@@ -62,6 +113,39 @@ export declare abstract class BaseMailboxRoute<T extends Mailbox> extends CRUDRo
+     protected abstract findAccessibleMailboxUids(user: JWTUser): Promise<string[]>;
+     private getFolderRepo;
+     create(obj: T | T[], req: HttpRequest, user?: JWTUser): Promise<T | T[]>;
++    /**
++     * Self-service mailbox creation with no `Mailbox` object required from the caller — for a deployment
++     * where users only ever come from an external auth-server and are never manually provisioned a
++     * mailbox first. Disabled unless `mail:auto_provision:enabled` is on and `mail:domains` is non-empty
++     * (see the `@Config` fields above).
++     *
++     * A mailbox needs a `primarySmtpAddress`, which this route has no way to know on its own — the caller
++     * has no email registered anywhere in this system yet by definition. Instead, this derives candidates
++     * from the identity auth-server already has for them: it calls auth-server's own `GET /api/aliases/me?
++     * type=name` (forwarding the caller's own `jwt` cookie, so it only ever sees that user's own aliases)
++     * and offers the caller the full cross product of those aliases against `mail:domains` — a deployment
++     * can serve more than one domain, and the caller should get to pick which (alias, domain) pair they
++     * want, not have one silently chosen for them even when there's only one possible combination. So
++     * with no `body.alias`/`body.domain`, this *always* returns `needs_selection` rather than creating
++     * anything; only a call that supplies both, validated fresh against the real alias list and the
++     * configured domain list (never trusted blindly), actually creates the mailbox.
++     *
++     * Idempotent: a caller who already owns a mailbox gets it back (`status: "existing"`) rather than a
++     * second one, since nothing prevents this being called more than once (e.g. two tabs racing on first
++     * login) — checked before ever contacting auth-server.
++     */
++    autoProvision(req: HttpRequest, body: {
++        alias?: string;
++        domain?: string;
++    } | undefined, user?: JWTUser): Promise<MailboxAutoProvisionResult<T>>;
++    /** This server's configured domain list (`mail:domains`) — lets a client (e.g. the admin console's
++     * "New mailbox" form) constrain the domain half of an address to what this server actually accepts,
++     * without hardcoding or duplicating that list client-side. */
++    listDomains(): Promise<string[]>;
++    /** The caller's own auth-server "name" aliases (e.g. usernames), via `GET /api/aliases/me?type=name` —
++     * forwarding their `jwt` cookie is what scopes the call to *their* aliases specifically. Skips that
++     * call entirely (see `staticAliases`'s own doc comment for why) when a fixed list is configured. */
++    private fetchNameAliases;
+     find(params: any, query: any, user?: JWTUser): Promise<T[]>;
+     count(params: any, query: any, res: HttpResponse, user?: JWTUser): Promise<any>;
+     exists(id: string, query: any, res: HttpResponse, user?: JWTUser): Promise<any>;

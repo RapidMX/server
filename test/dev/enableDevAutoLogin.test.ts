@@ -5,6 +5,7 @@ import config from "../../src/config.mongo.js";
 import { AuthMiddleware, ObjectFactory, RouteUtils } from "@rapidrest/service-core";
 import { Logger } from "@rapidrest/core";
 import {
+    configureDevAutoProvisioningIfApplicable,
     enableDevAutoLoginIfApplicable,
     isRunningUnderYarnDev,
     mountDevImpersonationRouteIfApplicable,
@@ -182,5 +183,99 @@ describe("mountDevImpersonationRouteIfApplicable Tests", () => {
 
         expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("[dev]"));
         expect(registerRouteMock).toHaveBeenCalledWith(fakeApp, expect.any(DevImpersonationRoute));
+    });
+});
+
+/** A minimal stand-in for the real nconf config, keyed by the exact same full path strings
+ * `configureDevAutoProvisioningIfApplicable()` itself uses (it never reads/writes a partial path
+ * expecting a nested object back, so a flat map is a faithful enough double) — used instead of the
+ * real shared `config` singleton so these tests can't leak state into each other or into any other
+ * test file that happens to import the same `config.mongo.js` module: confirmed directly that nconf's
+ * own `.set(key, undefined)` is a no-op (does not clear a previously-set value), so resetting the real
+ * singleton between tests isn't actually possible via the public API. */
+function fakeConfig(initial: Record<string, any> = {}): any {
+    const store: Record<string, any> = { ...initial };
+    return {
+        get: (key: string) => store[key],
+        set: (key: string, value: any) => {
+            store[key] = value;
+        },
+    };
+}
+
+describe("configureDevAutoProvisioningIfApplicable Tests", () => {
+    const originalArgv1 = process.argv[1];
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalVitest = process.env.VITEST;
+    const originalJestWorkerId = process.env.JEST_WORKER_ID;
+
+    afterEach(() => {
+        process.argv[1] = originalArgv1;
+        process.env.NODE_ENV = originalNodeEnv;
+        if (originalVitest === undefined) delete process.env.VITEST;
+        else process.env.VITEST = originalVitest;
+        if (originalJestWorkerId === undefined) delete process.env.JEST_WORKER_ID;
+        else process.env.JEST_WORKER_ID = originalJestWorkerId;
+    });
+
+    it("does nothing outside of yarn dev — never touches config.", () => {
+        process.argv[1] = "/project/dist/src/server.js";
+        const logger = { warn: vi.fn() };
+        const fake = fakeConfig({ port: 3001 });
+
+        configureDevAutoProvisioningIfApplicable(fake, logger);
+
+        expect(logger.warn).not.toHaveBeenCalled();
+        expect(fake.get("mail:auto_provision:enabled")).toBeUndefined();
+    });
+
+    it("fills in enabled/domains/static_aliases with dev defaults when none are already configured.", () => {
+        process.argv[1] = "/project/src/server.ts";
+        delete process.env.NODE_ENV;
+        delete process.env.VITEST;
+        delete process.env.JEST_WORKER_ID;
+        const logger = { warn: vi.fn() };
+        const fake = fakeConfig({ port: 3001 });
+
+        configureDevAutoProvisioningIfApplicable(fake, logger);
+
+        expect(fake.get("mail:auto_provision:enabled")).toBe(true);
+        expect(fake.get("mail:domains")).toEqual(["example.com"]);
+        expect(fake.get("mail:auto_provision:static_aliases")).toEqual(["dev-user"]);
+        expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("[dev]"));
+    });
+
+    it("derives the static alias from a custom mail:dev_auto_login:uid, matching whatever DevAutoAuthStrategy actually mints.", () => {
+        process.argv[1] = "/project/src/server.ts";
+        delete process.env.NODE_ENV;
+        delete process.env.VITEST;
+        delete process.env.JEST_WORKER_ID;
+        const logger = { warn: vi.fn() };
+        const fake = fakeConfig({ port: 3001, "mail:dev_auto_login:uid": "custom-dev-uid" });
+
+        configureDevAutoProvisioningIfApplicable(fake, logger);
+
+        expect(fake.get("mail:auto_provision:static_aliases")).toEqual(["custom-dev-uid"]);
+    });
+
+    it("leaves an admin's own explicit mail:auto_provision:enabled/mail:domains/static_aliases alone.", () => {
+        process.argv[1] = "/project/src/server.ts";
+        delete process.env.NODE_ENV;
+        delete process.env.VITEST;
+        delete process.env.JEST_WORKER_ID;
+        const logger = { warn: vi.fn() };
+        const fake = fakeConfig({
+            port: 3001,
+            "mail:auto_provision:enabled": false,
+            "mail:domains": ["custom.example"],
+            "mail:auto_provision:static_aliases": ["real-alias"],
+        });
+
+        configureDevAutoProvisioningIfApplicable(fake, logger);
+
+        expect(fake.get("mail:auto_provision:enabled")).toBe(false);
+        expect(fake.get("mail:domains")).toEqual(["custom.example"]);
+        expect(fake.get("mail:auto_provision:static_aliases")).toEqual(["real-alias"]);
+        expect(logger.warn).not.toHaveBeenCalled();
     });
 });

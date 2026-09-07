@@ -11,12 +11,17 @@ Keep entries terse — this is a reference, not a transcript.
 
 ## Standing decisions
 
-- **Commit discipline.** Don't `git commit` unless explicitly asked, even after a full
-  review-and-fix cycle with passing tests. Leave changes staged/unstaged and say so.
+- **Commit discipline.** Don't `git commit` unless explicitly asked for *that specific piece of
+  work*. An autonomous-execution/"commit as you go" approval given for one approved plan (e.g. via
+  plan mode) is scoped to that plan only — it does not carry forward to later, separate requests in
+  the same session, even ones that look similar in kind (a follow-up review-and-fix pass, a
+  refactor, a new feature), and even after a full review-and-fix cycle with passing tests. Default
+  to leaving changes staged/unstaged and saying so; only commit automatically within the exact
+  scope of a plan that was explicitly approved as autonomous. If unsure whether new work falls
+  inside that scope, treat it as outside and ask.
 - **Commit message style: concise, one line per task/bug/feature — no verbose prose.** A commit
-  message is a short list of one-line bullets, one per item. Never a paragraph explaining what was
-  done or why for any single item — that belongs in the diff/code comments/NOTES.md, not the commit
-  message. This mirrors JP's standing convention across his other repos.
+  message is a short list of one-line bullets, one per item. This mirrors JP's standing convention
+  across his other repos.
 - **This is a monorepo checkout, not isolated packages.** `mail-server` sits alongside its own
   `@rapidrest/*` dependencies as sibling directories under `d:\github\rapidrest\`: `mail`,
   `core`, `react`, `service-core`, `cli`. All are owned by the same author (Jean-Philippe
@@ -737,3 +742,145 @@ both fixed, not worked around:
   in the sidebar" in favor of plain Prev/Today/Next buttons in the page's own toolbar — `view`/
   `date` still live as local state (seeded once from `?view=`/`?date=`, navigated thereafter without
   a page reload, per the plan's own architecture decision), just without the extra picker widget.
+
+### 2026-09-07 — Self-service mailbox auto-provisioning on first login
+
+JP reported the real gap this whole webmail client had: a brand-new user signing in via auth-server
+with no mailbox yet manually created for them just sees "No mailboxes available" everywhere — no
+self-service path existed. Built end to end, config-gated (off by default):
+
+- **Lives in `@rapidmx/restapi`, not here** (`BaseMailboxRoute.autoProvision()`), per JP's own
+  correction mid-session — this is general backend capability (any consumer of the library might
+  want it), not webmail-client-specific glue, matching the existing precedent of `create()` itself
+  living there. New config: `mail:auto_provision:enabled` (bool, default `false`),
+  `mail:domains` (string[], default `[]` — **also now the single source of truth for every domain
+  this server accepts mail on**, enforced in `create()` itself for *every* caller including trusted
+  admins, not just auto-provisioning), `mail:auto_provision:quota_bytes`/`timeout_ms`. Reuses
+  `mail:auth_server_url` (already existed for browser redirects) for a genuine server-to-server call
+  this time: `GET {auth_server_url}/api/aliases/me?type=name`, forwarding the caller's own `jwt`
+  cookie, to learn what username(s) auth-server has for them (this system has no email of its own
+  registered for a brand-new user — there's nothing else to derive an address from). A caller can
+  have more than one name alias, and a deployment can serve more than one domain, so the response is
+  always the full cross product (`needs_selection`) unless the caller has already confirmed a
+  specific `{alias, domain}` pair — **never auto-creates silently on the first call**, even when
+  there's only one possible combination, so the user always gets a confirm-your-address step (JP's
+  explicit call). Idempotent (`existing` short-circuits before ever contacting auth-server).
+  New endpoints on the existing `mail/mailboxes` route: `POST .../auto-provision`,
+  `GET .../domains` (lets the admin console's "New mailbox" form read the same domain list rather
+  than duplicating it).
+- **`server` side**: `apps/shared/components/layout/MailboxProvisioning.tsx` — new shared component
+  rendered by all four shells (Mail/Calendar/Contacts/Tasks) in place of their old plain "No
+  mailboxes available." text, replacing that one line in each. Calls `autoProvision()` on mount;
+  `needs_selection` shows a dropdown of every `alias@domain` option + a Continue button; success
+  triggers `window.location.reload()` (this framework's own no-client-router convention for picking
+  up new server state). Any failure (disabled, no alias registered, auth-server unreachable) falls
+  back to the exact same plain message it replaces — safe to render unconditionally.
+  `apps/admin/mailboxes/new/index.tsx` (the manual admin form) now fetches the same domain list on
+  mount and, when non-empty, swaps its single free-text address field for a "Local part" input +
+  domain `<select>` — free-text is kept as the fallback when `mail:domains` is unconfigured (`[]`),
+  matching restapi's own "empty list = no restriction" default.
+- **Env var casing gotcha, cost real time to track down**: this app's own `nconf.env({separator:
+  "__"})` (unlike restapi's *test* config, which additionally sets `lowerCase: true`) does **not**
+  lowercase — env vars must be given in the exact same lowercase-with-underscores form the config
+  keys themselves use (confirmed against `@rapidrest/cli`'s own Helm chart templates, which already
+  use this convention: `session__secret`, `datastores__acl__database`, not
+  `SESSION__SECRET`/`DATASTORES__ACL__DATABASE`). So: `mail__auto_provision__enabled=true
+  mail__domains='["example.com"]' mail__auth_server_url=http://...` — **not** the all-caps form an
+  env var might conventionally suggest. Verified directly: uppercase silently resolved to defaults
+  with no error at all, which is the trap — worth remembering for the next config key anyone adds.
+- **Verified for real**, not just via the unit/integration suites (858/858 in restapi 100% coverage
+  on the new code, 469/469 here): patched restapi's freshly-built `dist/` into this repo via `yarn
+  patch` (same workflow as prior sessions), ran a real `yarn dev` with the env vars above plus a
+  throwaway local Node HTTP server standing in for auth-server's `/api/aliases/me` endpoint, and
+  exercised the whole thing with `curl` — `GET .../domains`, `POST .../auto-provision` returning the
+  correct 4-option cross product for 2 aliases × 2 domains, confirming a selection actually creates
+  the mailbox with all 5 well-known folders, and a repeat call correctly returning `existing` instead
+  of a duplicate. Also exercised via the dev-only impersonation endpoint as a second, genuinely fresh
+  synthetic user to confirm the whole path works for an identity that's never touched this server
+  before, not just the default `dev-user`.
+- **Still on the temporary patch** — same follow-up as every prior restapi-touching entry in this
+  file: once JP reviews/publishes a real `@rapidmx/restapi` version containing this, switch
+  `package.json`'s dependency back to a plain `"^X.Y.Z"` range and delete
+  `.yarn/patches/@rapidmx-restapi-npm-0.2.0-2144d5a53f.patch`.
+
+### 2026-09-07 — Follow-up: made auto-provisioning actually work under plain `yarn dev` (no
+auth-server at all); fixed a real admin-console permission bug; full-screen the "no mailbox" page
+
+JP tried the feature from the entry above under his own everyday `yarn dev` (no throwaway
+stand-in auth-server running) and hit two problems: the admin console rejected him for "requires
+elevation," and auto-provisioning itself didn't work at all.
+
+- **Admin console permission bug, root cause and fix**: `DevAutoAuthStrategy` honors an
+  already-valid `jwt` cookie as-is by design (see the 2026-09-06 dev-auto-login entry) — but a
+  cookie minted by an *older* build of this same class (before a separate prior fix started
+  setting `elevated: Date.now()` on the synthetic dev user) decodes as structurally valid forever,
+  so a browser session started before that fix silently keeps failing every
+  `@RequiresElevation()`-gated endpoint even after the code itself is fixed. Reproduced directly
+  via `curl` (hand-minted an old-shape token, got a real 403). Fixed with `isStaleDevToken()`
+  (`src/dev/DevAutoAuthStrategy.ts`): a cookie decoding to *this strategy's own* configured dev uid
+  but missing a valid `elevated` timestamp is treated as stale and re-minted, rather than trusted.
+  Deliberately scoped to that exact uid only — a real external auth-server-issued token for an
+  actual unprivileged user (`elevated: -1` is a normal, documented state for `JWTUser`, not
+  staleness) is never second-guessed. **Practical takeaway for future changes to what
+  `DevAutoAuthStrategy.mint()` puts in a token**: any such change needs an analogous re-mint check,
+  or existing browser sessions started before the change keep behaving as if it never happened —
+  decoding an old-but-structurally-valid token never fails on its own.
+- **Auto-provisioning under real `yarn dev`, root cause and fix — a genuine uWebSockets.js
+  limitation, not a config bug**: the original plan was `configureDevAutoProvisioningIfApplicable()`
+  pointing `mail:auth_server_url` at `http://localhost:${port}` (this same process) plus a new
+  `src/dev/DevAliasesRoute.ts` mounted at `GET /api/aliases/me` to answer it — compiled, typechecked,
+  and passed every unit/integration test (all of which mock `fetch`), then failed for real with `502
+  Could not reach the identity service` / `TypeError: fetch failed` →
+  `AggregateError [ECONNREFUSED]`. Isolated by confirming the *exact same* endpoint worked fine
+  called from curl and from a separate standalone Node script, but failed specifically when
+  `fetch()`ed from *inside a request handler already running on this same uWebSockets.js process,
+  targeting its own listening address* — the server's native listening socket refuses a new
+  self-connection while mid-request. This is a real transport-level constraint, not fixable by
+  adjusting the fetch call itself, and would bite **any** future dev-only feature tempted to point a
+  server at itself over HTTP from within its own request-handling code — don't do that; add a
+  bypass at the point of use instead, as below.
+  - **Fix, in `@rapidmx/restapi`** (`BaseMailboxRoute.ts`): new `mail:auto_provision:static_aliases`
+    config (`string[]`, default `[]`). When non-empty, `fetchNameAliases()` returns it directly,
+    skipping the `authServerUrl`/`fetch()` path entirely — same idea as `mail:domains`, just a
+    second override for the alias side. `autoProvision()`'s enabled-guard now accepts either
+    `authServerUrl` or a non-empty `staticAliases` as a valid "alias source." Covered by a new
+    `test/routes/mongo/MailboxAutoProvisionStatic.test.ts` (asserts `fetch` is never even called).
+  - **Fix, here**: `configureDevAutoProvisioningIfApplicable()` (`src/dev/enableDevAutoLogin.ts`)
+    now sets `mail:auto_provision:static_aliases: [<mail:dev_auto_login:uid, default "dev-user">]`
+    instead of `mail:auth_server_url` — deliberately deriving the alias from the *same* config key
+    `DevAutoAuthStrategy` uses for its synthetic uid, so auto-provisioning always resolves for
+    whichever identity every other request is already auto-authenticating as, even if that uid is
+    overridden. `DevAliasesRoute.ts` (route + its `mountDevAliasesRouteIfApplicable()` wiring in all
+    three `server*.ts` entry points) is now dead and was deleted outright, not left disabled — it
+    served no purpose once nothing points at it.
+- **Full-screen "no mailbox" takeover, per JP's explicit follow-up request**: the same
+  `MailboxProvisioning` component previously rendered as a small nested `<Alert>` inside each
+  shell's normal chrome now renders full-screen (own centered card, logo, no `AppShell` nav
+  rail/header at all) — each shell (`Mail/Calendar/Contacts/TasksShell.tsx`) early-returns it
+  *before* reaching its `<AppShell>` wrapper, rather than nesting it inside one, so the surrounding
+  chrome never renders in that state at all (a 404-page-style takeover, not an in-app message).
+  `apps/www/index.tsx`'s message-list fallback text had to be made distinct from its own
+  pre-existing "Loading…" indicator ("Loading your mailbox…") — reusing identical text for two
+  different transient states made `findByText` in tests non-deterministically match the wrong one,
+  which is itself a real testability/UX lesson worth repeating: never give two different loading
+  states in the same view identical copy.
+- **Verified for real, end to end, after refreshing the `yarn patch`**: killed every stray
+  `yarn dev` process left over from earlier in this session (they were running against a now-stale
+  `node_modules/@rapidmx/restapi` — `yarn install`/patch refreshes never trigger a `tsx --watch`
+  restart since `node_modules` isn't in its watch scope), started one fresh `yarn dev`, and
+  `curl`'d: `GET /api/mail/mailboxes/domains` → `["example.com"]` with zero manual env vars now
+  needed at all (previously required hand-setting `mail__auth_server_url` to a stand-in server);
+  `POST /api/mail/mailboxes/auto-provision` → `needs_selection` with `dev-user@example.com`, no
+  `ECONNREFUSED`; `GET /api/admin/clear-cache` (a real `@RequiresElevation()`-gated endpoint) → 204
+  on a completely fresh cookie-less session; `/` and `/admin` both → 200. `yarn tsc --noEmit`, the
+  client `tsc -p tsconfig.client.json --noEmit`, `yarn lint`, and `yarn test` all clean (476/476,
+  `apps/**` still 100%) both in `server` and in `@rapidmx/restapi` (859/859, its own 100%
+  statement/function/line gate — see its own NOTES.md).
+- **Known, pre-existing, unrelated gap noticed in restapi while chasing its own coverage report,
+  not touched this session**: `MailboxRouteMongo.ts`/`MailboxRouteSQL.ts`'s
+  `findAccessibleMailboxUids()` has an `if (!this.aclRepo) return [];` guard that's never actually
+  hit by any test (`@Repository`-injected, always populated in a real running server) — present
+  since that repo's initial commit, unrelated to anything in this entry, left alone rather than
+  chased as scope creep. Worth a `/* c8 ignore */`-style documented exception (matching this
+  project's existing convention for `@Config`/`@Inject`-injected structurally-unreachable branches)
+  if a future session is already touching that file for another reason.

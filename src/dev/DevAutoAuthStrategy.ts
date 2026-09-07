@@ -52,6 +52,21 @@ export class DevAutoAuthStrategy implements AuthStrategy {
         return { uid: this.devUid, roles: this.devRoles, scopes: [], elevated: Date.now() };
     }
 
+    /**
+     * A `jwt` cookie decoding to this strategy's own synthetic dev uid, but missing a valid `elevated`
+     * timestamp, must have been minted by an older version of `mint()` (before it started setting that
+     * field) — stale, and must be re-minted rather than trusted as-is, or a browser session started
+     * before that fix silently keeps failing every `RequiresElevation()`-gated endpoint (e.g. the admin
+     * console's canary call) even after the code itself is fixed, since decoding an
+     * old-but-structurally-valid token never fails on its own. Scoped to this exact uid specifically so
+     * a real external auth-server-issued token for an actual (non-dev) user — legitimately unprivileged,
+     * `elevated <= 0`, by the normal meaning of that field — is never second-guessed; only a token this
+     * strategy itself could have minted is ever revalidated against its own current invariants.
+     */
+    private isStaleDevToken(user: JWTUser): boolean {
+        return user.uid === this.devUid && !(typeof user.elevated === "number" && user.elevated > 0);
+    }
+
     /** Plain http (no TLS) in local dev — a `Secure` cookie would never be sent back by the browser at all,
      * silently breaking every subsequent request's auth. */
     private setCookie(res: HttpResponse | undefined, token: string): void {
@@ -85,7 +100,10 @@ export class DevAutoAuthStrategy implements AuthStrategy {
                 // A non-throwing decodeToken() always has a usable `.profile`: `finalizePayload` unconditionally
                 // `JSON.parse`s it, which would itself throw (caught below) were it ever absent or malformed.
                 const payload: JWTPayload = await JWTUtils.decodeToken(this.authConfig, token);
-                return { data: token, method: this.name, payload, user: payload.profile as JWTUser };
+                const user = payload.profile as JWTUser;
+                if (!this.isStaleDevToken(user)) {
+                    return { data: token, method: this.name, payload, user };
+                }
             } catch {
                 // Missing, expired, or otherwise invalid — all treated the same: fall through and mint fresh.
             }

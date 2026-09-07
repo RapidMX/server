@@ -7,6 +7,7 @@ import { ApiRequestError } from "../../../lib/api.js";
 import { Folder, Mailbox, listFolders, listMailboxes } from "../../../lib/mailApi.js";
 import Alert from "../../feedback/Alert.js";
 import AppShell, { AppShellProps } from "../../layout/AppShell.js";
+import MailboxProvisioning from "../../layout/MailboxProvisioning.js";
 
 export type ContactsShellProps = Omit<AppShellProps, "active">;
 
@@ -90,6 +91,12 @@ export default function ContactsShell({
         [mailboxUid, folderUid, mailboxes],
     );
 
+    // A full-screen takeover, not nested inside the rest of the app's chrome — there's nothing else
+    // for a mailbox-less caller to do here yet, so the icon rail/header don't render at all.
+    if (userUid && status === "ready" && !mailboxUid) {
+        return <MailboxProvisioning />;
+    }
+
     let inner: ReactNode = null;
     if (userUid && status === "error") {
         inner = (
@@ -103,7 +110,7 @@ export default function ContactsShell({
         inner = (
             <>
                 <aside className="w-56 shrink-0 bg-surface border-r border-border flex flex-col p-3 gap-3">
-                    {mailboxUid && mailboxes.length > 1 && (
+                    {mailboxes.length > 1 && (
                         <div>
                             <label
                                 className="block text-xs font-bold uppercase tracking-wide text-text-muted mb-1"
@@ -129,7 +136,6 @@ export default function ContactsShell({
                         </div>
                     )}
                     {folderError && <Alert>{folderError}</Alert>}
-                    {!mailboxUid && <p className="text-sm text-text-muted">No mailboxes available.</p>}
                 </aside>
                 <ContactsShellContext.Provider value={contextValue}>{children}</ContactsShellContext.Provider>
             </>

@@ -78,11 +78,12 @@ function InboxContent() {
     }
 
     if (!folderUid) {
-        return (
-            <div className="p-8 max-w-md">
-                <Alert>No mailbox available yet. Ask an administrator to create one for you.</Alert>
-            </div>
-        );
+        // `MailShell` never renders this component at all until a mailbox is resolved (see its own
+        // full-screen `MailboxProvisioning` takeover otherwise) — this is purely the brief gap before
+        // that mailbox's own folder list has finished loading, not a "no mailbox" state. Distinct text
+        // from the message list's own "Loading…" below — otherwise the two transient states become
+        // indistinguishable to anything (a test, a user re-reading the screen) that catches this one.
+        return <p className="p-8 text-sm text-text-muted">Loading your mailbox&hellip;</p>;
     }
 
     return (

@@ -38,6 +38,10 @@ const calendarFolder = {
 
 function mockMailboxesAndFolders(mailboxes: unknown[], folders: unknown[]) {
     return mockFetch((url) => {
+        // Checked before the general "/api/mail/mailboxes" prefix below, which would otherwise also
+        // match this sub-path and hand `MailboxProvisioning` the mailbox list as if it were its own
+        // response shape. 404 matches this feature's real default (disabled unless an admin configures it).
+        if (url.startsWith("/api/mail/mailboxes/auto-provision")) return jsonResponse(404, { message: "not enabled" });
         if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, mailboxes);
         if (url.startsWith("/api/mail/folders")) return jsonResponse(200, folders);
         throw new Error(`unexpected ${url}`);
@@ -75,11 +79,13 @@ describe("CalendarShell", () => {
         expect(await screen.findByText("Could not load your mailboxes.")).toBeInTheDocument();
     });
 
-    it("shows a no-mailboxes message and renders no switcher when the caller has none", async () => {
+    it("shows a full-screen no-mailbox page — not the app's own chrome/content at all — when the caller has none", async () => {
         mockMailboxesAndFolders([], []);
         render(<CalendarShell userUid="u1">content</CalendarShell>);
-        expect(await screen.findByText("No mailboxes available.")).toBeInTheDocument();
+        expect(await screen.findByText("No mailbox available")).toBeInTheDocument();
+        expect(screen.queryByText("content")).not.toBeInTheDocument();
         expect(screen.queryByLabelText("Mailbox")).not.toBeInTheDocument();
+        expect(screen.queryByRole("navigation", { name: "Apps" })).not.toBeInTheDocument();
     });
 
     it("renders a single mailbox's calendar folder with no mailbox switcher", async () => {

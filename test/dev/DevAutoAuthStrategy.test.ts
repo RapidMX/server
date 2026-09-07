@@ -62,6 +62,54 @@ describe("DevAutoAuthStrategy Tests", () => {
             expect(setCookieCalls).toHaveLength(0);
         });
 
+        it("re-mints a fresh token when an existing cookie decodes to this strategy's own dev uid but is missing a valid 'elevated' timestamp (a stale pre-elevation-fix token).", async () => {
+            const staleDevToken = JWTUtils.createTokenSync(config.get("auth"), {
+                uid: "dev-user",
+                roles: ["admin"],
+                scopes: [],
+                // No `elevated` at all — the exact shape `buildDevUser()` produced before it started
+                // setting that field.
+            });
+            const { res, setCookieCalls } = fakeRes();
+
+            const result = await strategy.authenticate(fakeReq({ jwt: staleDevToken }), res);
+
+            expect(result?.user?.uid).toBe("dev-user");
+            expect(result?.user?.elevated).toBeGreaterThan(0);
+            expect(setCookieCalls).toHaveLength(1);
+        });
+
+        it("re-mints a fresh token when an existing cookie decodes to this strategy's own dev uid with a non-positive 'elevated' value.", async () => {
+            const staleDevToken = JWTUtils.createTokenSync(config.get("auth"), {
+                uid: "dev-user",
+                roles: ["admin"],
+                scopes: [],
+                elevated: -1,
+            });
+            const { res, setCookieCalls } = fakeRes();
+
+            const result = await strategy.authenticate(fakeReq({ jwt: staleDevToken }), res);
+
+            expect(result?.user?.elevated).toBeGreaterThan(0);
+            expect(setCookieCalls).toHaveLength(1);
+        });
+
+        it("honors a real (non-dev-uid) caller's unprivileged token as-is, even with no/negative 'elevated' — that's a normal, legitimate state for a real unprivileged user, not staleness.", async () => {
+            const realUnprivilegedToken = JWTUtils.createTokenSync(config.get("auth"), {
+                uid: "real-user",
+                roles: [],
+                scopes: [],
+                elevated: -1,
+            });
+            const { res, setCookieCalls } = fakeRes();
+
+            const result = await strategy.authenticate(fakeReq({ jwt: realUnprivilegedToken }), res);
+
+            expect(result?.user?.uid).toBe("real-user");
+            expect(result?.user?.elevated).toBe(-1);
+            expect(setCookieCalls).toHaveLength(0);
+        });
+
         it("falls back to minting a fresh token when the existing cookie fails to verify.", async () => {
             const { res, setCookieCalls } = fakeRes();
 

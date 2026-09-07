@@ -1332,7 +1332,7 @@ __metadata:
   languageName: node
   linkType: soft
 
-"@rapidmx/restapi@npm:^0.2.0":
+"@rapidmx/restapi@npm:0.2.0":
   version: 0.2.0
   resolution: "@rapidmx/restapi@npm:0.2.0"
   dependencies:
@@ -1357,6 +1357,31 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@rapidmx/restapi@patch:@rapidmx/restapi@npm%3A0.2.0#~/.yarn/patches/@rapidmx-restapi-npm-0.2.0-2144d5a53f.patch":
+  version: 0.2.0
+  resolution: "@rapidmx/restapi@patch:@rapidmx/restapi@npm%3A0.2.0#~/.yarn/patches/@rapidmx-restapi-npm-0.2.0-2144d5a53f.patch::version=0.2.0&hash=2f5f20"
+  dependencies:
+    html-to-text: "npm:^9.0.5"
+    mailparser: "npm:^3.7.2"
+    nodemailer: "npm:^7.0.3"
+    sanitize-html: "npm:^2.14.0"
+  peerDependencies:
+    "@opensearch-project/opensearch": ">=3.0.0"
+    "@rapidrest/core": 5.x
+    "@rapidrest/service-core": 1.x
+    mammoth: ">=1.8.0"
+    pdf-parse: ">=1.1.1"
+  peerDependenciesMeta:
+    "@opensearch-project/opensearch":
+      optional: true
+    mammoth:
+      optional: true
+    pdf-parse:
+      optional: true
+  checksum: 10c0/a8736feda8b51f304e7b25b4ce6947668775413bfcfcff4eb6666532347f4c0d9ae6e9b0874cbb1e054ca0e817d288532ca3586e4cf0e40f49f069808d63cacb
+  languageName: node
+  linkType: hard
+
 "@rapidmx/server@workspace:.":
   version: 0.0.0-use.local
   resolution: "@rapidmx/server@workspace:."
@@ -1365,7 +1390,7 @@ __metadata:
     "@rapidmx/activesync": "portal:../activesync"
     "@rapidmx/autodiscover": "portal:../autodiscover"
     "@rapidmx/mapi": "portal:../mapi"
-    "@rapidmx/restapi": "npm:^0.2.0"
+    "@rapidmx/restapi": "patch:@rapidmx/restapi@npm%3A0.2.0#~/.yarn/patches/@rapidmx-restapi-npm-0.2.0-2144d5a53f.patch"
     "@rapidrest/cli": "npm:^1.0.1"
     "@rapidrest/core": "npm:^5.1.0"
     "@rapidrest/react": "npm:^1.1.0"

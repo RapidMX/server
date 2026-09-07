@@ -7,6 +7,7 @@ import { ApiRequestError } from "../../../lib/api.js";
 import { Folder, Mailbox, listFolders, listMailboxes } from "../../../lib/mailApi.js";
 import Alert from "../../feedback/Alert.js";
 import AppShell, { AppShellProps } from "../../layout/AppShell.js";
+import MailboxProvisioning from "../../layout/MailboxProvisioning.js";
 
 export type MailShellProps = Omit<AppShellProps, "active">;
 
@@ -119,6 +120,12 @@ export default function MailShell({
         [folders],
     );
 
+    // A full-screen takeover, not nested inside the rest of the app's chrome — there's nothing else
+    // for a mailbox-less caller to do here yet, so the icon rail/header/folder tree don't render at all.
+    if (userUid && status === "ready" && !mailboxUid) {
+        return <MailboxProvisioning />;
+    }
+
     let inner: ReactNode = null;
     if (userUid && status === "error") {
         inner = (
@@ -134,13 +141,13 @@ export default function MailShell({
                 <aside className="w-64 shrink-0 bg-surface border-r border-border flex flex-col">
                     <div className="p-3">
                         <a
-                            href={mailboxUid ? `/compose?mailboxUid=${encodeURIComponent(mailboxUid)}` : "/compose"}
+                            href={`/compose?mailboxUid=${encodeURIComponent(mailboxUid)}`}
                             className="block text-center w-full py-2.5 px-4 rounded-sm font-semibold text-sm bg-primary text-white hover:bg-primary-dark"
                         >
                             Compose
                         </a>
                     </div>
-                    {mailboxUid && mailboxes.length > 1 && (
+                    {mailboxes.length > 1 && (
                         <div className="px-3 pb-2">
                             <label
                                 className="block text-xs font-bold uppercase tracking-wide text-text-muted mb-1"
@@ -170,31 +177,27 @@ export default function MailShell({
                             <Alert>{folderError}</Alert>
                         </div>
                     )}
-                    {!mailboxUid ? (
-                        <p className="px-4 py-3 text-sm text-text-muted">No mailboxes available.</p>
-                    ) : (
-                        <nav className="flex-1 overflow-y-auto px-3 pb-3 flex flex-col gap-0.5">
-                            {sortedFolders.map((folder) => (
-                                <a
-                                    key={folder.uid}
-                                    href={`/?mailboxUid=${encodeURIComponent(mailboxUid)}&folderUid=${encodeURIComponent(folder.uid)}`}
-                                    className={[
-                                        "flex items-center justify-between text-sm rounded-sm py-1.5 px-2.5",
-                                        folder.uid === folderUid
-                                            ? "bg-primary/10 text-primary-dark font-semibold"
-                                            : "text-text hover:bg-surface-alt",
-                                    ].join(" ")}
-                                >
-                                    <span>{FOLDER_LABELS[folder.type] ?? folder.name}</span>
-                                    {folder.unreadCount > 0 && (
-                                        <span className="text-xs font-bold rounded-pill py-0.5 px-1.5 bg-surface-alt text-text-muted">
-                                            {folder.unreadCount}
-                                        </span>
-                                    )}
-                                </a>
-                            ))}
-                        </nav>
-                    )}
+                    <nav className="flex-1 overflow-y-auto px-3 pb-3 flex flex-col gap-0.5">
+                        {sortedFolders.map((folder) => (
+                            <a
+                                key={folder.uid}
+                                href={`/?mailboxUid=${encodeURIComponent(mailboxUid)}&folderUid=${encodeURIComponent(folder.uid)}`}
+                                className={[
+                                    "flex items-center justify-between text-sm rounded-sm py-1.5 px-2.5",
+                                    folder.uid === folderUid
+                                        ? "bg-primary/10 text-primary-dark font-semibold"
+                                        : "text-text hover:bg-surface-alt",
+                                ].join(" ")}
+                            >
+                                <span>{FOLDER_LABELS[folder.type] ?? folder.name}</span>
+                                {folder.unreadCount > 0 && (
+                                    <span className="text-xs font-bold rounded-pill py-0.5 px-1.5 bg-surface-alt text-text-muted">
+                                        {folder.unreadCount}
+                                    </span>
+                                )}
+                            </a>
+                        ))}
+                    </nav>
                 </aside>
                 <main className="flex-1 min-w-0 overflow-y-auto">
                     <MailShellContext.Provider value={contextValue}>{children}</MailShellContext.Provider>

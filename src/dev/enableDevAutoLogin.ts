@@ -83,3 +83,53 @@ export async function mountDevImpersonationRouteIfApplicable(
             "'Access this mailbox' works without a real auth-server running. yarn dev only.",
     );
 }
+
+/**
+ * DEV-ONLY: turns on `@rapidmx/restapi`'s self-service mailbox auto-provisioning
+ * (`BaseMailboxRoute.autoProvision()`) with a placeholder domain and a static alias list, so it's
+ * exercisable against `yarn dev` out of the box with no real auth-server running. Call this once, before
+ * `new Server(...)` — the config values it sets must already be in place by the time routes are
+ * constructed and their `@Config` fields resolved.
+ *
+ * Uses `mail:auto_provision:static_aliases` rather than pointing `mail:auth_server_url` at this same
+ * process: a Node `fetch()` back to this server's own listening address, issued from inside a request
+ * handler already running on it, is refused at the TCP level (confirmed directly — the underlying
+ * uWebSockets.js server doesn't accept a new self-connection while still mid-request), so a real
+ * self-referencing HTTP round-trip can't work here regardless of what it points at. The alias list
+ * mirrors `DevAutoAuthStrategy`'s own synthetic uid (`mail:dev_auto_login:uid`, default `"dev-user"`) so
+ * the identity auto-provisioning resolves for is the same one every other request auto-authenticates as.
+ *
+ * Only fills in a value that isn't already explicitly configured (checked via a plain `config.get()`,
+ * not `@Config`'s own decorator — that only supplies a fallback at the read site, it never writes the
+ * default back into the shared config store), so an admin who already set `mail:auto_provision:*`/
+ * `mail:domains` themselves (e.g. to point at a real auth-server they're running locally for a fuller
+ * integration test) keeps exactly what they configured — this only fills the gaps.
+ */
+export function configureDevAutoProvisioningIfApplicable(config: any, logger: any): void {
+    if (!isRunningUnderYarnDev()) {
+        return;
+    }
+
+    let configured = false;
+    if (config.get("mail:auto_provision:enabled") === undefined) {
+        config.set("mail:auto_provision:enabled", true);
+        configured = true;
+    }
+    if (!(config.get("mail:domains")?.length > 0)) {
+        config.set("mail:domains", ["example.com"]);
+        configured = true;
+    }
+    if (!(config.get("mail:auto_provision:static_aliases")?.length > 0)) {
+        const devUid = config.get("mail:dev_auto_login:uid") ?? "dev-user";
+        config.set("mail:auto_provision:static_aliases", [devUid]);
+        configured = true;
+    }
+
+    if (configured) {
+        logger.warn(
+            "[dev] Self-service mailbox auto-provisioning is configured for local testing (domain: " +
+                "example.com, static alias list — no real auth-server call). yarn dev only; set " +
+                "mail:auto_provision:*/mail:domains yourself to override any of this.",
+        );
+    }
+}

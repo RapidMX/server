@@ -7,6 +7,7 @@ import { ApiRequestError } from "../../../lib/api.js";
 import { Folder, Mailbox, listFolders, listMailboxes } from "../../../lib/mailApi.js";
 import Alert from "../../feedback/Alert.js";
 import AppShell, { AppShellProps } from "../../layout/AppShell.js";
+import MailboxProvisioning from "../../layout/MailboxProvisioning.js";
 
 export type CalendarShellProps = Omit<AppShellProps, "active">;
 
@@ -92,6 +93,12 @@ export default function CalendarShell({
         [mailboxUid, folderUid, mailboxes],
     );
 
+    // A full-screen takeover, not nested inside the rest of the app's chrome — there's nothing else
+    // for a mailbox-less caller to do here yet, so the icon rail/header don't render at all.
+    if (userUid && status === "ready" && !mailboxUid) {
+        return <MailboxProvisioning />;
+    }
+
     let inner: ReactNode = null;
     if (userUid && status === "error") {
         inner = (
@@ -104,7 +111,7 @@ export default function CalendarShell({
     } else if (userUid && status === "ready") {
         inner = (
             <>
-                {mailboxUid && mailboxes.length > 1 && (
+                {mailboxes.length > 1 && (
                     <div className="w-56 shrink-0 bg-surface border-r border-border p-3">
                         <label
                             className="block text-xs font-bold uppercase tracking-wide text-text-muted mb-1"
@@ -134,11 +141,7 @@ export default function CalendarShell({
                         <Alert>{folderError}</Alert>
                     </div>
                 )}
-                {!mailboxUid ? (
-                    <p className="p-4 text-sm text-text-muted">No mailboxes available.</p>
-                ) : (
-                    <CalendarShellContext.Provider value={contextValue}>{children}</CalendarShellContext.Provider>
-                )}
+                <CalendarShellContext.Provider value={contextValue}>{children}</CalendarShellContext.Provider>
             </>
         );
     }

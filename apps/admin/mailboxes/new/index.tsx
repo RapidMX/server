@@ -2,9 +2,9 @@
 // Copyright (C) 2026 Jean-Philippe Steinmetz
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
-import React, { FormEvent, useState } from "react";
+import React, { FormEvent, useEffect, useState } from "react";
 import { ApiRequestError } from "../../../shared/lib/api.js";
-import { createMailbox } from "../../../shared/lib/mailApi.js";
+import { createMailbox, listMailboxDomains } from "../../../shared/lib/mailApi.js";
 import AdminShell, { AdminShellProps } from "../../../shared/components/admin/layout/AdminShell.js";
 import Alert from "../../../shared/components/feedback/Alert.js";
 import Button from "../../../shared/components/buttons/Button.js";
@@ -12,6 +12,8 @@ import FormField from "../../../shared/components/forms/FormField.js";
 
 const INPUT_CLASS =
     "w-full text-sm py-2.5 px-3 border border-border rounded-sm bg-surface text-text focus:outline-none focus:border-primary";
+const SELECT_CLASS =
+    "text-sm py-2.5 px-3 border border-border rounded-sm bg-surface text-text focus:outline-none focus:border-primary";
 
 export default function NewMailboxPage(props: AdminShellProps) {
     return (
@@ -23,6 +25,9 @@ export default function NewMailboxPage(props: AdminShellProps) {
 
 function NewMailboxForm() {
     const [primarySmtpAddress, setPrimarySmtpAddress] = useState("");
+    const [localPart, setLocalPart] = useState("");
+    const [domains, setDomains] = useState<string[]>([]);
+    const [domain, setDomain] = useState("");
     const [displayName, setDisplayName] = useState("");
     const [ownerUserUid, setOwnerUserUid] = useState("");
     const [timezone, setTimezone] = useState("UTC");
@@ -30,11 +35,28 @@ function NewMailboxForm() {
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
 
+    // An empty `mail:domains` list (the default) means this server enforces no domain restriction —
+    // the address field stays free text, exactly as before. Once an admin configures at least one
+    // domain, every mailbox this server creates must be on one of them (enforced server-side too, in
+    // `BaseMailboxRoute.create()`), so the form switches to a local-part input + domain dropdown to
+    // make that restriction visible rather than let an admin discover it only via a rejected submit.
+    useEffect(() => {
+        listMailboxDomains()
+            .then((list) => {
+                setDomains(list);
+                setDomain(list[0] ?? "");
+            })
+            .catch(() => undefined);
+    }, []);
+
+    const constrained = domains.length > 0;
+
     async function handleSubmit(e: FormEvent) {
         e.preventDefault();
         setError(null);
 
-        if (!primarySmtpAddress.trim()) {
+        const address = constrained ? `${localPart.trim()}@${domain}` : primarySmtpAddress.trim();
+        if (constrained ? !localPart.trim() : !primarySmtpAddress.trim()) {
             setError("A primary SMTP address is required.");
             return;
         }
@@ -48,7 +70,7 @@ function NewMailboxForm() {
             // ownerUserUid left blank creates a true ownerless shared mailbox (e.g. support@example.com);
             // delegates are then granted access from the mailbox's detail page.
             const mailbox = await createMailbox({
-                primarySmtpAddress: primarySmtpAddress.trim(),
+                primarySmtpAddress: address,
                 displayName: displayName.trim(),
                 ownerUserUid: ownerUserUid.trim() || undefined,
                 timezone,
@@ -74,16 +96,44 @@ function NewMailboxForm() {
             {error && <Alert>{error}</Alert>}
 
             <form onSubmit={handleSubmit} className="bg-surface border border-border rounded-md p-6">
-                <FormField label="Primary SMTP address" htmlFor="primarySmtpAddress">
-                    <input
-                        id="primarySmtpAddress"
-                        type="email"
-                        className={INPUT_CLASS}
-                        value={primarySmtpAddress}
-                        onChange={(e) => setPrimarySmtpAddress(e.target.value)}
-                        placeholder="support@example.com"
-                    />
-                </FormField>
+                {constrained ? (
+                    <FormField label="Local part" htmlFor="localPart">
+                        <div className="flex gap-2 items-center">
+                            <input
+                                id="localPart"
+                                type="text"
+                                className={INPUT_CLASS}
+                                value={localPart}
+                                onChange={(e) => setLocalPart(e.target.value)}
+                                placeholder="support"
+                            />
+                            <span className="text-text-muted shrink-0">@</span>
+                            <select
+                                aria-label="Domain"
+                                className={SELECT_CLASS}
+                                value={domain}
+                                onChange={(e) => setDomain(e.target.value)}
+                            >
+                                {domains.map((d) => (
+                                    <option key={d} value={d}>
+                                        {d}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    </FormField>
+                ) : (
+                    <FormField label="Primary SMTP address" htmlFor="primarySmtpAddress">
+                        <input
+                            id="primarySmtpAddress"
+                            type="email"
+                            className={INPUT_CLASS}
+                            value={primarySmtpAddress}
+                            onChange={(e) => setPrimarySmtpAddress(e.target.value)}
+                            placeholder="support@example.com"
+                        />
+                    </FormField>
+                )}
 
                 <FormField label="Display name" htmlFor="displayName">
                     <input

@@ -84,13 +84,18 @@ afterEach(() => {
 describe("InboxPage", () => {
     it("shows a message when no mailbox is available yet", async () => {
         mockFetch((url) => {
+            // Checked before the general "/api/mail/mailboxes" prefix below, which would otherwise also
+            // match this sub-path and hand `MailboxProvisioning` the mailbox list as if it were its own
+            // response shape. 404 matches this feature's real default (disabled unless configured).
+            if (url.startsWith("/api/mail/mailboxes/auto-provision")) return jsonResponse(404, { message: "not enabled" });
             if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, []);
             if (url.startsWith("/api/mail/folders")) return jsonResponse(200, []);
             throw new Error(`unexpected ${url}`);
         });
         render(<InboxPage userUid="u1" />);
-        expect(await screen.findByText("No mailboxes available.")).toBeInTheDocument();
-        expect(await screen.findByText("No mailbox available yet. Ask an administrator to create one for you.")).toBeInTheDocument();
+        expect(await screen.findByText("No mailbox available")).toBeInTheDocument();
+        expect(screen.getByText("Ask an administrator to create one for you.")).toBeInTheDocument();
+        expect(screen.queryByRole("navigation", { name: "Apps" })).not.toBeInTheDocument();
     });
 
     it("shows a loading indicator while messages are being fetched", async () => {
