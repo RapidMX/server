@@ -14,7 +14,7 @@ import {
     uploadAttachment,
 } from "../../shared/lib/mailApi.js";
 import MailShell, { MailShellProps, useMailShell } from "../../shared/components/mail/layout/MailShell.js";
-import MonacoHtmlEditor from "../../shared/components/mail/compose/MonacoHtmlEditor.js";
+import RichTextEditor from "../../shared/components/mail/compose/RichTextEditor.js";
 import Alert from "../../shared/components/feedback/Alert.js";
 import Button from "../../shared/components/buttons/Button.js";
 import FormField from "../../shared/components/forms/FormField.js";
@@ -100,6 +100,12 @@ function ComposeContent() {
         setSending(true);
         setSendError(null);
         try {
+            // No client-side sanitization of `html` here — `sanitize-html` (the library used for this) is a
+            // Node-oriented package built on `htmlparser2`; browser-bundling it through this project's plain
+            // Vite config for a purely cosmetic defense-in-depth pass isn't worth the added bundle size/
+            // fragility when the server-side gate in `BaseMailComposeRoute.assemble()` is already the sole
+            // authoritative one regardless (the server never trusts client-submitted HTML any more than it
+            // trusts a client-submitted `from` address, which is also always server-derived).
             await assembleDraft(draft.uid, {
                 to: toRecipients,
                 cc: parseAddresses(cc),
@@ -176,7 +182,7 @@ function ComposeContent() {
             </FormField>
 
             <FormField label="Message" htmlFor="compose-body">
-                <MonacoHtmlEditor value={html} onChange={setHtml} />
+                <RichTextEditor value={html} onChange={setHtml} />
             </FormField>
 
             <FormField label="Attachments" htmlFor="compose-attachments">

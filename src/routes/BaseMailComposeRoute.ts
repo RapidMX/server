@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Jean-Philippe Steinmetz
 ///////////////////////////////////////////////////////////////////////////////
 import * as crypto from "crypto";
+import sanitizeHtml from "sanitize-html";
 import MailComposer from "nodemailer/lib/mail-composer/index.js";
 import { ApiError, ObjectDecorators, type JWTUser } from "@rapidrest/core";
 import {
@@ -30,6 +31,72 @@ export interface ComposeAssembleInput {
 
 function toNodemailerAddress(recipient: Recipient): { name?: string; address: string } {
     return { name: recipient.displayName, address: recipient.address };
+}
+
+/**
+ * `assemble()` is the one place a webmail client's own HTML — never sanitized client-side against anything
+ * a malicious/compromised browser extension or a bug in the rich-text editor could produce — reaches this
+ * server on its way into a real outbound MIME message and this draft's stored preview text. Unlike inbound
+ * mail (sanitized by `@rapidmx/restapi`'s own `ScanPipeline.sanitize()`, via the same `sanitize-html`
+ * library, before ever being rendered back to a browser), nothing upstream of this route sanitizes outbound
+ * compose input at all — this is the sole gate. Allowlist covers exactly what `RichTextEditor`'s configured
+ * TipTap extensions can actually produce (`apps/shared/components/mail/compose/RichTextEditor.tsx`): basic
+ * formatting/structure tags, `style` attributes for `TextStyleKit`'s color/font-family/font-size and
+ * `TextAlign`'s alignment (deliberately allowlisted by property+value pattern, not left wide open — an
+ * unrestricted `style` attribute is its own injection surface), links/images (`cid:` allowed since an
+ * inline image could reference an already-uploaded attachment by Content-ID), and tables.
+ */
+export function sanitizeComposeHtml(html: string): string {
+    return sanitizeHtml(html, {
+        allowedTags: [
+            "p",
+            "br",
+            "hr",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+            "strong",
+            "em",
+            "u",
+            "s",
+            "mark",
+            "ul",
+            "ol",
+            "li",
+            "blockquote",
+            "pre",
+            "code",
+            "a",
+            "img",
+            "table",
+            "thead",
+            "tbody",
+            "tr",
+            "th",
+            "td",
+            "span",
+        ],
+        allowedAttributes: {
+            a: ["href", "target", "rel"],
+            img: ["src", "alt", "title", "width", "height"],
+            "*": ["style"],
+        },
+        allowedStyles: {
+            "*": {
+                color: [/^#[0-9a-f]{3,8}$/i, /^rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/i],
+                "background-color": [/^#[0-9a-f]{3,8}$/i, /^rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/i],
+                "font-family": [/^[-,'"a-z0-9\s]+$/i],
+                "font-size": [/^\d+(?:\.\d+)?(?:px|em|rem|%)$/],
+                "text-align": [/^(?:left|right|center|justify)$/],
+            },
+        },
+        allowedSchemes: ["http", "https", "mailto", "cid"],
+        allowVulnerableTags: false,
+        disallowedTagsMode: "discard",
+    });
 }
 
 /** A short, tag-stripped plain-text preview, mirroring how `@rapidmx/restapi`'s own ingestion pipeline derives `bodyPreview`. */
@@ -148,6 +215,8 @@ export abstract class BaseMailComposeRoute<M extends Message, A extends Attachme
             })),
         );
 
+        const html = sanitizeComposeHtml(body.html);
+
         const from = { name: mailbox.displayName, address: mailbox.primarySmtpAddress };
         const raw: Buffer = await new MailComposer({
             from,
@@ -155,7 +224,7 @@ export abstract class BaseMailComposeRoute<M extends Message, A extends Attachme
             cc: body.cc?.map(toNodemailerAddress),
             bcc: body.bcc?.map(toNodemailerAddress),
             subject: body.subject ?? "",
-            html: body.html,
+            html,
             attachments,
         })
             .compile()
@@ -178,7 +247,7 @@ export abstract class BaseMailComposeRoute<M extends Message, A extends Attachme
                 recipients,
                 from: { address: mailbox.primarySmtpAddress, displayName: mailbox.displayName, type: RecipientType.TO },
                 bodyBlobKey,
-                bodyPreview: toPreview(body.html),
+                bodyPreview: toPreview(html),
                 hasAttachments: attachmentRecords.length > 0,
             } as any,
             message,

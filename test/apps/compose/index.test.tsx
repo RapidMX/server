@@ -9,7 +9,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { jsonResponse, mockFetch } from "../testUtils.js";
 import ComposePage from "../../../apps/www/compose/index.js";
 
-vi.mock("../../../apps/shared/components/mail/compose/MonacoHtmlEditor.js", () => ({
+vi.mock("../../../apps/shared/components/mail/compose/RichTextEditor.js", () => ({
     default: ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
         <textarea data-testid="html-editor" value={value} onChange={(e) => onChange(e.target.value)} />
     ),

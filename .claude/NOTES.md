@@ -909,3 +909,92 @@ has no way to declare a SQL-level default at all).
 - Committed here as its own commit (JP: "commit each phase separately, when finished"), separate
   from the `@rapidmx/restapi` commit for this phase's model/entity work.
 
+### 2026-09-07 — Outlook-parity redesign, Phase 1: real WYSIWYG compose editor (TipTap), plus closed
+a real outbound-HTML sanitization gap
+
+Replaced `MonacoHtmlEditor` (an HTML *source* text box) with a real rich-text editor matching
+Outlook's Home-tab formatting bar — font/size, bold/italic/underline/strikethrough, text/highlight
+color, alignment, bullet/numbered lists, indent, insert link/image/table, clear formatting,
+undo/redo. Deliberately a **practical single toolbar, not a full multi-tab ribbon replica** (JP's
+explicit call, made before this phase started) — most of a real ribbon's other tabs (Draw, Options,
+most of Insert) would be empty chrome, since this app has no polls/scheduling/drawing/signature
+features behind them.
+
+- **Library: TipTap 3.31.3** (`@tiptap/react` + `@tiptap/core`/`@tiptap/pm`/`@tiptap/extensions` +
+  `@tiptap/starter-kit` + `extension-{text-style,text-align,highlight,image,table,placeholder}`) —
+  confirmed React 19-compatible, and confirmed **no Web Worker requirement at all** (ran the entire
+  existing test suite unmodified immediately after adding the dependency, before writing any
+  component code, specifically to validate this against Monaco's own documented `?worker`-import-
+  under-vitest failure mode from the 2026-09-06 Phase 3 entry — stayed green, confirming the concern
+  doesn't apply here).
+  - **v3 consolidated a lot that would otherwise have been separate packages** — worth knowing before
+    reaching for `@tiptap/extension-underline`/`-link`/`-color`/`-font-family`/`-table-row`/`-cell`/
+    `-header` individually: `@tiptap/starter-kit` already bundles Underline and Link,
+    `@tiptap/extension-text-style` ships a `TextStyleKit` bundling Color/FontFamily/FontSize/
+    BackgroundColor/LineHeight in one configurable extension, and `@tiptap/extension-table` ships a
+    `TableKit` bundling Table/Row/Cell/Header the same way. Installed all seven of the individual
+    packages first, then removed the six redundant ones once this was discovered — check for a
+    `*Kit` export before adding a granular extension package in this ecosystem going forward.
+  - **SSR handled differently than Monaco's dynamic-`import()` trick** — TipTap doesn't touch the DOM
+    at module-evaluation time the way Monaco's worker bootstrapping did, so a plain static top-level
+    import is fine. The actual SSR hazard is `useEditor()`'s default `immediatelyRender: true` trying
+    to mount a real ProseMirror view during this framework's Node-side SSR render of `/compose`
+    (`ReactRoute` renders every page server-side before hydration) — TipTap's own documented fix,
+    `immediatelyRender: false`, makes `useEditor()` return `null` until the client-side mount
+    actually happens; `RichTextEditor`/`ComposeToolbar` both handle a `null` editor by rendering
+    their disabled/pre-mount state rather than needing a loading placeholder. Confirmed for real via
+    `curl http://localhost:3000/compose` → clean `200`, not a `SSR error` 500.
+- **New files**: `apps/shared/components/mail/compose/RichTextEditor.tsx` (owns the `useEditor()`
+  call + renders `ComposeToolbar` + `EditorContent` together, same `{value, onChange, height?}` prop
+  contract `MonacoHtmlEditor` had, so `apps/www/compose/index.tsx` needed only a one-line swap) and
+  `ComposeToolbar.tsx` (the formatting bar itself, driven entirely by `editor.chain().focus()...run()`
+  commands and `editor.isActive(...)`/`getAttributes(...)` for active-state styling). Icons via
+  `react-icons/bs` (Bootstrap Icons) rather than this app's usual `react-icons/hi2` — Heroicons has no
+  bold/italic/underline/alignment-style glyphs at all; Bootstrap Icons' `Bs*` set was built for exactly
+  this kind of toolbar and is already available for free since `react-icons` bundles every icon set.
+- **Real, previously-undiscovered security gap found and fixed**: `BaseMailComposeRoute.assemble()`
+  passed the client's `html` completely unsanitized into `nodemailer`'s `MailComposer` and into the
+  stored `bodyPreview` — the only sanitization anywhere in this stack (`@rapidmx/restapi`'s
+  `ScanPipeline.sanitize()`, via `sanitize-html`) runs on *inbound* mail only, and is a completely
+  separate code path never touched by compose. Added a new `sanitizeComposeHtml()` (same file,
+  exported for direct unit testing) using `sanitize-html` (added as a new direct `server` dependency,
+  pinned to the exact version already vetted in `@rapidmx/restapi`) with a deliberate allowlist
+  matching exactly what the new editor's configured extensions can produce — including `style`
+  attribute filtering by specific property+value-pattern (`color`/`background-color`/`font-family`/
+  `font-size`/`text-align`) rather than leaving `style` wide open, since an unrestricted style
+  attribute is its own injection surface. Verified for real, not just via unit tests: `curl`'d
+  `POST /api/mail/compose/:id/assemble` with `<script>alert(1)</script><img src=x onerror=alert(2)>`
+  in the body — the resulting `bodyPreview` came back as clean `"Hello world"`, confirming the script/
+  event-handler payload never reached the stored preview or (by the same sanitization pass) the MIME
+  build.
+  - **Client-side sanitization deliberately skipped, not attempted-then-abandoned** — `sanitize-html`
+    is a Node-oriented package (built on `htmlparser2`); browser-bundling it through this project's
+    plain Vite config for a purely cosmetic defense-in-depth pass wasn't judged worth the added bundle
+    size/fragility, since the server-side gate is already the sole *authoritative* one regardless (the
+    server never trusts client-submitted HTML any more than it trusts a client-submitted `from`
+    address, which is also always server-derived) — documented inline in `compose/index.tsx` at the
+    `handleSend()` call site.
+- **Old files removed**, not just superseded: `MonacoHtmlEditor.tsx` + its test, and the
+  `monaco-editor` dependency itself (confirmed via `grep` that nothing else in the repo referenced it
+  before deleting).
+- Testing followed the same two-layer pattern the file it replaced established: `RichTextEditor.test.tsx`
+  mocks `@tiptap/react`'s `useEditor`/`EditorContent` at the module level (a plain object/component,
+  not a real editor instance — `RichTextEditor` itself barely touches the editor directly, it just
+  wires it into the two child components); `ComposeToolbar.test.tsx` drives a hand-built chainable
+  fake `Editor` (every command method records its own name+args and returns the same chain object,
+  ending in `.run()`) — this fake is more involved than Monaco's flat 4-method one since TipTap's
+  command API is chainable, but the "record calls into an array, assert on the array" trick kept it
+  manageable across ~20 different toolbar buttons via a single `it.each` table.
+  - **One more genuinely-dead defensive branch found and simplified, same pattern as this session's
+    restapi work**: `ComposeToolbar`'s internal `run()` helper originally guarded `if (editor) { fn(editor) }`
+    — but every control that calls `run()` is itself `disabled` whenever `editor` is `null`, and
+    `editor` never reverts to `null` once TipTap actually creates it, so that guard's `else` branch
+    was unreachable through any real UI path. Simplified to a non-null assertion instead of writing a
+    contrived test to hit it.
+- Verification: `yarn tsc --noEmit`, client `tsc -p tsconfig.client.json --noEmit`, `yarn lint`, and
+  full `yarn test` (516/516, `apps/**` still 100%) all clean; real `yarn dev` + `curl` smoke test of
+  both `/compose`'s SSR and a live `assemble()` call as described above.
+- Committed here as its own commit, separate from Phase 0's.
+- **Next**: Phase 2 (Contacts — sortable table + avatars + checkboxes + a real sidebar wiring up the
+  already-existing-but-unused `ContactList` backend entity, plus the new `favorite`/`categories`
+  fields from Phase 0).
