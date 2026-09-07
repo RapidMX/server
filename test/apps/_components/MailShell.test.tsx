@@ -200,6 +200,18 @@ describe("MailShell", () => {
         expect(folderLinks.map((el) => el.textContent)).toEqual(["Inbox3", "Archive", "Projects"]);
     });
 
+    it("excludes calendar/contacts/tasks folders from the folder tree — those back their own dedicated apps, not Mail", async () => {
+        const calendarFolder = { ...inboxFolder, uid: "f-cal", name: "Calendar", type: "calendar" as const, unreadCount: 0 };
+        const contactsFolder = { ...inboxFolder, uid: "f-con", name: "Contacts", type: "contacts" as const, unreadCount: 0 };
+        const tasksFolder = { ...inboxFolder, uid: "f-tsk", name: "Tasks", type: "tasks" as const, unreadCount: 0 };
+        mockMailboxesAndFolders([mailboxA], [inboxFolder, calendarFolder, contactsFolder, tasksFolder]);
+        render(<MailShell userUid="u1">content</MailShell>);
+
+        await screen.findByText("Inbox");
+        const folderLinks = screen.getAllByRole("link").filter((el) => el.getAttribute("href")?.includes("folderUid="));
+        expect(folderLinks.map((el) => el.textContent)).toEqual(["Inbox3"]);
+    });
+
     it("honors a ?mailboxUid= query param that names an accessible mailbox", async () => {
         const location = mockLocation();
         (location as any).search = "?mailboxUid=mb-b";

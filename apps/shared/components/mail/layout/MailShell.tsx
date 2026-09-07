@@ -39,6 +39,14 @@ const FOLDER_LABELS: Record<string, string> = {
 /** Well-known folders sort first, in Gmail/Outlook's conventional order; anything else (incl. `user`) sorts after, alphabetically. */
 const FOLDER_ORDER = ["inbox", "drafts", "outbox", "sent_items", "junk", "deleted_items"];
 
+/**
+ * A mailbox's `calendar`/`contacts`/`tasks`/`notes` folders back their own dedicated apps (see
+ * `CalendarShell`/`ContactsShell`/`TasksShell`), not Mail — `listFolders()` returns every well-known
+ * folder for the mailbox regardless of which app owns it, so Mail's own folder tree must filter down
+ * to just the mail ones itself, or those other apps' folders leak into this sidebar.
+ */
+const MAIL_FOLDER_TYPES = new Set([...FOLDER_ORDER, "user"]);
+
 function folderSortKey(folder: Folder): number {
     const idx = FOLDER_ORDER.indexOf(folder.type);
     return idx === -1 ? FOLDER_ORDER.length : idx;
@@ -102,7 +110,7 @@ export default function MailShell({
         }
         setFolderError(null);
         listFolders(mailboxUid)
-            .then(setFolders)
+            .then((result) => setFolders(result.filter((f) => MAIL_FOLDER_TYPES.has(f.type))))
             .catch((err) => setFolderError(err instanceof ApiRequestError ? err.message : "Could not load folders."));
     }, [mailboxUid]);
 
