@@ -23,11 +23,14 @@ export interface Attendee {
 
 export type RecurrenceFrequency = "daily" | "weekly" | "monthly" | "yearly";
 
+/** RFC5545 two-letter weekday codes, matching `rrule`'s own `WeekdayStr` type exactly. */
+export type WeekdayCode = "MO" | "TU" | "WE" | "TH" | "FR" | "SA" | "SU";
+
 export interface RecurrenceRule {
     freq: RecurrenceFrequency;
     interval: number;
-    /** Two-letter RFC5545 weekday codes (`MO`, `TU`, ...) — only meaningful for `freq: "weekly"`. */
-    byDay?: string[];
+    /** Only meaningful for `freq: "weekly"`. */
+    byDay?: WeekdayCode[];
     byMonthDay?: number[];
     byMonth?: number[];
     /** Ends after this many occurrences. Mutually exclusive with `until` — at most one may be set. */
@@ -78,21 +81,18 @@ export interface CalendarEvent {
 }
 
 /**
- * Lists events in a folder whose [startDate, endDate] interval overlaps [rangeStart, rangeEnd] — built on
- * `@rapidmx/restapi`'s generic query-operator DSL (`field=lte(v)`/`gte(v)`; see that package's
- * `ModelUtils.getQueryParamValueMongo` and its own NOTES.md), since no bespoke date-range endpoint exists.
- * A recurring event whose *first* occurrence starts before `rangeStart` still overlaps the window if its
- * series hasn't ended by `rangeStart` — this only filters on the stored `startDate`/`endDate` of the base
- * event record, so callers must expand recurrence (see `recurrence.ts`) and additionally keep any recurring
- * event whose rule has no `until`/`count` bound, or whose bound falls at/after `rangeStart`.
+ * Lists every event in a folder (same "fetch the flat list, filter client-side" contract as
+ * `contactsApi.ts`'s `listContacts`/`tasksApi.ts`'s `listTasks`), for the caller to expand and filter
+ * to a visible range itself (see `recurrence.ts`'s `expandAllOccurrences`). This deliberately does
+ * *not* push `startDate`/`endDate` range filtering down to the server via `@rapidmx/restapi`'s
+ * `field=lte(v)`/`gte(v)` query-operator DSL — confirmed directly against a running instance that
+ * `CalendarEventMongo`'s `startDate`/`endDate` are persisted as plain strings despite being typed
+ * `Date`, so a Mongo `$lte`/`$gte` comparison against them (a real `Date` operand) matches nothing at
+ * all, silently returning zero events for *any* date-bounded query. Client-side filtering sidesteps
+ * that entirely and needs no fix to land here.
  */
-export function listCalendarEvents(folderUid: string, rangeStart: Date, rangeEnd: Date): Promise<CalendarEvent[]> {
-    return apiFetch(
-        `/mail/calendar-events?${buildQuery(
-            { limit: 500 },
-            { folderUid, startDate: `lte(${rangeEnd.toISOString()})`, endDate: `gte(${rangeStart.toISOString()})` },
-        )}`,
-    );
+export function listCalendarEvents(folderUid: string): Promise<CalendarEvent[]> {
+    return apiFetch(`/mail/calendar-events?${buildQuery({ limit: 500 }, { folderUid })}`);
 }
 
 export function getCalendarEvent(uid: string): Promise<CalendarEvent> {

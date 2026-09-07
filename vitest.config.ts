@@ -42,6 +42,16 @@ export default defineConfig({
         environment: 'node',
         setupFiles: ['./test/apps/setup.ts'],
         include: ['test/**/*.test.ts', 'test/**/*.test.tsx'],
+        // Pins the test process's local timezone to UTC. The calendar views (MonthView/TimeGridView)
+        // use date-fns's local-time-aware functions (isToday/isSameDay/startOfDay/format/...) — correct
+        // behavior for a real calendar (a user views their own local time), but it means a test fixture
+        // built from a UTC ISO string can silently land on the *previous* local calendar day/hour
+        // depending on whichever timezone happens to run the suite (reproduced directly: a fixture of
+        // "2026-06-10T00:00:00.000Z" landed on local "June 9" in this dev environment's Pacific
+        // timezone). Pinning to UTC makes UTC ISO string fixtures and the components' local-time
+        // calculations agree everywhere the suite runs, instead of only in whichever timezone authored
+        // the test.
+        env: { TZ: 'UTC' },
         fileParallelism: false,
         pool: 'forks',
         poolOptions: {

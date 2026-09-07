@@ -678,3 +678,62 @@ the Contacts/Calendar/Tasks entry below once that work is complete).
   actually imports from `@rapidmx/activesync` yet (see the split-repo NOTES.md entry above). Will
   need `activesync`'s own peer range bumped, in that repo, once/if this repo ever actually wires it
   in — not this session's concern.
+
+### 2026-09-07 — Calendar view shipped (final piece of Contacts/Calendar/Tasks); two real bugs found via `yarn dev` smoke test
+
+Completed the Calendar app (`apps/www/calendar/index.tsx`) that the two entries above were building
+toward: month/week/day grid views (`MonthView.tsx`/`TimeGridView.tsx`), drag-to-move/drag-to-resize
+via `@dnd-kit/core`, a full recurrence editor (`RecurrenceEditor.tsx`, built on `rrule`), and
+create/edit/delete with the "this occurrence vs. entire series" split Outlook uses for recurring
+events (`calendarMutations.ts`). Together with the Contacts/Tasks work already committed, this
+closes out the persistent-icon-rail (`AppShell.tsx`) navigation redesign. 461/461 tests, 100%
+`apps/**` coverage, clean `tsc`/lint.
+
+Real `yarn dev` smoke-testing (create a mailbox, create a recurring event via `curl`, load
+`/calendar`) surfaced two genuine bugs neither unit tests nor typechecking could have caught —
+both fixed, not worked around:
+
+1. **`CalendarEvent.startDate`/`endDate` are persisted as plain strings in Mongo despite being
+   typed `Date`** (`@rapidmx/restapi`'s `CalendarEventMongo`), so a Mongo `$lte`/`$gte` comparison
+   against them (a real `Date` operand, from `ModelUtils.getQueryParamValueMongo`) matches nothing —
+   confirmed by inspecting the stored document directly (`doc.startDate.constructor.name ===
+   "String"`) and by querying the running server with `curl` (even a trivially-true
+   `endDate=gte(1970-01-01)` returned `[]`). This means `calendarApi.ts`'s original
+   `listCalendarEvents(folderUid, rangeStart, rangeEnd)` — which pushed the overlap filter down via
+   that exact operator DSL — silently returned zero events for *any* date-bounded query, i.e. every
+   real calendar page load. **Not fixed at the source** (that's in `@rapidmx/restapi`, a larger,
+   cross-repo, publish-cycle change out of scope for this session) — instead, `listCalendarEvents`
+   was simplified to `listCalendarEvents(folderUid)`, fetching the flat list (same `{limit: 500}`,
+   no server-side date filter, contract as `listContacts`/`listTasks`) and leaving 100% of range
+   filtering to `recurrence.ts`'s `expandAllOccurrences` client-side, which was already correct
+   regardless of input width. If a future session touches `CalendarEventMongo`/`CalendarEventSQL` in
+   restapi, worth actually fixing the root cause there (coerce `Date`-typed fields on write) and
+   restoring server-side range filtering as a real optimization — not urgent while a folder's event
+   count stays comfortably under the 500-item page size.
+2. **`rrule` broke under SSR only**: `import { RRule } from "rrule"` worked fine in the browser
+   bundle (Rollup resolves its real ESM build, `dist/esm/index.js`, which does export `RRule`
+   directly) but threw `"does not provide an export named 'RRule'"` when this framework's
+   server-render path loaded the same module — that path goes through Node's own loader, which (no
+   `"exports"` map in `rrule`'s `package.json`) falls back to the `"main"` CJS build, and Node's
+   static named-export detection for that build doesn't pick up `RRule`. Fixed with a namespace
+   import + fallback: `import * as RRuleNS from "rrule"` then `RRuleNS.RRule ?? RRuleNS.default.RRule`
+   (extracted as `resolveRRuleExport` so the fallback branch is unit-testable without fighting
+   vitest's own mock-module semantics, which throw rather than return `undefined` for a property a
+   `vi.mock` return value doesn't define). Verified against the real dev server both ways (broke
+   with the plain named import, HTTP 500 with `SSR error for "/calendar"`; clean `HTTP 200` after).
+   **General lesson for this codebase**: any future dependency that ships CJS-only (or CJS+ESM with
+   no `"exports"` map) needs this same namespace-import treatment if it's imported from code that
+   runs during SSR (anything reachable from a page's default export) — a plain named import can pass
+   `tsc`, lint, and the full vitest suite and still be broken in the one place that matters.
+- Also hit, and dead-ended on investigating: Vite's `vite build --watch` intermittently failed with
+  `EPERM, Permission denied` on `dist/public/assets` during `yarn dev`. Root cause was multiple
+  leftover `rapidrest dev` process trees (this session had started/killed several via background
+  `nohup yarn dev` runs across the conversation, and not all were fully reaped) all racing to
+  write the same output directory concurrently — not a code bug. Killing every stray
+  `node.exe` process whose command line referenced this repo and starting exactly one fresh `yarn
+  dev` resolved it immediately. Mentioned here only so a future session doesn't waste time
+  suspecting Vite/rolldown itself if the same error resurfaces.
+- Scope trim from the original plan, not re-confirmed with JP: dropped the "mini month date-picker
+  in the sidebar" in favor of plain Prev/Today/Next buttons in the page's own toolbar — `view`/
+  `date` still live as local state (seeded once from `?view=`/`?date=`, navigated thereafter without
+  a page reload, per the plan's own architecture decision), just without the extra picker widget.

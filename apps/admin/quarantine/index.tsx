@@ -56,7 +56,7 @@ function QuarantineContent({ userUid }: { userUid?: string }) {
         setError(null);
         try {
             await releaseQuarantineEntry(entry.uid, entry.version, userUid!);
-            reload(mailboxUid);
+            reload(mailboxUid!);
         } catch (err) {
             setError(err instanceof ApiRequestError ? err.message : "Could not release this message.");
         } finally {

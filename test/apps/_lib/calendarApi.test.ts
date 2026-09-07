@@ -37,17 +37,10 @@ afterEach(() => {
 });
 
 describe("listCalendarEvents", () => {
-    it("fetches scoped by folderUid with a startDate/endDate overlap query", async () => {
+    it("fetches every event scoped by folderUid, leaving range filtering to the caller", async () => {
         const fetchMock = mockFetch(() => jsonResponse(200, [event]));
-        const rangeStart = new Date("2026-01-01T00:00:00.000Z");
-        const rangeEnd = new Date("2026-02-01T00:00:00.000Z");
-        const result = await listCalendarEvents("f1", rangeStart, rangeEnd);
-        expect(fetchMock).toHaveBeenCalledWith(
-            "/api/mail/calendar-events?limit=500&page=0&folderUid=f1" +
-                `&startDate=${encodeURIComponent("lte(2026-02-01T00:00:00.000Z)")}` +
-                `&endDate=${encodeURIComponent("gte(2026-01-01T00:00:00.000Z)")}`,
-            expect.anything(),
-        );
+        const result = await listCalendarEvents("f1");
+        expect(fetchMock).toHaveBeenCalledWith("/api/mail/calendar-events?limit=500&page=0&folderUid=f1", expect.anything());
         expect(result).toEqual([event]);
     });
 });

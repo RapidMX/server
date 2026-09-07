@@ -61,7 +61,7 @@ export default function UserMenu({ userUid, authServerUrl, onSignOut, showAdminL
             return;
         }
         function handlePointerDown(e: MouseEvent) {
-            if (containerRef.current && !containerRef.current.contains(e.target)) {
+            if (containerRef.current && e.target instanceof Node && !containerRef.current.contains(e.target)) {
                 setOpen(false);
             }
         }
