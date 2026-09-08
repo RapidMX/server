@@ -4,7 +4,18 @@
 ///////////////////////////////////////////////////////////////////////////////
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { emptyResponse, jsonResponse, mockFetch } from "../testUtils.js";
-import { createTask, deleteTask, listTasks, setTaskCompleted, updateTask } from "../../../apps/shared/lib/tasksApi.js";
+import {
+    createTask,
+    createTaskList,
+    deleteTask,
+    deleteTaskList,
+    listTaskLists,
+    listTasks,
+    setTaskCompleted,
+    setTaskMyDay,
+    updateTask,
+    updateTaskList,
+} from "../../../apps/shared/lib/tasksApi.js";
 
 const task = {
     uid: "t1",
@@ -103,6 +114,71 @@ describe("deleteTask", () => {
         await deleteTask("t/1", 2);
         expect(fetchMock).toHaveBeenCalledWith(
             "/api/mail/tasks/t%2F1?version=2",
+            expect.objectContaining({ method: "DELETE" }),
+        );
+    });
+});
+
+describe("setTaskMyDay", () => {
+    it("PUTs just the uid/version/myDay fields", async () => {
+        const fetchMock = mockFetch(() => jsonResponse(200, { ...task, myDay: true }));
+        const result = await setTaskMyDay(task, true);
+        expect(fetchMock).toHaveBeenCalledWith(
+            "/api/mail/tasks/t1",
+            expect.objectContaining({
+                method: "PUT",
+                body: JSON.stringify({ uid: "t1", version: 0, myDay: true }),
+            }),
+        );
+        expect(result.myDay).toBe(true);
+    });
+});
+
+describe("listTaskLists", () => {
+    it("fetches scoped by mailboxUid, sorted by name", async () => {
+        const list = { uid: "tl1", version: 0, dateCreated: "", dateModified: "", mailboxUid: "mb1", name: "Home" };
+        const fetchMock = mockFetch(() => jsonResponse(200, [list]));
+        const result = await listTaskLists("mb1");
+        expect(fetchMock).toHaveBeenCalledWith(
+            "/api/mail/task-lists?limit=25&page=0&mailboxUid=mb1&sort=" + encodeURIComponent(JSON.stringify({ name: "ASC" })),
+            expect.anything(),
+        );
+        expect(result).toEqual([list]);
+    });
+});
+
+describe("createTaskList", () => {
+    it("posts mailboxUid/name", async () => {
+        const fetchMock = mockFetch(() => jsonResponse(200, { uid: "tl1" }));
+        await createTaskList({ mailboxUid: "mb1", name: "Home" });
+        expect(fetchMock).toHaveBeenCalledWith(
+            "/api/mail/task-lists",
+            expect.objectContaining({ method: "POST", body: JSON.stringify({ mailboxUid: "mb1", name: "Home" }) }),
+        );
+    });
+});
+
+describe("updateTaskList", () => {
+    it("PUTs the encoded uid with the input", async () => {
+        const fetchMock = mockFetch(() => jsonResponse(200, { uid: "tl1", name: "Renamed" }));
+        const result = await updateTaskList({ uid: "tl/1", version: 0, name: "Renamed" });
+        expect(fetchMock).toHaveBeenCalledWith(
+            "/api/mail/task-lists/tl%2F1",
+            expect.objectContaining({
+                method: "PUT",
+                body: JSON.stringify({ uid: "tl/1", version: 0, name: "Renamed" }),
+            }),
+        );
+        expect(result.name).toBe("Renamed");
+    });
+});
+
+describe("deleteTaskList", () => {
+    it("DELETEs the encoded uid with the version query param", async () => {
+        const fetchMock = mockFetch(() => emptyResponse(200));
+        await deleteTaskList("tl/1", 2);
+        expect(fetchMock).toHaveBeenCalledWith(
+            "/api/mail/task-lists/tl%2F1?version=2",
             expect.objectContaining({ method: "DELETE" }),
         );
     });

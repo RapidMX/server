@@ -17,6 +17,9 @@ export interface TasksShellContextValue {
     /** The selected mailbox's single `tasks`-type folder. */
     folderUid?: string;
     mailboxes: Mailbox[];
+    /** The caller's own uid — exposed here (rather than only as `AppShell`'s prop) so the page content
+     * can compute "assigned to me" without needing it threaded through separately. */
+    userUid?: string;
 }
 
 const TasksShellContext = createContext<TasksShellContextValue>({ mailboxes: [] });
@@ -87,8 +90,8 @@ export default function TasksShell({
     const folderUid: string | undefined = folders.find((f) => f.type === "tasks")?.uid;
 
     const contextValue = useMemo<TasksShellContextValue>(
-        () => ({ mailboxUid, folderUid, mailboxes }),
-        [mailboxUid, folderUid, mailboxes],
+        () => ({ mailboxUid, folderUid, mailboxes, userUid }),
+        [mailboxUid, folderUid, mailboxes, userUid],
     );
 
     // A full-screen takeover, not nested inside the rest of the app's chrome — there's nothing else

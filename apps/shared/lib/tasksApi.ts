@@ -23,6 +23,14 @@ export interface Task {
     completed: boolean;
     priority: TaskPriority;
     reminderDate?: string;
+    /** The `TaskList` this task is a member of, if any — undefined means the default flat "Tasks" list. */
+    taskListUid?: string;
+    /** Whether the caller has manually added this task to their curated "My Day" working set. Absent is
+     * equivalent to `false` — not derived from `dueDate`, since an undated (or future-dated) task can
+     * still be added to today's list. */
+    myDay?: boolean;
+    /** The uid of the user this task is assigned to, if any. */
+    assignedTo?: string;
 }
 
 /** Lists a folder's tasks, soonest due date first (tasks with no due date sort last). */
@@ -38,6 +46,9 @@ export interface CreateTaskInput {
     dueDate?: string;
     priority?: TaskPriority;
     reminderDate?: string;
+    taskListUid?: string;
+    myDay?: boolean;
+    assignedTo?: string;
 }
 
 export function createTask(input: CreateTaskInput): Promise<Task> {
@@ -56,6 +67,9 @@ export interface UpdateTaskInput {
     completed?: boolean;
     priority?: TaskPriority;
     reminderDate?: string;
+    taskListUid?: string;
+    myDay?: boolean;
+    assignedTo?: string;
 }
 
 export function updateTask(input: UpdateTaskInput): Promise<Task> {
@@ -70,6 +84,41 @@ export function setTaskCompleted(task: Task, completed: boolean): Promise<Task> 
     return updateTask({ uid: task.uid, version: task.version, completed });
 }
 
+/** Adds/removes a task from the caller's curated "My Day" working set — same thin-wrapper pattern as
+ * `setTaskCompleted`. */
+export function setTaskMyDay(task: Task, myDay: boolean): Promise<Task> {
+    return updateTask({ uid: task.uid, version: task.version, myDay });
+}
+
 export function deleteTask(uid: string, version: number): Promise<void> {
     return apiFetch(`/mail/tasks/${encodeURIComponent(uid)}?version=${version}`, { method: "DELETE" });
+}
+
+export interface TaskList {
+    uid: string;
+    version: number;
+    dateCreated: string;
+    dateModified: string;
+    mailboxUid: string;
+    name: string;
+}
+
+/** Lists a mailbox's task lists (Outlook To-Do-style custom lists), alphabetically by name. */
+export function listTaskLists(mailboxUid: string, params: ListParams = {}): Promise<TaskList[]> {
+    return apiFetch(`/mail/task-lists?${buildQuery(params, { mailboxUid, sort: JSON.stringify({ name: "ASC" }) })}`);
+}
+
+export function createTaskList(input: { mailboxUid: string; name: string }): Promise<TaskList> {
+    return apiFetch("/mail/task-lists", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function updateTaskList(input: { uid: string; version: number; name: string }): Promise<TaskList> {
+    return apiFetch(`/mail/task-lists/${encodeURIComponent(input.uid)}`, {
+        method: "PUT",
+        body: JSON.stringify(input),
+    });
+}
+
+export function deleteTaskList(uid: string, version: number): Promise<void> {
+    return apiFetch(`/mail/task-lists/${encodeURIComponent(uid)}?version=${version}`, { method: "DELETE" });
 }

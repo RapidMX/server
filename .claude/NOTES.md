@@ -1057,3 +1057,48 @@ toolbar, vCard import/export
 - **Not yet committed** — same standing rule as every prior entry in this file.
 - **Next**: Phase 3 (Tasks — `TaskList` sidebar wiring mirroring this phase's `ContactList` pattern,
   My Day/Important/Planned/Assigned-to-me smart filters, Flagged-email cross-folder fan-out).
+
+## 2026-09-07 — Outlook-parity redesign, Phase 3 (Tasks)
+
+- `apps/shared/lib/tasksApi.ts` extended with `taskListUid?`/`myDay?`/`assignedTo?` on
+  `Task`/`CreateTaskInput`/`UpdateTaskInput`, `setTaskMyDay()`, and a full `TaskList` CRUD wrapper
+  set (`listTaskLists`/`createTaskList`/`updateTaskList`/`deleteTaskList`) — structurally identical
+  to Phase 2's `ContactList` wrappers, per the plan's own template guidance.
+- New `apps/shared/lib/flaggedMessages.ts`: `listFlaggedMessages(mailboxUid)` fans out
+  `listMessages(folderUid, {limit:500})` across every non-calendar/contacts/tasks folder in
+  parallel (`Promise.all`), flattens, and filters on `message.flags.flagged` — the one piece of
+  genuinely new cross-cutting logic this phase needed, since `MessageSQL.flags` is a `simple-json`
+  column with no nested-field query support in the generic DSL on either datastore.
+- New `TasksSidebar.tsx` (My Day/Important/Planned/Assigned to me/Flagged email smart filters, plus
+  `TaskList`-backed custom lists with live counts and a "+ New list" form) and `TasksToolbar.tsx`
+  (Grid/List view toggle, Complete/Add to My Day/Delete bulk actions) — both direct structural
+  mirrors of Phase 2's `ContactsSidebar`/`ContactsToolbar`.
+- `apps/www/tasks/index.tsx` rewritten: single "Add a task" row (not a bordered create card, per
+  Outlook's actual affordance), a new circular `CompletionToggle` (`role="checkbox"`) replacing the
+  native checkbox, Grid (`TaskTable`) vs. List (bucketed `TaskGroup`s, preserving the existing
+  `bucketFor`/`BUCKET_ORDER` date logic unchanged) view modes, and view-filtering derived from the
+  sidebar's active smart filter/list selection.
+- **Same reload/error-clobbering bug as Phase 2's Contacts, fixed proactively this time**: Tasks'
+  bulk handlers were written from the start with `reload()` returning its promise and every handler
+  awaiting it before setting a captured error, rather than being discovered via a failing test.
+- **One dead defensive branch simplified**, same pattern as every prior phase: `TaskTable`'s
+  `toggleAll()` had an unreachable guard in its `allChecked` true-branch (the loop already
+  guarantees every row matches), replaced with a non-null assertion and a comment.
+- **TypeScript import gotcha**: initially tried importing the `Message` type from
+  `flaggedMessages.ts` (which only imports it internally, doesn't re-export it) — fixed by
+  importing `Message` directly from `mailApi.ts` instead.
+- Test files: `TasksSidebar.test.tsx` (13 tests), `TasksToolbar.test.tsx` (5 tests),
+  `flaggedMessages.test.ts` (3 tests), `tasksApi.test.ts` extended to 12, `TasksShell.test.tsx`
+  extended, and `tasks/index.test.tsx` extensively rewritten/extended to 42 tests (100%
+  statement/branch/function/line on the page itself).
+- Verification: `yarn tsc --noEmit`, client `tsc -p tsconfig.client.json --noEmit`, `yarn lint`,
+  full `yarn test` (647/647, `apps/**` still 100%) all clean. Real `yarn dev` + `curl` smoke test:
+  created a mailbox, a `TaskList`, and a `Task` with `taskListUid`/`myDay`/`assignedTo` all set —
+  all fields round-tripped correctly on `GET`; created a flagged inbox message to exercise the
+  fan-out data path. (SSR of `/tasks` only renders the app shell — mailbox-specific content is
+  client-hydrated, same as every other page in this app — so this smoke test targeted the REST
+  layer directly rather than scraping SSR HTML, consistent with how Compose's/Contacts' backend
+  fields were verified in Phases 1-2.)
+- **Not yet committed** — same standing rule as every prior entry in this file.
+- **Next**: Phase 4 (Calendar — mini date-picker, Work Week/Split views, multi-calendar-per-mailbox
+  with `Folder.color`).

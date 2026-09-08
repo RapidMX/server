@@ -77,6 +77,8 @@ function mockShellAndTasks(
         if (custom) return custom;
         if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailbox]);
         if (url.startsWith("/api/mail/folders")) return jsonResponse(200, folders);
+        // TasksSidebar fetches this on mount for "Lists" — empty by default here.
+        if (url.startsWith("/api/mail/task-lists")) return jsonResponse(200, []);
         if (url.startsWith("/api/mail/tasks") && (init?.method ?? "GET") === "GET") return jsonResponse(200, tasks);
         throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
     });
@@ -108,7 +110,8 @@ describe("TasksPage", () => {
         render(<TasksPage userUid="u1" />);
 
         await screen.findByText("Overdue task");
-        const headings = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
+        const list = within(screen.getByRole("region", { name: "Tasks list" }));
+        const headings = list.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
         expect(headings).toEqual(["Overdue", "Today", "This Week", "Later", "No due date"]);
         expect(screen.getByText("Today task")).toBeInTheDocument();
         expect(screen.getByText("This week task")).toBeInTheDocument();
@@ -165,6 +168,7 @@ describe("TasksPage", () => {
         mockFetch((url) => {
             if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailbox]);
             if (url.startsWith("/api/mail/folders")) return jsonResponse(200, [tasksFolder]);
+            if (url.startsWith("/api/mail/task-lists")) return jsonResponse(200, []);
             throw new TypeError("network down");
         });
         render(<TasksPage userUid="u1" />);
@@ -186,10 +190,10 @@ describe("TasksPage", () => {
         render(<TasksPage userUid="u1" />);
 
         await screen.findByText("No tasks yet.");
-        await user.type(screen.getByLabelText("New task"), "Ship the report");
+        await user.type(screen.getByLabelText("Add a task"), "Ship the report");
         await user.type(screen.getByLabelText("Due date"), "2026-06-16");
         await user.selectOptions(screen.getByLabelText("Priority"), "high");
-        await user.click(screen.getByRole("button", { name: "Add task" }));
+        await user.click(screen.getByRole("button", { name: "Add" }));
 
         await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/mail/tasks", expect.objectContaining({ method: "POST" })));
         const body = JSON.parse(
@@ -200,7 +204,7 @@ describe("TasksPage", () => {
             expect.objectContaining({ mailboxUid: "mb1", folderUid: "f-tasks", title: "Ship the report", priority: "high" }),
         );
         expect(await screen.findByText("Ship the report")).toBeInTheDocument();
-        expect(screen.getByLabelText("New task")).toHaveValue("");
+        expect(screen.getByLabelText("Add a task")).toHaveValue("");
     });
 
     it("shows a validation error and does not submit when the title is blank", async () => {
@@ -210,7 +214,7 @@ describe("TasksPage", () => {
 
         await screen.findByText("No tasks yet.");
         const callsBefore = fetchMock.mock.calls.length;
-        await user.click(screen.getByRole("button", { name: "Add task" }));
+        await user.click(screen.getByRole("button", { name: "Add" }));
 
         expect(await screen.findByText("A title is required.")).toBeInTheDocument();
         expect(fetchMock.mock.calls.length).toBe(callsBefore);
@@ -222,9 +226,9 @@ describe("TasksPage", () => {
         render(<TasksPage userUid="u1" />);
 
         await screen.findByText("No tasks yet.");
-        await user.type(screen.getByLabelText("New task"), "New task");
+        await user.type(screen.getByLabelText("Add a task"), "Add a task");
         const callsBefore = fetchMock.mock.calls.length;
-        await user.click(screen.getByRole("button", { name: "Add task" }));
+        await user.click(screen.getByRole("button", { name: "Add" }));
 
         expect(fetchMock.mock.calls.length).toBe(callsBefore);
     });
@@ -237,8 +241,8 @@ describe("TasksPage", () => {
         render(<TasksPage userUid="u1" />);
 
         await screen.findByText("No tasks yet.");
-        await user.type(screen.getByLabelText("New task"), "New task");
-        await user.click(screen.getByRole("button", { name: "Add task" }));
+        await user.type(screen.getByLabelText("Add a task"), "Add a task");
+        await user.click(screen.getByRole("button", { name: "Add" }));
 
         expect(await screen.findByText("create failed")).toBeInTheDocument();
     });
@@ -247,6 +251,7 @@ describe("TasksPage", () => {
         mockFetch((url, init) => {
             if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailbox]);
             if (url.startsWith("/api/mail/folders")) return jsonResponse(200, [tasksFolder]);
+            if (url.startsWith("/api/mail/task-lists")) return jsonResponse(200, []);
             if (url.startsWith("/api/mail/tasks") && (init?.method ?? "GET") === "GET") return jsonResponse(200, []);
             throw new TypeError("network down");
         });
@@ -254,8 +259,8 @@ describe("TasksPage", () => {
         render(<TasksPage userUid="u1" />);
 
         await screen.findByText("No tasks yet.");
-        await user.type(screen.getByLabelText("New task"), "New task");
-        await user.click(screen.getByRole("button", { name: "Add task" }));
+        await user.type(screen.getByLabelText("Add a task"), "Add a task");
+        await user.click(screen.getByRole("button", { name: "Add" }));
 
         expect(await screen.findByText("Could not create this task.")).toBeInTheDocument();
     });
@@ -304,6 +309,7 @@ describe("TasksPage", () => {
         mockFetch((url, init) => {
             if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailbox]);
             if (url.startsWith("/api/mail/folders")) return jsonResponse(200, [tasksFolder]);
+            if (url.startsWith("/api/mail/task-lists")) return jsonResponse(200, []);
             if (url.startsWith("/api/mail/tasks") && (init?.method ?? "GET") === "GET") return jsonResponse(200, [todayTask]);
             if (url === "/api/mail/tasks/t-today" && init?.method === "PUT") throw new TypeError("network down");
             throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
@@ -348,6 +354,7 @@ describe("TasksPage", () => {
         mockFetch((url, init) => {
             if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailbox]);
             if (url.startsWith("/api/mail/folders")) return jsonResponse(200, [tasksFolder]);
+            if (url.startsWith("/api/mail/task-lists")) return jsonResponse(200, []);
             if (url.startsWith("/api/mail/tasks") && (init?.method ?? "GET") === "GET") return jsonResponse(200, [todayTask]);
             if (url === "/api/mail/tasks/t-today?version=0" && init?.method === "DELETE") throw new TypeError("network down");
             throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
@@ -358,5 +365,427 @@ describe("TasksPage", () => {
         await user.click(await screen.findByRole("button", { name: 'Delete "Today task"' }));
 
         expect(await screen.findByText("Could not delete this task.")).toBeInTheDocument();
+    });
+});
+
+const inboxFolder = { ...tasksFolder, uid: "f-inbox", name: "Inbox", type: "inbox" as const };
+const list = { uid: "l1", version: 0, dateCreated: "", dateModified: "", mailboxUid: "mb1", name: "Home" };
+
+function flaggedMessage(uid: string, receivedDate: string) {
+    return {
+        uid,
+        version: 0,
+        dateCreated: "",
+        dateModified: "",
+        folderUid: "f-inbox",
+        mailboxUid: "mb1",
+        messageId: `${uid}@test`,
+        subject: `Subject ${uid}`,
+        from: { address: "sender@example.com", type: "to" },
+        recipients: [],
+        sentDate: receivedDate,
+        receivedDate,
+        bodyPreview: "",
+        flags: { read: true, flagged: true, answered: false, forwarded: false },
+        importance: "normal",
+        hasAttachments: false,
+    };
+}
+
+describe("TasksPage — sidebar views, toolbar bulk actions, and grid mode", () => {
+    const myDayTask = task({ uid: "t-myday", title: "My Day task", myDay: true });
+    const importantTask = task({ uid: "t-imp", title: "Important task", priority: "high" });
+    const plannedTask = task({ uid: "t-planned", title: "Planned task", dueDate: TODAY_DATE });
+    const assignedTask = task({ uid: "t-assigned", title: "Assigned task", assignedTo: "u1" });
+    const listedTask = task({ uid: "t-listed", title: "Listed task", taskListUid: "l1" });
+
+    function mockShellAndTasksWithLists(
+        tasks: unknown[],
+        lists: unknown[] = [list],
+        folders: unknown[] = [tasksFolder],
+        extra?: (url: string, init?: RequestInit) => Response | undefined,
+    ) {
+        return mockFetch((url, init) => {
+            const custom = extra?.(url, init);
+            if (custom) return custom;
+            if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailbox]);
+            if (url.startsWith("/api/mail/folders")) return jsonResponse(200, folders);
+            if (url.startsWith("/api/mail/task-lists")) return jsonResponse(200, lists);
+            if (url.startsWith("/api/mail/tasks") && (init?.method ?? "GET") === "GET") return jsonResponse(200, tasks);
+            throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
+        });
+    }
+
+    it("My Day view shows only tasks in the caller's My Day set.", async () => {
+        mockShellAndTasksWithLists([todayTask, myDayTask]);
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+
+        await screen.findByText("Today task");
+        await user.click(screen.getByText("My Day"));
+
+        expect(await screen.findByText("My Day task")).toBeInTheDocument();
+        expect(screen.queryByText("Today task")).not.toBeInTheDocument();
+    });
+
+    it("Important view shows only high-priority tasks.", async () => {
+        mockShellAndTasksWithLists([todayTask, importantTask]);
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+
+        await screen.findByText("Today task");
+        await user.click(screen.getByText("Important"));
+
+        expect(await screen.findByText("Important task")).toBeInTheDocument();
+        expect(screen.queryByText("Today task")).not.toBeInTheDocument();
+    });
+
+    it("Planned view shows only tasks with a due date.", async () => {
+        mockShellAndTasksWithLists([noDueDateTask, plannedTask]);
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+
+        await screen.findByText("No due date task");
+        await user.click(screen.getByText("Planned"));
+
+        expect(await screen.findByText("Planned task")).toBeInTheDocument();
+        expect(screen.queryByText("No due date task")).not.toBeInTheDocument();
+    });
+
+    it("Assigned to me view shows only tasks assigned to the caller.", async () => {
+        mockShellAndTasksWithLists([todayTask, assignedTask]);
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+
+        await screen.findByText("Today task");
+        await user.click(screen.getByText("Assigned to me"));
+
+        expect(await screen.findByText("Assigned task")).toBeInTheDocument();
+        expect(screen.queryByText("Today task")).not.toBeInTheDocument();
+    });
+
+    it("a custom list view shows only tasks in that list.", async () => {
+        mockShellAndTasksWithLists([todayTask, listedTask]);
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+
+        await screen.findByText("Today task");
+        await user.click(await screen.findByText("Home"));
+
+        expect(await screen.findByText("Listed task")).toBeInTheDocument();
+        expect(screen.queryByText("Today task")).not.toBeInTheDocument();
+    });
+
+    it("Flagged email view fetches and shows flagged messages across mail folders, hiding the task table/add-a-task row.", async () => {
+        mockShellAndTasksWithLists([todayTask], [list], [tasksFolder, inboxFolder], (url) => {
+            if (url.includes("folderUid=f-inbox")) return jsonResponse(200, [flaggedMessage("m1", "2026-01-01T00:00:00.000Z")]);
+            return undefined;
+        });
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+
+        await screen.findByText("Today task");
+        await user.click(screen.getByText("Flagged email"));
+
+        expect(await screen.findByText("Subject m1")).toBeInTheDocument();
+        expect(screen.queryByLabelText("Add a task")).not.toBeInTheDocument();
+    });
+
+    it("Flagged email view falls back to '(no subject)' for a message with a blank subject.", async () => {
+        mockShellAndTasksWithLists([todayTask], [list], [tasksFolder, inboxFolder], (url) => {
+            if (url.includes("folderUid=f-inbox")) return jsonResponse(200, [{ ...flaggedMessage("m1", "2026-01-01T00:00:00.000Z"), subject: "" }]);
+            return undefined;
+        });
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+
+        await screen.findByText("Today task");
+        await user.click(screen.getByText("Flagged email"));
+
+        expect(await screen.findByText("(no subject)")).toBeInTheDocument();
+    });
+
+    it("Flagged email view shows 'No flagged email.' when there are none.", async () => {
+        mockShellAndTasksWithLists([todayTask], [list], [tasksFolder, inboxFolder], (url) => {
+            if (url.includes("folderUid=f-inbox")) return jsonResponse(200, []);
+            return undefined;
+        });
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+
+        await screen.findByText("Today task");
+        await user.click(screen.getByText("Flagged email"));
+
+        expect(await screen.findByText("No flagged email.")).toBeInTheDocument();
+    });
+
+    it("Flagged email view shows the ApiRequestError message when the fetch fails.", async () => {
+        const { ApiRequestError } = await import("../../../apps/shared/lib/api.js");
+        mockShellAndTasksWithLists([todayTask], [list], [tasksFolder, inboxFolder], (url) => {
+            if (url.includes("folderUid=f-inbox")) throw new ApiRequestError("nope", 500);
+            return undefined;
+        });
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+
+        await screen.findByText("Today task");
+        await user.click(screen.getByText("Flagged email"));
+
+        expect(await screen.findByText("nope")).toBeInTheDocument();
+    });
+
+    it("Flagged email view shows a generic error message when the fetch fails with a non-API error.", async () => {
+        mockShellAndTasksWithLists([todayTask], [list], [tasksFolder, inboxFolder], (url) => {
+            if (url.includes("folderUid=f-inbox")) throw new TypeError("network down");
+            return undefined;
+        });
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+
+        await screen.findByText("Today task");
+        await user.click(screen.getByText("Flagged email"));
+
+        expect(await screen.findByText("Could not load flagged email.")).toBeInTheDocument();
+    });
+
+    it("Grid view renders a sortable-looking table with Title/Due Date/Importance columns instead of bucketed groups.", async () => {
+        mockShellAndTasksWithLists([todayTask]);
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+
+        await screen.findByText("Today task");
+        await user.click(within(screen.getByRole("toolbar")).getByText("Grid"));
+
+        expect(screen.getByText("Title")).toBeInTheDocument();
+        expect(screen.getByText("Due Date")).toBeInTheDocument();
+        expect(screen.getByText("Importance")).toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: "Today" })).not.toBeInTheDocument();
+    });
+
+    it("Grid view shows a completed task's title with strikethrough styling.", async () => {
+        mockShellAndTasksWithLists([completedTask]);
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+
+        await screen.findByText("Done task");
+        await user.click(within(screen.getByRole("toolbar")).getByText("Grid"));
+
+        expect(screen.getByText("Done task")).toHaveClass("line-through");
+    });
+
+    it("Grid view: an individual row checkbox can be checked/unchecked, and its delete button removes it.", async () => {
+        const fetchMock = mockShellAndTasksWithLists([todayTask], [list], [tasksFolder], (url, init) =>
+            url === "/api/mail/tasks/t-today?version=0" && init?.method === "DELETE" ? emptyResponse(200) : undefined,
+        );
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+
+        await screen.findByText("Today task");
+        await user.click(within(screen.getByRole("toolbar")).getByText("Grid"));
+
+        await user.click(screen.getByLabelText("Select Today task"));
+        expect(screen.getByLabelText("Select Today task")).toBeChecked();
+        await user.click(screen.getByLabelText("Select Today task"));
+        expect(screen.getByLabelText("Select Today task")).not.toBeChecked();
+
+        await user.click(screen.getByRole("button", { name: 'Delete "Today task"' }));
+        await waitFor(() =>
+            expect(fetchMock).toHaveBeenCalledWith("/api/mail/tasks/t-today?version=0", expect.objectContaining({ method: "DELETE" })),
+        );
+    });
+
+    it("select-all checkbox checks/unchecks every visible row, enabling toolbar bulk actions.", async () => {
+        mockShellAndTasksWithLists([todayTask, noDueDateTask]);
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+
+        await screen.findByText("Today task");
+        await user.click(within(screen.getByRole("toolbar")).getByText("Grid"));
+
+        // Start from a *partial* selection (only one of two rows checked) before checking all, so
+        // toggling all exercises the "skip a row that's already checked" branch too, not just the
+        // all-unchecked-to-all-checked case.
+        await user.click(screen.getByLabelText("Select Today task"));
+        await user.click(screen.getByLabelText("Select all tasks"));
+
+        expect(screen.getByLabelText("Select Today task")).toBeChecked();
+        expect(screen.getByLabelText("Select No due date task")).toBeChecked();
+        expect(within(screen.getByRole("toolbar")).getByText("Delete").closest("button")).not.toBeDisabled();
+
+        await user.click(screen.getByLabelText("Select all tasks"));
+        expect(screen.getByLabelText("Select Today task")).not.toBeChecked();
+    });
+
+    it("an individual checkbox (in bucketed list mode) can be checked, then unchecked again.", async () => {
+        mockShellAndTasksWithLists([todayTask]);
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+
+        await screen.findByText("Today task");
+        await user.click(screen.getByLabelText("Select Today task"));
+        expect(screen.getByLabelText("Select Today task")).toBeChecked();
+
+        await user.click(screen.getByLabelText("Select Today task"));
+        expect(screen.getByLabelText("Select Today task")).not.toBeChecked();
+    });
+
+    it("toolbar Complete marks every checked task complete.", async () => {
+        const fetchMock = mockShellAndTasksWithLists([todayTask, noDueDateTask], [list], [tasksFolder], (url, init) => {
+            if (init?.method === "PUT") {
+                const body = JSON.parse(init.body as string);
+                return jsonResponse(200, { ...todayTask, ...body });
+            }
+            return undefined;
+        });
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+
+        await screen.findByText("Today task");
+        await user.click(screen.getByLabelText("Select Today task"));
+        await user.click(within(screen.getByRole("toolbar")).getByText("Complete"));
+
+        await waitFor(() =>
+            expect(fetchMock).toHaveBeenCalledWith(
+                "/api/mail/tasks/t-today",
+                expect.objectContaining({ method: "PUT", body: expect.stringContaining('"completed":true') }),
+            ),
+        );
+    });
+
+    it("toolbar Complete shows the ApiRequestError message when updating a checked task fails.", async () => {
+        const { ApiRequestError } = await import("../../../apps/shared/lib/api.js");
+        mockShellAndTasksWithLists([todayTask], [list], [tasksFolder], (url, init) => {
+            if (init?.method === "PUT") throw new ApiRequestError("cannot complete", 403);
+            return undefined;
+        });
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+
+        await screen.findByText("Today task");
+        await user.click(screen.getByLabelText("Select Today task"));
+        await user.click(within(screen.getByRole("toolbar")).getByText("Complete"));
+
+        expect(await screen.findByText("cannot complete")).toBeInTheDocument();
+    });
+
+    it("toolbar Complete shows a generic error message when updating a checked task fails with a non-API error.", async () => {
+        mockShellAndTasksWithLists([todayTask], [list], [tasksFolder], (url, init) => {
+            if (init?.method === "PUT") throw new TypeError("network down");
+            return undefined;
+        });
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+
+        await screen.findByText("Today task");
+        await user.click(screen.getByLabelText("Select Today task"));
+        await user.click(within(screen.getByRole("toolbar")).getByText("Complete"));
+
+        expect(await screen.findByText("Could not update one or more tasks.")).toBeInTheDocument();
+    });
+
+    it("toolbar Add to My Day adds every checked task to My Day.", async () => {
+        const fetchMock = mockShellAndTasksWithLists([todayTask], [list], [tasksFolder], (url, init) => {
+            if (init?.method === "PUT") {
+                const body = JSON.parse(init.body as string);
+                return jsonResponse(200, { ...todayTask, ...body });
+            }
+            return undefined;
+        });
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+
+        await screen.findByText("Today task");
+        await user.click(screen.getByLabelText("Select Today task"));
+        await user.click(within(screen.getByRole("toolbar")).getByText("Add to My Day"));
+
+        await waitFor(() =>
+            expect(fetchMock).toHaveBeenCalledWith(
+                "/api/mail/tasks/t-today",
+                expect.objectContaining({ method: "PUT", body: expect.stringContaining('"myDay":true') }),
+            ),
+        );
+    });
+
+    it("toolbar Add to My Day shows the ApiRequestError message when updating a checked task fails.", async () => {
+        const { ApiRequestError } = await import("../../../apps/shared/lib/api.js");
+        mockShellAndTasksWithLists([todayTask], [list], [tasksFolder], (url, init) => {
+            if (init?.method === "PUT") throw new ApiRequestError("cannot add to my day", 403);
+            return undefined;
+        });
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+
+        await screen.findByText("Today task");
+        await user.click(screen.getByLabelText("Select Today task"));
+        await user.click(within(screen.getByRole("toolbar")).getByText("Add to My Day"));
+
+        expect(await screen.findByText("cannot add to my day")).toBeInTheDocument();
+    });
+
+    it("toolbar Add to My Day shows a generic error message when updating a checked task fails with a non-API error.", async () => {
+        mockShellAndTasksWithLists([todayTask], [list], [tasksFolder], (url, init) => {
+            if (init?.method === "PUT") throw new TypeError("network down");
+            return undefined;
+        });
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+
+        await screen.findByText("Today task");
+        await user.click(screen.getByLabelText("Select Today task"));
+        await user.click(within(screen.getByRole("toolbar")).getByText("Add to My Day"));
+
+        expect(await screen.findByText("Could not update one or more tasks.")).toBeInTheDocument();
+    });
+
+    it("toolbar Delete removes every checked task.", async () => {
+        const deletedCalls: string[] = [];
+        const fetchMock = mockShellAndTasksWithLists([todayTask, noDueDateTask], [list], [tasksFolder], (url, init) => {
+            if (init?.method === "DELETE") {
+                deletedCalls.push(url);
+                return emptyResponse(200);
+            }
+            return undefined;
+        });
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+
+        await screen.findByText("Today task");
+        await user.click(within(screen.getByRole("toolbar")).getByText("Grid"));
+        await user.click(screen.getByLabelText("Select all tasks"));
+        await user.click(within(screen.getByRole("toolbar")).getByText("Delete"));
+
+        await waitFor(() => expect(deletedCalls.length).toBe(2));
+        expect(fetchMock).toHaveBeenCalled();
+    });
+
+    it("toolbar Delete shows the ApiRequestError message when deleting a checked task fails.", async () => {
+        const { ApiRequestError } = await import("../../../apps/shared/lib/api.js");
+        mockShellAndTasksWithLists([todayTask], [list], [tasksFolder], (url, init) => {
+            if (init?.method === "DELETE") throw new ApiRequestError("cannot delete", 403);
+            return undefined;
+        });
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+
+        await screen.findByText("Today task");
+        await user.click(screen.getByLabelText("Select Today task"));
+        await user.click(within(screen.getByRole("toolbar")).getByText("Delete"));
+
+        expect(await screen.findByText("cannot delete")).toBeInTheDocument();
+    });
+
+    it("toolbar Delete shows a generic error message when deleting a checked task fails with a non-API error.", async () => {
+        mockShellAndTasksWithLists([todayTask], [list], [tasksFolder], (url, init) => {
+            if (init?.method === "DELETE") throw new TypeError("network down");
+            return undefined;
+        });
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+
+        await screen.findByText("Today task");
+        await user.click(screen.getByLabelText("Select Today task"));
+        await user.click(within(screen.getByRole("toolbar")).getByText("Delete"));
+
+        expect(await screen.findByText("Could not delete one or more tasks.")).toBeInTheDocument();
     });
 });

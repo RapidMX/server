@@ -156,10 +156,10 @@ describe("TasksShell", () => {
         expect(select).toHaveValue("mb-a");
     });
 
-    it("provides the resolved mailbox/folder/mailboxes to children via useTasksShell()", async () => {
+    it("provides the resolved mailbox/folder/mailboxes/userUid to children via useTasksShell()", async () => {
         function Probe() {
-            const { mailboxUid, folderUid, mailboxes } = useTasksShell();
-            return <span>{`${mailboxUid}/${folderUid}/${mailboxes.length}`}</span>;
+            const { mailboxUid, folderUid, mailboxes, userUid } = useTasksShell();
+            return <span>{`${mailboxUid}/${folderUid}/${mailboxes.length}/${userUid}`}</span>;
         }
         mockMailboxesAndFolders([mailboxA], [tasksFolder]);
         render(
@@ -168,6 +168,6 @@ describe("TasksShell", () => {
             </TasksShell>,
         );
 
-        expect(await screen.findByText("mb-a/f-tasks/1")).toBeInTheDocument();
+        expect(await screen.findByText("mb-a/f-tasks/1/u1")).toBeInTheDocument();
     });
 });
