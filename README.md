@@ -1,4 +1,4 @@
-# RapidREST: Mail Server
+# RapidMX: Mail Server
 
 [![CI](https://github.com/rapidmx/server/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/rapidmx/server/actions/workflows/build.yml)
 [![Coverage Status](https://coveralls.io/repos/github/rapidmx/server/badge.svg?branch=main)](https://coveralls.io/github/rapidmx/server?branch=main)

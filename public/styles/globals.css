@@ -1,18 +1,55 @@
 /*
- * RapidREST mail-server UI — design tokens ported from rapidrest.dev (Infima-based cyan/gold palette),
+ * RapidMX mail-server UI — design tokens ported from rapidrest.dev (Infima-based cyan/gold palette),
  * adapted into plain CSS custom properties since this app has no CSS framework of its own.
+ *
+ * NOT currently loaded by any page (superseded by `apps/shared/styles/app.css`'s Tailwind `@theme`
+ * tokens once `apps/www` moved onto `AppShell` — see `.claude/NOTES.md`) — kept in sync anyway so it
+ * doesn't silently drift back to the old cyan palette if it's ever revived.
  */
 
+@font-face {
+    font-family: "Blender Pro";
+    src: url("/fonts/Blender-Pro-Book.ttf") format("truetype");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: "Blender Pro";
+    src: url("/fonts/Blender-Pro-Medium.ttf") format("truetype");
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: "Blender Pro";
+    src: url("/fonts/Blender-Pro-Bold.ttf") format("truetype");
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: "Blender Pro";
+    src: url("/fonts/Blender-Pro-Heavy.ttf") format("truetype");
+    font-weight: 800;
+    font-style: normal;
+    font-display: swap;
+}
+
 :root {
-    --rr-color-primary: #0891b2;
-    --rr-color-primary-dark: #0e7490;
-    --rr-color-primary-darker: #155e75;
-    --rr-color-primary-darkest: #164e63;
-    --rr-color-primary-light: #06b6d4;
-    --rr-color-primary-lighter: #22d3ee;
-    --rr-color-primary-lightest: #67e8f9;
-    --rr-color-accent: #f0b429;
-    --rr-color-accent-dark: #c98a0a;
+    --rr-color-primary: #0d9488;
+    --rr-color-primary-dark: #0f766e;
+    --rr-color-primary-darker: #115e59;
+    --rr-color-primary-darkest: #134e4a;
+    --rr-color-primary-light: #14b8a6;
+    --rr-color-primary-lighter: #2dd4bf;
+    --rr-color-primary-lightest: #5eead4;
+
+    --rr-color-accent: #a3690a;
+    --rr-color-accent-dark: #7a4e08;
+    --rr-color-accent-soft: #c98a1d;
+    --rr-color-accent-pale: #fbe9c2;
+    --rr-color-text-on-accent: #1c2526;
 
     --rr-color-danger: #dc2626;
     --rr-color-danger-bg: #fef2f2;
@@ -34,23 +71,28 @@
     --rr-shadow-lw: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
     --rr-shadow-md: 0 5px 40px rgba(0, 0, 0, 0.12);
 
-    --rr-font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif,
-        BlinkMacSystemFont;
+    --rr-font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans",
+        sans-serif, BlinkMacSystemFont;
+    --rr-font-display: "Blender Pro", var(--rr-font-family);
 
     color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-        --rr-color-primary: #22d3ee;
-        --rr-color-primary-dark: #06b6d4;
-        --rr-color-primary-darker: #0891b2;
-        --rr-color-primary-darkest: #0e7490;
-        --rr-color-primary-light: #67e8f9;
-        --rr-color-primary-lighter: #a5f3fc;
-        --rr-color-primary-lightest: #cffafe;
-        --rr-color-accent: #fbbf24;
-        --rr-color-accent-dark: #f59e0b;
+        --rr-color-primary: #2dd4bf;
+        --rr-color-primary-dark: #14b8a6;
+        --rr-color-primary-darker: #0d9488;
+        --rr-color-primary-darkest: #0f766e;
+        --rr-color-primary-light: #5eead4;
+        --rr-color-primary-lighter: #99f6e4;
+        --rr-color-primary-lightest: #ccfbf1;
+
+        --rr-color-accent: #f2af0d;
+        --rr-color-accent-dark: #c98a0a;
+        --rr-color-accent-soft: #f6ca5f;
+        --rr-color-accent-pale: #fce9ba;
+        --rr-color-text-on-accent: #1c2526;
 
         --rr-color-danger: #f87171;
         --rr-color-danger-bg: #3f1d1d;
@@ -69,15 +111,19 @@
 }
 
 :root[data-theme="dark"] {
-    --rr-color-primary: #22d3ee;
-    --rr-color-primary-dark: #06b6d4;
-    --rr-color-primary-darker: #0891b2;
-    --rr-color-primary-darkest: #0e7490;
-    --rr-color-primary-light: #67e8f9;
-    --rr-color-primary-lighter: #a5f3fc;
-    --rr-color-primary-lightest: #cffafe;
-    --rr-color-accent: #fbbf24;
-    --rr-color-accent-dark: #f59e0b;
+    --rr-color-primary: #2dd4bf;
+    --rr-color-primary-dark: #14b8a6;
+    --rr-color-primary-darker: #0d9488;
+    --rr-color-primary-darkest: #0f766e;
+    --rr-color-primary-light: #5eead4;
+    --rr-color-primary-lighter: #99f6e4;
+    --rr-color-primary-lightest: #ccfbf1;
+
+    --rr-color-accent: #f2af0d;
+    --rr-color-accent-dark: #c98a0a;
+    --rr-color-accent-soft: #f6ca5f;
+    --rr-color-accent-pale: #fce9ba;
+    --rr-color-text-on-accent: #1c2526;
 
     --rr-color-danger: #f87171;
     --rr-color-danger-bg: #3f1d1d;
@@ -119,6 +165,12 @@ h2,
 h3,
 p {
     margin: 0 0 0.5rem;
+}
+
+h1,
+h2,
+h3 {
+    font-family: var(--rr-font-display);
 }
 
 a {

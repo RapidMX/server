@@ -120,7 +120,7 @@ index 0000000000000000000000000000000000000000..59ae6b5b4e8bd08ee95991d0b5546264
 +            .setHeader("X-RequestId", requestId)
 +            .setHeader("X-ResponseCode", "0")
 +            .setHeader("X-ClientInfo", clientInfo)
-+            .setHeader("X-ServerApplication", "RapidREST-Mail");
++            .setHeader("X-ServerApplication", "RapidMX-Mail");
 +        switch (requestType) {
 +            case "Connect":
 +                await this.handleConnect(req, res, user);

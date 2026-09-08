@@ -1,5 +1,5 @@
 apiVersion: v2
-description: Installs the RapidREST authentication and authorization server into a Kubernetes cluster
+description: Installs the RapidMX authentication and authorization server into a Kubernetes cluster
 name: mail-server
 version: 1.0.0
 appVersion: "0.1.0"

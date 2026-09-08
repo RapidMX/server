@@ -108,9 +108,9 @@ export default function AppShell({
             <div className="flex-1 flex min-h-0">
                 <nav
                     aria-label="Apps"
-                    className="w-14 shrink-0 bg-surface border-r border-border flex flex-col items-center py-3 gap-1"
+                    className="w-16 shrink-0 bg-surface border-r border-border flex flex-col items-center py-3 gap-1"
                 >
-                    <img src="/images/logo.svg" width="28" height="28" alt="" className="mb-3" />
+                    <img src="/images/logo_photo_dark_bg.png" width="56" height="56" alt="" className="mb-3" />
                     {APPS.map(({ id, href, label, icon: Icon }) => (
                         <a
                             key={id}
@@ -131,7 +131,7 @@ export default function AppShell({
                 </nav>
                 <div className="flex-1 flex flex-col min-w-0">
                     <header className="h-16 shrink-0 bg-surface border-b border-border flex items-center justify-between gap-4 px-6">
-                        <span className="font-bold text-lg tracking-tight">{activeApp?.label}</span>
+                        <span className="font-display font-bold text-lg uppercase tracking-wide">{activeApp?.label}</span>
                         <UserMenu userUid={userUid} authServerUrl={authServerUrl} onSignOut={handleSignOut} showAdminLink={trusted} />
                     </header>
                     <div className="flex-1 flex min-h-0">{children}</div>

@@ -8,7 +8,7 @@ all repositories.
 ## Reporting bugs and requesting features
 
 Please use this repository's Issues tab — file bugs and feature requests against whichever
-RapidREST repository they actually concern.
+RapidMX repository they actually concern.
 
 ### Bug Reports
 

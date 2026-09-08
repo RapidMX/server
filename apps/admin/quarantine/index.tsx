@@ -77,7 +77,7 @@ function QuarantineContent({ userUid }: { userUid?: string }) {
                 >
                     &larr; Back to mailbox
                 </a>
-                <h1 className="text-xl font-bold tracking-tight mt-1">Quarantine</h1>
+                <h1 className="text-xl font-bold uppercase tracking-wide mt-1">Quarantine</h1>
             </div>
 
             {error && <Alert>{error}</Alert>}

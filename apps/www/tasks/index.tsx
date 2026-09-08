@@ -269,7 +269,7 @@ function TasksContent() {
                     onAddToMyDay={handleBulkAddToMyDay}
                 />
                 <div role="region" aria-label="Tasks list" className="max-w-2xl mx-auto w-full flex flex-col gap-6 p-6">
-                    <h1 className="text-xl font-bold tracking-tight">Tasks</h1>
+                    <h1 className="text-xl font-bold uppercase tracking-wide">Tasks</h1>
 
                     {error && <Alert>{error}</Alert>}
 

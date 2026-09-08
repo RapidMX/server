@@ -570,7 +570,7 @@ function ContactForm({ contact, mailboxUid, folderUid, onSaved, onCancel }: Cont
 
     return (
         <form onSubmit={handleSubmit} className="max-w-xl flex flex-col gap-1">
-            <h1 className="text-xl font-bold tracking-tight mb-3">{contact ? "Edit contact" : "New contact"}</h1>
+            <h1 className="text-xl font-bold uppercase tracking-wide mb-3">{contact ? "Edit contact" : "New contact"}</h1>
 
             {error && <Alert>{error}</Alert>}
 

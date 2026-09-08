@@ -16,11 +16,16 @@ export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement
 const BASE =
     "inline-flex items-center justify-center gap-2 font-semibold text-sm rounded-sm border transition-colors disabled:opacity-55 disabled:cursor-not-allowed active:translate-y-px";
 
+/** Primary is gold (the brand's action color, per the style guide's "gold gradient fill" convention);
+ * secondary/text hover accents follow the guide's "turning gold on hover" rule too. Teal (`primary`
+ * the color token, confusingly named the same as this `primary` variant) stays reserved for
+ * structural/navigational chrome — active nav items, links, focus rings — not call-to-action buttons. */
 const VARIANTS: Record<ButtonVariant, string> = {
-    primary: "w-full py-2.5 px-4 bg-primary border-transparent text-white hover:not-disabled:bg-primary-dark",
+    primary:
+        "w-full py-2.5 px-4 bg-gradient-to-b from-accent-soft to-accent border-transparent text-text-on-accent hover:not-disabled:from-accent hover:not-disabled:to-accent-dark",
     secondary:
-        "w-full py-2.5 px-4 bg-transparent border-border text-text hover:not-disabled:border-primary hover:not-disabled:text-primary-dark",
-    text: "w-auto py-1 px-0.5 border-transparent bg-transparent text-primary-dark hover:not-disabled:underline",
+        "w-full py-2.5 px-4 bg-transparent border-border text-text hover:not-disabled:border-accent hover:not-disabled:text-accent-dark",
+    text: "w-auto py-1 px-0.5 border-transparent bg-transparent text-accent-dark hover:not-disabled:underline",
 };
 
 export default function Button({ variant = "primary", loading, className, children, ...rest }: ButtonProps) {

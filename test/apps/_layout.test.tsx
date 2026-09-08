@@ -19,7 +19,7 @@ describe("Layout", () => {
             </Layout>,
         );
 
-        expect(html).toContain("<title>RapidREST: Mail</title>");
+        expect(html).toContain("<title>RapidMX: Mail</title>");
         expect(html).toContain('charSet="utf-8"');
         expect(html).toContain('href="/favicon.ico"');
         expect(html).toContain("<body><p>page content</p></body>");

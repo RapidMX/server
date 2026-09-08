@@ -147,7 +147,7 @@ function ComposeContent() {
 
     return (
         <form onSubmit={handleSend} className="max-w-3xl mx-auto p-6 flex flex-col gap-1">
-            <h1 className="text-lg font-bold tracking-tight mb-3">New Message</h1>
+            <h1 className="text-lg font-bold uppercase tracking-wide mb-3">New Message</h1>
 
             {draftError && <Alert>{draftError}</Alert>}
             {sendError && <Alert>{sendError}</Alert>}

@@ -71,7 +71,7 @@ export default function ShareAccessCard({ mailboxUid }: ShareAccessCardProps) {
 
     return (
         <div className="bg-surface border border-border rounded-md p-6">
-            <h2 className="text-base font-bold mb-1">Shared access</h2>
+            <h2 className="text-base font-bold uppercase tracking-wide mb-1">Shared access</h2>
             <p className="text-sm text-text-muted mb-4">
                 Grants read access to this mailbox for another user, independent of ownership.
             </p>

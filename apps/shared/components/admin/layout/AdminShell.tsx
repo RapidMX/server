@@ -87,7 +87,7 @@ export default function AdminShell({ userUid, authServerUrl, children }: PropsWi
                 <header className="bg-surface border-b border-border">
                     <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
                         <div className="flex items-center gap-8">
-                            <a href="/admin" className="flex items-center gap-2 font-bold text-lg tracking-tight">
+                            <a href="/admin" className="flex items-center gap-2 font-display font-bold text-lg uppercase tracking-wide">
                                 <img src="/images/logo.svg" width="24" height="24" alt="" />
                                 Mail Admin
                             </a>

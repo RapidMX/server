@@ -40,7 +40,7 @@ function MailboxesListContent() {
     return (
         <>
             <div className="flex items-center justify-between mb-5">
-                <h1 className="text-xl font-bold tracking-tight">Mailboxes</h1>
+                <h1 className="text-xl font-bold uppercase tracking-wide">Mailboxes</h1>
                 <a href="/admin/mailboxes/new">
                     <Button type="button" className="!w-auto">
                         + New mailbox

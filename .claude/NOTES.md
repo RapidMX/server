@@ -1181,3 +1181,66 @@ toolbar, vCard import/export
   fields/entities; 1: Compose rich-text editor; 2: Contacts; 3: Tasks; 4: Calendar) are now complete,
   each independently verified and committed per the user's standing "commit each phase separately,
   when finished" authorization for this plan.
+
+## 2026-09-07 — Rebrand: teal/gold palette + new logo + Blender Pro/Inter typefaces
+
+- The user committed new brand assets directly (`aa7a3e1`, outside this session): `public/images/
+  logo.svg`/`logo.png`/`logo_photo_{dark,light}_bg.png` (a teal glass cube around a gold envelope +
+  lightning bolt) and `public/fonts/Blender-Pro-{Book,Medium,Bold,Heavy}.ttf`. This session's task:
+  recolor the app's primary palette to teal/gold (sampled from the new logo) and apply the two new
+  typefaces, using https://powerlevel.gg/style-guide/ as the reference for *how* to apply them (not
+  for its own blue/gold color values — the user was explicit that teal/gold, not blue/gold, are this
+  project's colors).
+- **Design tokens** (`apps/shared/styles/app.css`, the live Tailwind `@theme` source — plus
+  `public/styles/globals.css`, confirmed unused by any current page but kept in sync so it doesn't
+  silently drift back to the old cyan palette if it's ever revived):
+  - `--rr-color-primary*` (7-tier scale: primary/dark/darker/darkest/light/lighter/lightest, light +
+    dark mode) recolored from cyan to teal, keeping the exact same structural pattern the old scale
+    used (light-mode primary = X-600, dark-mode primary = X-400, etc., just X=teal instead of cyan).
+  - `--rr-color-accent`/`accent-dark` recolored from amber to gold, plus two new tiers
+    `accent-soft`/`accent-pale` and a `text-on-accent` (dark ink — gold is bright enough in both
+    modes for dark text). Values taken directly from the style guide's own gold palette (already
+    vetted there for WCAG AA), not invented: light `#A3690A`/dark `#F2AF0D` for the base tier, etc.
+  - Added 4 `@font-face` rules for the self-hosted Blender Pro weights (Book 400/Medium 500/Bold
+    700/Heavy 800, matching the style guide's own weight names) and a new `--font-display` token;
+    `--font-sans` (body copy) switched from a bare system-ui stack to `"Inter", system-ui, ...` —
+    Inter itself is loaded via a Google Fonts `<link>` in each app's `_layout.tsx` (`apps/www` and
+    `apps/admin`), not self-hosted, since no font files for it were provided and no CSP blocks it.
+  - Added a global `h1`-`h6` rule applying `--font-display` unconditionally. **Deliberately did not**
+    add a blanket `text-transform: uppercase` alongside it, even though the style guide calls for
+    uppercase+wide-tracking on everything below its own H2 size (which, by literal size comparison,
+    is every heading in this app) — several `<h1>`/`<h2>` elements render actual user content (a
+    contact's `displayName`, a mailbox's email address, a message's `subject`), and shouting-casing
+    a person's real name or an email address is a real UX/professionalism regression the guide's own
+    reasoning ("Blender Pro in long paragraphs reads as shouting") argues against for short content
+    too. Applied `uppercase tracking-wide` individually instead, to every purely-static chrome
+    heading/label (page titles like "Mailboxes"/"Tasks"/"Quarantine", the `AppShell`/`AdminShell`
+    header wordmarks) and explicitly skipped the three dynamic-content ones named above.
+- **Favicon**: added `<link rel="icon" type="image/svg+xml" href="/images/logo.svg">` (the new logo)
+  with the old `favicon.ico` kept as `<link rel="alternate icon">` for browsers without SVG-favicon
+  support. Did not regenerate `favicon.ico` itself from the new artwork — no ImageMagick/`sharp` is
+  available in this environment to safely produce a proper multi-resolution `.ico`, and Windows'
+  `convert.exe` on `PATH` is the unrelated NTFS/FAT conversion tool, not ImageMagick's `convert`; the
+  SVG-favicon link covers every modern browser without that conversion step. `logo.svg`/`logo.png`
+  needed no other wiring — `AppShell`/`AdminShell`/`MailboxProvisioning` already reference `/images/
+  logo.svg` by the same filename the user's commit replaced.
+- **`Button.tsx`**: `primary` variant recolored from a solid teal fill to the style guide's own
+  "gold gradient fill" convention (`bg-gradient-to-b from-accent-soft to-accent`, deepening to
+  `from-accent to-accent-dark` on hover); `secondary`/`text` variants' hover accent switched from
+  teal to gold, matching the guide's "secondary: neutral surface with inset border turning gold on
+  hover." Teal is deliberately left as the *only* color for structural/navigational chrome (active
+  nav-rail icon, links, focus rings, the calendar's own per-event coloring) — this maps directly onto
+  the new logo's own composition (a teal frame around a gold action symbol), and reads as "the two
+  primary colors are teal and gold" rather than one replacing the other everywhere.
+- Verification: `yarn tsc --noEmit`, client `tsc -p tsconfig.client.json --noEmit`, `yarn lint` all
+  clean. Full `yarn test`: one flaky failure on the first run (`contacts/index.test.tsx`'s toolbar-
+  Import test, unrelated to anything touched here — passed in isolation and on a full clean re-run:
+  676/676, `apps/**` still 100%). Real `yarn dev` + `curl` smoke test: confirmed the compiled CSS
+  bundle actually contains all 4 `@font-face` Blender Pro rules, the new teal/gold hex values, and
+  the gold-gradient button utility classes (`from-accent-soft`, `to-accent-dark`, etc.); confirmed
+  the rendered `<head>` carries the new favicon/Google-Fonts `<link>` tags; confirmed a rendered
+  heading actually carries `font-display font-bold text-lg uppercase tracking-wide` in real HTML
+  output, not just in source.
+- **Not yet committed** — this was a standalone styling request, not part of the Outlook-parity
+  plan's per-phase commit authorization, so it follows this project's normal "ask before committing"
+  default.

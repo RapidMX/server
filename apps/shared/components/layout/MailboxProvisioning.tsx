@@ -93,7 +93,7 @@ export default function MailboxProvisioning() {
     } else {
         content = (
             <>
-                <h1 className="text-lg font-bold tracking-tight">No mailbox available</h1>
+                <h1 className="text-lg font-bold uppercase tracking-wide">No mailbox available</h1>
                 <p className="text-sm text-text-muted">Ask an administrator to create one for you.</p>
             </>
         );
@@ -102,7 +102,7 @@ export default function MailboxProvisioning() {
     return (
         <div className="min-h-screen flex items-center justify-center p-8 bg-surface-alt">
             <div className="w-full max-w-md bg-surface border border-border rounded-md p-8 flex flex-col items-center gap-4 text-center">
-                <img src="/images/logo.svg" width="40" height="40" alt="" />
+                <img src="/images/logo_photo_dark_bg.png" width="128" height="128" alt="" />
                 {content}
             </div>
         </div>

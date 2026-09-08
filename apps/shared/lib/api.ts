@@ -4,7 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 /**
  * Minimal client-side helper shared by every app in this project: a `fetch` wrapper that talks to the
- * same-origin RapidREST API. There is no client router or HTTP client shipped by `@rapidrest/react`, so this
+ * same-origin RapidMX API. There is no client router or HTTP client shipped by `@rapidrest/react`, so this
  * is deliberately small and framework-free.
  *
  * This service never issues its own JWTs — identity comes entirely from a separate `auth-server` deployment
@@ -29,7 +29,7 @@ export class ApiRequestError extends Error {
 }
 
 /**
- * `fetch()` against the same-origin API, decoding RapidREST-shaped errors. `path` is the route as
+ * `fetch()` against the same-origin API, decoding RapidMX-shaped errors. `path` is the route as
  * declared by `@ApiRoute` (e.g. `/mail/mailboxes`) — the `/api` prefix that decorator always adds is
  * applied here, in one place, rather than repeated at every call site.
  */
