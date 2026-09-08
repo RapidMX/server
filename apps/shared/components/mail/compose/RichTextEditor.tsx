@@ -21,6 +21,8 @@ export interface RichTextEditorProps {
      * embedding inside a flex-column container of variable height (the floating Compose window) where
      * a literal pixel height can't be computed up front. `height` is ignored when this is set. */
     fill?: boolean;
+    /** Passed straight through to `ComposeToolbar` — see its own doc comment on this prop. */
+    onUploadImage: (file: File) => Promise<string | null>;
 }
 
 /**
@@ -44,7 +46,7 @@ export interface RichTextEditorProps {
  * sufficient here since TipTap (unlike Monaco) never touches the DOM at module-evaluation time, only when
  * an editor view actually mounts.
  */
-export default function RichTextEditor({ value, onChange, height = "360px", fill = false }: RichTextEditorProps) {
+export default function RichTextEditor({ value, onChange, height = "360px", fill = false, onUploadImage }: RichTextEditorProps) {
     const onChangeRef = useRef(onChange);
     onChangeRef.current = onChange;
 
@@ -65,7 +67,7 @@ export default function RichTextEditor({ value, onChange, height = "360px", fill
 
     return (
         <div className={["border border-border rounded-sm overflow-hidden", fill ? "h-full flex flex-col" : ""].filter(Boolean).join(" ")}>
-            <ComposeToolbar editor={editor} />
+            <ComposeToolbar editor={editor} onUploadImage={onUploadImage} />
             <EditorContent
                 editor={editor}
                 style={fill ? undefined : { height }}

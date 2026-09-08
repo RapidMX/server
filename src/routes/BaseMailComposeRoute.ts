@@ -99,6 +99,31 @@ export function sanitizeComposeHtml(html: string): string {
     });
 }
 
+/**
+ * Rewrites `<img>` references to this draft's own already-uploaded attachments (by their
+ * `/mail/attachments/:uid/content` URL — see `apps/shared/lib/mailApi.ts`'s `attachmentContentUrl()`)
+ * into `cid:` references instead, matching each attachment's own `contentId`.
+ *
+ * The client's rich-text editor can't render a `cid:` URL at all (browsers only resolve that scheme
+ * inside an actual MIME-rendering mail client, never a live DOM) — so while composing, an inserted
+ * image points at this server's own authenticated content endpoint instead, which the browser *can*
+ * fetch, for a working live preview. That URL is meaningless outside this server, though (a
+ * recipient's mail client has no session cookie to fetch it with), so it's rewritten to the `cid:`
+ * form the message actually ships with here, at assemble time — after this point, `attachments` is
+ * always built with that same `contentId` as each attachment's own MIME `cid` (see below), so a
+ * rewritten reference always resolves for the recipient.
+ */
+export function rewriteInlineImageSources(html: string, attachments: { uid: string; contentId?: string }[]): string {
+    let result = html;
+    for (const attachment of attachments) {
+        if (!attachment.contentId) {
+            continue;
+        }
+        result = result.split(`/api/mail/attachments/${attachment.uid}/content`).join(`cid:${attachment.contentId}`);
+    }
+    return result;
+}
+
 /** A short, tag-stripped plain-text preview, mirroring how `@rapidmx/restapi`'s own ingestion pipeline derives `bodyPreview`. */
 function toPreview(html: string): string {
     return html
@@ -215,7 +240,7 @@ export abstract class BaseMailComposeRoute<M extends Message, A extends Attachme
             })),
         );
 
-        const html = sanitizeComposeHtml(body.html);
+        const html = sanitizeComposeHtml(rewriteInlineImageSources(body.html, attachmentRecords));
 
         const from = { name: mailbox.displayName, address: mailbox.primarySmtpAddress };
         const raw: Buffer = await new MailComposer({

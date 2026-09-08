@@ -25,6 +25,14 @@ export const DEFAULT_AUTH_SECRET = "MyPasswordIsSecure";
  * through the public ingress.
  */
 export const DEFAULT_MAIL_INGEST_SECRET = "ChangeMeIngestSecret";
+/**
+ * Giphy's public Search API key, used by `BaseGiphySearchRoute`'s server-side GIF-search proxy (see
+ * `giphy:api_key`). Unlike the three secrets above, a missing/placeholder value here doesn't expose an
+ * auth-forgery risk — the route simply refuses GIF search with a clear "not configured" error — so this
+ * one is not checked by `assertProductionSecretsAreSet()`. Set a real key via the deployment's config/env
+ * to enable the feature; leaving this placeholder in effect just means GIF search stays disabled.
+ */
+export const DEFAULT_GIPHY_API_KEY = "ChangeMeGiphyApiKey";
 
 /** Minimal shape of the `nconf` config object this guard needs — matches `config.sql.ts`/`config.mongo.ts`'s export. */
 export interface SecretsConfig {

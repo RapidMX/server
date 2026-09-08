@@ -3,17 +3,43 @@
 // Copyright (C) 2026 Jean-Philippe Steinmetz. All rights reserved.
 ///////////////////////////////////////////////////////////////////////////////
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { jsonResponse, mockFetch } from "../testUtils.js";
 import ComposeWindow from "../../../apps/shared/components/mail/compose/ComposeWindow.js";
 import type { ComposeSession } from "../../../apps/shared/components/mail/compose/ComposeContext.js";
 
+// Exposes `onUploadImage` via a button so tests can drive `ComposeWindow`'s own upload-handling logic
+// directly (success/failure/not-ready-yet) without needing a real TipTap editor — `ComposeToolbar`'s
+// own use of this same prop is already covered in its own test file.
 vi.mock("../../../apps/shared/components/mail/compose/RichTextEditor.js", () => ({
-    default: ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
-        <textarea data-testid="html-editor" value={value} onChange={(e) => onChange(e.target.value)} />
-    ),
+    default: ({
+        value,
+        onChange,
+        onUploadImage,
+    }: {
+        value: string;
+        onChange: (v: string) => void;
+        onUploadImage: (file: File) => Promise<string | null>;
+    }) => {
+        const [uploadResult, setUploadResult] = React.useState<string>("");
+        return (
+            <div>
+                <textarea data-testid="html-editor" value={value} onChange={(e) => onChange(e.target.value)} />
+                <button
+                    type="button"
+                    onClick={async () => {
+                        const url = await onUploadImage(new File(["pixels"], "photo.png", { type: "image/png" }));
+                        setUploadResult(url ?? "null");
+                    }}
+                >
+                    fake-upload-image
+                </button>
+                <span data-testid="upload-result">{uploadResult}</span>
+            </div>
+        );
+    },
 }));
 
 const draftsFolder = {
@@ -373,5 +399,193 @@ describe("ComposeWindow", () => {
 
         await user.click(screen.getByRole("button", { name: "Collapse" }));
         expect(screen.getByRole("button", { name: "Expand" })).toBeInTheDocument();
+    });
+
+    it("uploads an image via onUploadImage and resolves to the attachment's content URL.", async () => {
+        mockCompose((url, init) =>
+            url.startsWith("/api/mail/attachments/upload") && (init?.method ?? "GET") === "POST"
+                ? jsonResponse(200, {
+                      uid: "a1",
+                      version: 0,
+                      dateCreated: "2026-01-01T00:00:00.000Z",
+                      dateModified: "2026-01-01T00:00:00.000Z",
+                      messageUid: "m1",
+                      folderUid: "f-drafts",
+                      mailboxUid: "mb1",
+                      filename: "photo.png",
+                      mimeType: "image/png",
+                      sizeBytes: 6,
+                      isInline: false,
+                  })
+                : undefined,
+        );
+        const user = userEvent.setup();
+        render(<ComposeWindow session={session()} onClose={vi.fn()} onToggleMinimize={vi.fn()} />);
+        await waitFor(() => expect(screen.getByRole("button", { name: "Send" })).not.toBeDisabled());
+
+        await user.click(screen.getByText("fake-upload-image"));
+
+        await waitFor(() => expect(screen.getByTestId("upload-result")).toHaveTextContent("/api/mail/attachments/a1/content"));
+    });
+
+    it("resolves to null and shows an error when the image upload fails.", async () => {
+        mockCompose((url, init) =>
+            url.startsWith("/api/mail/attachments/upload") && (init?.method ?? "GET") === "POST" ? jsonResponse(500, { message: "too large" }) : undefined,
+        );
+        const user = userEvent.setup();
+        render(<ComposeWindow session={session()} onClose={vi.fn()} onToggleMinimize={vi.fn()} />);
+        await waitFor(() => expect(screen.getByRole("button", { name: "Send" })).not.toBeDisabled());
+
+        await user.click(screen.getByText("fake-upload-image"));
+
+        await waitFor(() => expect(screen.getByTestId("upload-result")).toHaveTextContent("null"));
+        expect(await screen.findByText("too large")).toBeInTheDocument();
+    });
+
+    it("resolves to null and shows a generic error when the image upload fails with a non-API error.", async () => {
+        mockCompose((url, init) => {
+            if (url.startsWith("/api/mail/attachments/upload") && (init?.method ?? "GET") === "POST") throw new TypeError("network down");
+            return undefined;
+        });
+        const user = userEvent.setup();
+        render(<ComposeWindow session={session()} onClose={vi.fn()} onToggleMinimize={vi.fn()} />);
+        await waitFor(() => expect(screen.getByRole("button", { name: "Send" })).not.toBeDisabled());
+
+        await user.click(screen.getByText("fake-upload-image"));
+
+        expect(await screen.findByText("Could not upload image.")).toBeInTheDocument();
+    });
+
+    it("resolves to null and shows an error when an image is uploaded before the draft has loaded.", async () => {
+        let resolveDraft: (() => void) | undefined;
+        mockCompose((url, init) => {
+            if (url === "/api/mail/messages" && (init?.method ?? "GET") === "POST") {
+                return new Promise((resolve) => {
+                    resolveDraft = () => resolve(jsonResponse(200, draft));
+                });
+            }
+            return undefined;
+        });
+        const user = userEvent.setup();
+        render(<ComposeWindow session={session()} onClose={vi.fn()} onToggleMinimize={vi.fn()} />);
+        await waitFor(() => expect(resolveDraft).toBeDefined());
+
+        await user.click(screen.getByText("fake-upload-image"));
+
+        await waitFor(() => expect(screen.getByTestId("upload-result")).toHaveTextContent("null"));
+        expect(await screen.findByText("Please wait for the draft to finish loading before inserting an image.")).toBeInTheDocument();
+        resolveDraft!();
+        await waitFor(() => expect(screen.getByRole("button", { name: "Send" })).not.toBeDisabled());
+    });
+
+    it("resizes wider/taller when the corner handle is dragged up and to the left.", async () => {
+        mockCompose();
+        render(<ComposeWindow session={session()} onClose={vi.fn()} onToggleMinimize={vi.fn()} />);
+        const dialog = await screen.findByRole("dialog", { name: "New Message" });
+        vi.spyOn(dialog, "getBoundingClientRect").mockReturnValue({
+            width: 480,
+            height: 520,
+            top: 0,
+            left: 0,
+            right: 480,
+            bottom: 520,
+            x: 0,
+            y: 0,
+            toJSON: () => ({}),
+        });
+
+        act(() => { fireEvent.pointerDown(screen.getByRole("separator", { name: "Resize" }), { clientX: 500, clientY: 500 }); });
+        act(() => { fireEvent.pointerMove(window, { clientX: 450, clientY: 470 }); });
+
+        expect(dialog.style.width).toBe("530px");
+        expect(dialog.style.height).toBe("550px");
+
+        act(() => { fireEvent.pointerUp(window); });
+        act(() => { fireEvent.pointerMove(window, { clientX: 400, clientY: 400 }); });
+        // A move after pointerup shouldn't change anything further — the drag session already ended.
+        expect(dialog.style.width).toBe("530px");
+        await waitFor(() => expect(screen.getByRole("button", { name: "Send" })).not.toBeDisabled());
+    });
+
+    it("resizing from the left edge only changes width; from the top edge only changes height.", async () => {
+        mockCompose();
+        const { container } = render(<ComposeWindow session={session()} onClose={vi.fn()} onToggleMinimize={vi.fn()} />);
+        const dialog = container.querySelector('[role="dialog"]') as HTMLElement;
+        vi.spyOn(dialog, "getBoundingClientRect").mockReturnValue({
+            width: 480,
+            height: 520,
+            top: 0,
+            left: 0,
+            right: 480,
+            bottom: 520,
+            x: 0,
+            y: 0,
+            toJSON: () => ({}),
+        });
+
+        const [topHandle, leftHandle] = container.querySelectorAll('[aria-hidden="true"]');
+        act(() => { fireEvent.pointerDown(leftHandle, { clientX: 500, clientY: 500 }); });
+        act(() => { fireEvent.pointerMove(window, { clientX: 480, clientY: 480 }); });
+        expect(dialog.style.width).toBe("500px");
+        expect(dialog.style.height).toBe("520px");
+        act(() => { fireEvent.pointerUp(window); });
+
+        act(() => { fireEvent.pointerDown(topHandle, { clientX: 500, clientY: 500 }); });
+        act(() => { fireEvent.pointerMove(window, { clientX: 480, clientY: 480 }); });
+        expect(dialog.style.height).toBe("540px");
+        act(() => { fireEvent.pointerUp(window); });
+        await waitFor(() => expect(screen.getByRole("button", { name: "Send" })).not.toBeDisabled());
+    });
+
+    it("clamps a resize to the minimum width/height.", async () => {
+        mockCompose();
+        render(<ComposeWindow session={session()} onClose={vi.fn()} onToggleMinimize={vi.fn()} />);
+        const dialog = await screen.findByRole("dialog", { name: "New Message" });
+        vi.spyOn(dialog, "getBoundingClientRect").mockReturnValue({
+            width: 480,
+            height: 520,
+            top: 0,
+            left: 0,
+            right: 480,
+            bottom: 520,
+            x: 0,
+            y: 0,
+            toJSON: () => ({}),
+        });
+
+        act(() => { fireEvent.pointerDown(screen.getByRole("separator", { name: "Resize" }), { clientX: 500, clientY: 500 }); });
+        act(() => { fireEvent.pointerMove(window, { clientX: 5000, clientY: 5000 }); });
+
+        expect(dialog.style.width).toBe("320px");
+        expect(dialog.style.height).toBe("320px");
+        await waitFor(() => expect(screen.getByRole("button", { name: "Send" })).not.toBeDisabled());
+    });
+
+    it("resets manual sizing back to a preset when Expand/Collapse is clicked afterward.", async () => {
+        mockCompose();
+        const user = userEvent.setup();
+        render(<ComposeWindow session={session()} onClose={vi.fn()} onToggleMinimize={vi.fn()} />);
+        const dialog = await screen.findByRole("dialog", { name: "New Message" });
+        vi.spyOn(dialog, "getBoundingClientRect").mockReturnValue({
+            width: 480,
+            height: 520,
+            top: 0,
+            left: 0,
+            right: 480,
+            bottom: 520,
+            x: 0,
+            y: 0,
+            toJSON: () => ({}),
+        });
+
+        act(() => { fireEvent.pointerDown(screen.getByRole("separator", { name: "Resize" }), { clientX: 500, clientY: 500 }); });
+        act(() => { fireEvent.pointerMove(window, { clientX: 450, clientY: 470 }); });
+        act(() => { fireEvent.pointerUp(window); });
+        expect(dialog.style.width).toBe("530px");
+
+        await user.click(screen.getByRole("button", { name: "Expand" }));
+
+        expect(dialog.style.width).toBe("");
+        expect(dialog.className).toContain("w-[720px]");
     });
 });

@@ -8,6 +8,35 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import ComposeToolbar from "../../../apps/shared/components/mail/compose/ComposeToolbar.js";
 
+// `EmojiPicker`/`GifPicker` are tested in their own files (including `PopoverPortal`'s positioning
+// logic) — mocked here to bare buttons exposing just the callbacks `ComposeToolbar` wires up, matching
+// this codebase's "mock a child wholesale, test it separately" convention (e.g. `RichTextEditor`
+// mocking `ComposeToolbar` in its own tests).
+vi.mock("../../../apps/shared/components/mail/compose/EmojiPicker.js", () => ({
+    default: ({ onSelect, onClose }: { onSelect: (native: string) => void; onClose: () => void }) => (
+        <div>
+            <button type="button" onClick={() => onSelect("😀")}>
+                fake-emoji
+            </button>
+            <button type="button" onClick={onClose}>
+                fake-emoji-close
+            </button>
+        </div>
+    ),
+}));
+vi.mock("../../../apps/shared/components/mail/compose/GifPicker.js", () => ({
+    default: ({ onSelect, onClose }: { onSelect: (url: string) => void; onClose: () => void }) => (
+        <div>
+            <button type="button" onClick={() => onSelect("https://media.giphy.com/fake.gif")}>
+                fake-gif
+            </button>
+            <button type="button" onClick={onClose}>
+                fake-gif-close
+            </button>
+        </div>
+    ),
+}));
+
 /**
  * A minimal fake `Editor` exposing exactly the chainable command surface `ComposeToolbar` drives —
  * `.chain()` returns an object where every command method records its own name (plus args) into
@@ -42,6 +71,7 @@ function fakeEditor(options: {
         "unsetLink",
         "setLink",
         "setImage",
+        "insertContent",
         "insertTable",
         "unsetAllMarks",
         "clearNodes",
@@ -73,9 +103,13 @@ function fakeEditor(options: {
     } as any;
 }
 
+function renderToolbar(props: Partial<React.ComponentProps<typeof ComposeToolbar>> = {}) {
+    return render(<ComposeToolbar editor={null} onUploadImage={vi.fn()} {...props} />);
+}
+
 describe("ComposeToolbar", () => {
     it("disables every control when the editor hasn't mounted yet (editor === null)", () => {
-        render(<ComposeToolbar editor={null} />);
+        renderToolbar();
 
         expect(screen.getByLabelText("Bold")).toBeDisabled();
         expect(screen.getByLabelText("Font family")).toBeDisabled();
@@ -109,7 +143,7 @@ describe("ComposeToolbar", () => {
     ])("clicking %s runs the %s command", async (label, expectedCall) => {
         const editor = fakeEditor();
         const user = userEvent.setup();
-        render(<ComposeToolbar editor={editor} />);
+        renderToolbar({ editor });
 
         await user.click(screen.getByLabelText(label));
 
@@ -119,7 +153,7 @@ describe("ComposeToolbar", () => {
 
     it("renders a button as active (pressed) when the editor reports that mark/node as active", () => {
         const editor = fakeEditor({ active: { bold: true } });
-        render(<ComposeToolbar editor={editor} />);
+        renderToolbar({ editor });
 
         expect(screen.getByLabelText("Bold")).toHaveAttribute("aria-pressed", "true");
         expect(screen.getByLabelText("Italic")).toHaveAttribute("aria-pressed", "false");
@@ -127,7 +161,7 @@ describe("ComposeToolbar", () => {
 
     it("disables Undo/Redo when the editor reports the history stack is empty", () => {
         const editor = fakeEditor({ canUndo: false, canRedo: false });
-        render(<ComposeToolbar editor={editor} />);
+        renderToolbar({ editor });
 
         expect(screen.getByLabelText("Undo")).toBeDisabled();
         expect(screen.getByLabelText("Redo")).toBeDisabled();
@@ -136,7 +170,7 @@ describe("ComposeToolbar", () => {
     it("changes font family, and clears it when the default option is chosen", async () => {
         const editor = fakeEditor();
         const user = userEvent.setup();
-        render(<ComposeToolbar editor={editor} />);
+        renderToolbar({ editor });
 
         await user.selectOptions(screen.getByLabelText("Font family"), "Serif");
         expect(editor.calls).toContain('setFontFamily(["Georgia, \'Times New Roman\', serif"])');
@@ -147,7 +181,7 @@ describe("ComposeToolbar", () => {
 
     it("shows the editor's current font family in the select.", () => {
         const editor = fakeEditor({ attributes: { textStyle: { fontFamily: "Arial, Helvetica, sans-serif" } } });
-        render(<ComposeToolbar editor={editor} />);
+        renderToolbar({ editor });
 
         expect(screen.getByLabelText("Font family")).toHaveValue("Arial, Helvetica, sans-serif");
     });
@@ -155,7 +189,7 @@ describe("ComposeToolbar", () => {
     it("changes font size, and clears it when the default option is chosen", async () => {
         const editor = fakeEditor();
         const user = userEvent.setup();
-        render(<ComposeToolbar editor={editor} />);
+        renderToolbar({ editor });
 
         await user.selectOptions(screen.getByLabelText("Font size"), "Large");
         expect(editor.calls).toContain('setFontSize(["18px"])');
@@ -166,14 +200,14 @@ describe("ComposeToolbar", () => {
 
     it("shows the editor's current font size in the select.", () => {
         const editor = fakeEditor({ attributes: { textStyle: { fontSize: "12px" } } });
-        render(<ComposeToolbar editor={editor} />);
+        renderToolbar({ editor });
 
         expect(screen.getByLabelText("Font size")).toHaveValue("12px");
     });
 
     it("applies a text color via the color input.", () => {
         const editor = fakeEditor();
-        render(<ComposeToolbar editor={editor} />);
+        renderToolbar({ editor });
 
         // jsdom's <input type="color"> doesn't support typing an arbitrary hex string via userEvent, so
         // drive the change handler directly instead — the same approach this codebase already uses for
@@ -185,39 +219,151 @@ describe("ComposeToolbar", () => {
 
     it("shows the editor's current text color in the color input.", () => {
         const editor = fakeEditor({ attributes: { textStyle: { color: "#00ff00" } } });
-        render(<ComposeToolbar editor={editor} />);
+        renderToolbar({ editor });
 
         expect(screen.getByLabelText("Text color")).toHaveValue("#00ff00");
     });
 
-    it("prompts for an image URL and inserts it when one is given.", async () => {
+    it("clicking Insert image opens a file picker, uploads the chosen file, and inserts the resolved URL.", async () => {
         const editor = fakeEditor();
-        const promptSpy = vi.spyOn(window, "prompt").mockReturnValue("https://example.com/pic.png");
+        const onUploadImage = vi.fn().mockResolvedValue("https://server.example.com/attachments/a1/content");
         const user = userEvent.setup();
-        render(<ComposeToolbar editor={editor} />);
+        renderToolbar({ editor, onUploadImage });
 
-        await user.click(screen.getByLabelText("Insert image"));
+        const file = new File(["pixels"], "photo.png", { type: "image/png" });
+        await user.upload(screen.getByLabelText("Insert image file"), file);
 
-        expect(editor.calls).toContain('setImage([{"src":"https://example.com/pic.png"}])');
-        promptSpy.mockRestore();
+        expect(onUploadImage).toHaveBeenCalledWith(file);
+        expect(editor.calls).toContain('setImage([{"src":"https://server.example.com/attachments/a1/content"}])');
     });
 
-    it("does not insert an image when the URL prompt is cancelled.", async () => {
+    it("does not insert an image when the upload fails (onUploadImage resolves null).", async () => {
         const editor = fakeEditor();
-        const promptSpy = vi.spyOn(window, "prompt").mockReturnValue(null);
+        const onUploadImage = vi.fn().mockResolvedValue(null);
         const user = userEvent.setup();
-        render(<ComposeToolbar editor={editor} />);
+        renderToolbar({ editor, onUploadImage });
+
+        const file = new File(["pixels"], "photo.png", { type: "image/png" });
+        await user.upload(screen.getByLabelText("Insert image file"), file);
+
+        expect(onUploadImage).toHaveBeenCalledWith(file);
+        expect(editor.calls).not.toContain(expect.stringContaining("setImage"));
+    });
+
+    it("ignores a change event with no file selected.", async () => {
+        const editor = fakeEditor();
+        const onUploadImage = vi.fn();
+        renderToolbar({ editor, onUploadImage });
+
+        const input = screen.getByLabelText("Insert image file");
+        Object.defineProperty(input, "files", { value: [], configurable: true });
+        fireEvent.change(input);
+
+        expect(onUploadImage).not.toHaveBeenCalled();
+    });
+
+    it("clicking the Insert image button itself opens the hidden file picker.", async () => {
+        const editor = fakeEditor();
+        const user = userEvent.setup();
+        renderToolbar({ editor });
+        const input = screen.getByLabelText("Insert image file");
+        const clickSpy = vi.spyOn(input, "click");
 
         await user.click(screen.getByLabelText("Insert image"));
 
+        expect(clickSpy).toHaveBeenCalled();
+    });
+
+    it("opens the emoji picker, inserts the selected emoji, and closes the picker.", async () => {
+        const editor = fakeEditor();
+        const user = userEvent.setup();
+        renderToolbar({ editor });
+
+        await user.click(screen.getByLabelText("Insert emoji"));
+        await user.click(screen.getByText("fake-emoji"));
+
+        expect(editor.calls).toContain('insertContent(["😀"])');
+        expect(screen.queryByText("fake-emoji")).not.toBeInTheDocument();
+    });
+
+    it("closes the emoji picker via its own onClose without inserting anything.", async () => {
+        const editor = fakeEditor();
+        const user = userEvent.setup();
+        renderToolbar({ editor });
+
+        await user.click(screen.getByLabelText("Insert emoji"));
+        await user.click(screen.getByText("fake-emoji-close"));
+
+        expect(screen.queryByText("fake-emoji-close")).not.toBeInTheDocument();
+        expect(editor.calls).not.toContain(expect.stringContaining("insertContent"));
+    });
+
+    it("toggles the emoji picker closed when its own button is clicked again.", async () => {
+        const editor = fakeEditor();
+        const user = userEvent.setup();
+        renderToolbar({ editor });
+
+        await user.click(screen.getByLabelText("Insert emoji"));
+        expect(screen.getByText("fake-emoji")).toBeInTheDocument();
+        await user.click(screen.getByLabelText("Insert emoji"));
+
+        expect(screen.queryByText("fake-emoji")).not.toBeInTheDocument();
+    });
+
+    it("toggles the GIF picker closed when its own button is clicked again.", async () => {
+        const editor = fakeEditor();
+        const user = userEvent.setup();
+        renderToolbar({ editor });
+
+        await user.click(screen.getByLabelText("Insert GIF"));
+        expect(screen.getByText("fake-gif")).toBeInTheDocument();
+        await user.click(screen.getByLabelText("Insert GIF"));
+
+        expect(screen.queryByText("fake-gif")).not.toBeInTheDocument();
+    });
+
+    it("opens the GIF picker, inserts the selected GIF as an image, and closes the picker.", async () => {
+        const editor = fakeEditor();
+        const user = userEvent.setup();
+        renderToolbar({ editor });
+
+        await user.click(screen.getByLabelText("Insert GIF"));
+        await user.click(screen.getByText("fake-gif"));
+
+        expect(editor.calls).toContain('setImage([{"src":"https://media.giphy.com/fake.gif"}])');
+        expect(screen.queryByText("fake-gif")).not.toBeInTheDocument();
+    });
+
+    it("closes the GIF picker via its own onClose without inserting anything.", async () => {
+        const editor = fakeEditor();
+        const user = userEvent.setup();
+        renderToolbar({ editor });
+
+        await user.click(screen.getByLabelText("Insert GIF"));
+        await user.click(screen.getByText("fake-gif-close"));
+
+        expect(screen.queryByText("fake-gif-close")).not.toBeInTheDocument();
         expect(editor.calls).not.toContain(expect.stringContaining("setImage"));
-        promptSpy.mockRestore();
+    });
+
+    it("opening the GIF picker while the emoji picker is open closes the emoji picker (mutually exclusive).", async () => {
+        const editor = fakeEditor();
+        const user = userEvent.setup();
+        renderToolbar({ editor });
+
+        await user.click(screen.getByLabelText("Insert emoji"));
+        expect(screen.getByText("fake-emoji")).toBeInTheDocument();
+
+        await user.click(screen.getByLabelText("Insert GIF"));
+
+        expect(screen.queryByText("fake-emoji")).not.toBeInTheDocument();
+        expect(screen.getByText("fake-gif")).toBeInTheDocument();
     });
 
     it("opens a link prompt, applies a link, then closes the prompt.", async () => {
         const editor = fakeEditor();
         const user = userEvent.setup();
-        render(<ComposeToolbar editor={editor} />);
+        renderToolbar({ editor });
 
         await user.click(screen.getByLabelText("Insert link"));
         const urlInput = await screen.findByLabelText("Link URL");
@@ -232,7 +378,7 @@ describe("ComposeToolbar", () => {
     it("removes a link when the prompt is submitted empty.", async () => {
         const editor = fakeEditor({ active: { link: true }, attributes: { link: { href: "https://old.example.com" } } });
         const user = userEvent.setup();
-        render(<ComposeToolbar editor={editor} />);
+        renderToolbar({ editor });
 
         const linkButton = screen.getByLabelText("Insert link");
         expect(linkButton).toHaveAttribute("aria-pressed", "true");
@@ -249,7 +395,7 @@ describe("ComposeToolbar", () => {
     it("closes the link prompt without applying anything when cancelled.", async () => {
         const editor = fakeEditor();
         const user = userEvent.setup();
-        render(<ComposeToolbar editor={editor} />);
+        renderToolbar({ editor });
 
         await user.click(screen.getByLabelText("Insert link"));
         await screen.findByLabelText("Link URL");

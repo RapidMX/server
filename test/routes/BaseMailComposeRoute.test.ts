@@ -11,7 +11,7 @@
 import config from "../../src/config.mongo.js";
 import { ObjectFactory } from "@rapidrest/service-core";
 import { Logger } from "@rapidrest/core";
-import { BaseMailComposeRoute, sanitizeComposeHtml } from "../../src/routes/BaseMailComposeRoute.js";
+import { BaseMailComposeRoute, rewriteInlineImageSources, sanitizeComposeHtml } from "../../src/routes/BaseMailComposeRoute.js";
 
 class TestMailComposeRoute extends BaseMailComposeRoute<any, any, any> {
     protected messageClass: any = class {};
@@ -95,5 +95,38 @@ describe("sanitizeComposeHtml() Tests", () => {
     it("rejects a javascript: scheme link href.", () => {
         const result = sanitizeComposeHtml('<a href="javascript:alert(1)">click</a>');
         expect(result).not.toContain("javascript:");
+    });
+});
+
+describe("rewriteInlineImageSources() Tests", () => {
+    it("rewrites a matching attachment's content URL to its cid.", () => {
+        const html = '<p>look</p><img src="/api/mail/attachments/a1/content">';
+        const result = rewriteInlineImageSources(html, [{ uid: "a1", contentId: "content-id-1" }]);
+        expect(result).toBe('<p>look</p><img src="cid:content-id-1">');
+    });
+
+    it("rewrites every occurrence of the same attachment's URL, e.g. if inserted twice.", () => {
+        const html = '<img src="/api/mail/attachments/a1/content"><img src="/api/mail/attachments/a1/content">';
+        const result = rewriteInlineImageSources(html, [{ uid: "a1", contentId: "cid-1" }]);
+        expect(result).toBe('<img src="cid:cid-1"><img src="cid:cid-1">');
+    });
+
+    it("leaves html untouched when no attachment's URL appears in it.", () => {
+        const html = '<img src="https://example.com/cat.png">';
+        expect(rewriteInlineImageSources(html, [{ uid: "a1", contentId: "cid-1" }])).toBe(html);
+    });
+
+    it("skips an attachment with no contentId, rather than rewriting to 'cid:undefined'.", () => {
+        const html = '<img src="/api/mail/attachments/a1/content">';
+        expect(rewriteInlineImageSources(html, [{ uid: "a1" }])).toBe(html);
+    });
+
+    it("only rewrites the specific attachment referenced, leaving a plain file attachment's own URL (never inserted inline) alone.", () => {
+        const html = '<img src="/api/mail/attachments/a1/content">';
+        const result = rewriteInlineImageSources(html, [
+            { uid: "a1", contentId: "cid-1" },
+            { uid: "a2", contentId: "cid-2" },
+        ]);
+        expect(result).toBe('<img src="cid:cid-1">');
     });
 });

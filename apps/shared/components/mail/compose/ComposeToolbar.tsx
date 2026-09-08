@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Jean-Philippe Steinmetz
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
-import React, { ReactNode, useState } from "react";
+import React, { ReactNode, useRef, useState } from "react";
 import type { Editor } from "@tiptap/react";
 import type { IconType } from "react-icons";
 import {
@@ -27,12 +27,20 @@ import {
     BsTypeUnderline,
     BsUnindent,
 } from "react-icons/bs";
+import EmojiPicker from "./EmojiPicker.js";
+import GifPicker from "./GifPicker.js";
 
 export interface ComposeToolbarProps {
     /** `null` before the editor has mounted client-side (see `RichTextEditor`'s `immediatelyRender: false`
      * doc comment) — every button is disabled in that state rather than the toolbar rendering nothing, so
      * its layout doesn't shift the instant the editor becomes ready. */
     editor: Editor | null;
+    /** Uploads `file` as an attachment on the current draft and resolves to a URL the browser can
+     * preview it at while composing — see `BaseMailComposeRoute.rewriteInlineImageSources()`'s doc
+     * comment for why that's not the final URL the message actually ships with. Resolves to `null`
+     * (rather than rejecting) on failure — `ComposeWindow`'s own implementation is responsible for
+     * surfacing the error itself, so a failed upload here just quietly doesn't insert an image. */
+    onUploadImage: (file: File) => Promise<string | null>;
 }
 
 const FONT_FAMILIES = [
@@ -91,9 +99,14 @@ function Divider() {
  * plain `editor.chain().focus().<command>().run()` call against the `Editor` instance `RichTextEditor`
  * creates; active-state styling comes from `editor.isActive(...)`.
  */
-export default function ComposeToolbar({ editor }: ComposeToolbarProps) {
-    const [linkPromptOpen, setLinkPromptOpen] = useState(false);
+type Popup = "link" | "emoji" | "gif" | null;
+
+export default function ComposeToolbar({ editor, onUploadImage }: ComposeToolbarProps) {
+    const [openPopup, setOpenPopup] = useState<Popup>(null);
     const [linkUrl, setLinkUrl] = useState("");
+    const imageInputRef = useRef<HTMLInputElement>(null);
+    const emojiButtonRef = useRef<HTMLButtonElement>(null);
+    const gifButtonRef = useRef<HTMLButtonElement>(null);
 
     const disabled = !editor;
 
@@ -106,16 +119,31 @@ export default function ComposeToolbar({ editor }: ComposeToolbarProps) {
         fn(editor!);
     }
 
-    function handleInsertImage() {
-        const url = window.prompt("Image URL");
-        if (url) {
-            run((e) => e.chain().focus().setImage({ src: url }).run());
+    async function handleImageFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        e.target.value = "";
+        if (!file) {
+            return;
         }
+        const url = await onUploadImage(file);
+        if (url) {
+            run((ed) => ed.chain().focus().setImage({ src: url }).run());
+        }
+    }
+
+    function handleInsertEmoji(native: string) {
+        run((e) => e.chain().focus().insertContent(native).run());
+        setOpenPopup(null);
+    }
+
+    function handleInsertGif(url: string) {
+        run((e) => e.chain().focus().setImage({ src: url }).run());
+        setOpenPopup(null);
     }
 
     function openLinkPrompt() {
         setLinkUrl(editor?.getAttributes("link").href ?? "");
-        setLinkPromptOpen(true);
+        setOpenPopup("link");
     }
 
     function submitLink(e: React.FormEvent) {
@@ -125,11 +153,11 @@ export default function ComposeToolbar({ editor }: ComposeToolbarProps) {
         } else {
             run((ed) => ed.chain().focus().extendMarkRange("link").setLink({ href: linkUrl.trim() }).run());
         }
-        setLinkPromptOpen(false);
+        setOpenPopup(null);
     }
 
     let linkPrompt: ReactNode = null;
-    if (linkPromptOpen) {
+    if (openPopup === "link") {
         linkPrompt = (
             <form onSubmit={submitLink} className="flex items-center gap-1.5 px-2 py-1.5 border-t border-border">
                 <input
@@ -146,7 +174,7 @@ export default function ComposeToolbar({ editor }: ComposeToolbarProps) {
                 </button>
                 <button
                     type="button"
-                    onClick={() => setLinkPromptOpen(false)}
+                    onClick={() => setOpenPopup(null)}
                     className="text-xs font-medium text-text-muted hover:underline"
                 >
                     Cancel
@@ -319,13 +347,49 @@ export default function ComposeToolbar({ editor }: ComposeToolbarProps) {
                     active={editor?.isActive("link")}
                     onClick={openLinkPrompt}
                 />
-                <ToolbarButton label="Insert image" icon={BsImage} disabled={disabled} onClick={handleInsertImage} />
+                <ToolbarButton label="Insert image" icon={BsImage} disabled={disabled} onClick={() => imageInputRef.current?.click()} />
+                <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageFileSelected}
+                    className="sr-only"
+                    aria-label="Insert image file"
+                />
                 <ToolbarButton
                     label="Insert table"
                     icon={BsTable}
                     disabled={disabled}
                     onClick={() => run((e) => e.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run())}
                 />
+
+                <button
+                    ref={emojiButtonRef}
+                    type="button"
+                    aria-label="Insert emoji"
+                    title="Insert emoji"
+                    disabled={disabled}
+                    onClick={() => setOpenPopup((p) => (p === "emoji" ? null : "emoji"))}
+                    className="w-8 h-8 flex items-center justify-center text-base rounded-sm disabled:opacity-40 disabled:cursor-not-allowed text-text-muted hover:bg-surface-alt hover:text-text"
+                >
+                    😀
+                </button>
+                {openPopup === "emoji" && (
+                    <EmojiPicker anchorRef={emojiButtonRef} onSelect={handleInsertEmoji} onClose={() => setOpenPopup(null)} />
+                )}
+
+                <button
+                    ref={gifButtonRef}
+                    type="button"
+                    aria-label="Insert GIF"
+                    title="Insert GIF"
+                    disabled={disabled}
+                    onClick={() => setOpenPopup((p) => (p === "gif" ? null : "gif"))}
+                    className="w-8 h-8 flex items-center justify-center text-[10px] font-extrabold tracking-tight rounded-sm disabled:opacity-40 disabled:cursor-not-allowed text-text-muted hover:bg-surface-alt hover:text-text"
+                >
+                    GIF
+                </button>
+                {openPopup === "gif" && <GifPicker anchorRef={gifButtonRef} onSelect={handleInsertGif} onClose={() => setOpenPopup(null)} />}
 
                 <Divider />
 

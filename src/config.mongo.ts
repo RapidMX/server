@@ -6,7 +6,7 @@ import { createRequire } from "module";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import nconf from "nconf";
-import { DEFAULT_AUTH_SECRET, DEFAULT_COOKIE_SECRET, DEFAULT_MAIL_INGEST_SECRET } from "./config.defaults.js";
+import { DEFAULT_AUTH_SECRET, DEFAULT_COOKIE_SECRET, DEFAULT_GIPHY_API_KEY, DEFAULT_MAIL_INGEST_SECRET } from "./config.defaults.js";
 
 const _filename = fileURLToPath(import.meta.url);
 const _dirname = dirname(_filename);
@@ -129,6 +129,9 @@ conf.defaults({
                 secret: DEFAULT_MAIL_INGEST_SECRET,
             },
         },
+    },
+    giphy: {
+        api_key: DEFAULT_GIPHY_API_KEY,
     },
     class_loader: {
         ignore: [

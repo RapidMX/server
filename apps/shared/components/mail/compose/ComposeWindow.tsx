@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Jean-Philippe Steinmetz
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
-import React, { ChangeEvent, useEffect, useState } from "react";
+import React, { ChangeEvent, useEffect, useRef, useState } from "react";
 import {
     HiOutlineArrowsPointingIn,
     HiOutlineArrowsPointingOut,
@@ -17,6 +17,7 @@ import {
     ComposeRecipientInput,
     Message,
     assembleDraft,
+    attachmentContentUrl,
     createDraft,
     listFolders,
     sendMessage,
@@ -34,6 +35,23 @@ export interface ComposeWindowProps {
 
 const FIELD_ROW = "flex items-center gap-2 px-3 py-1.5 border-b border-border";
 const FIELD_INPUT = "flex-1 min-w-0 text-sm bg-transparent outline-none";
+
+const MIN_WIDTH = 320;
+const MIN_HEIGHT = 320;
+// Kept well clear of the viewport edge, not flush against it — this is a resize *ceiling* (the drag
+// handles below clamp to it), not the "expanded" preset's own size, which stays a plain `85vh`
+// Tailwind class precisely so it never needs `window.innerHeight` at all: that'd have to be read at
+// module-evaluation time to live alongside these other constants, and `window` doesn't exist yet
+// during this app's SSR pass (see `ReactRoute`) — referencing it here would crash every page render,
+// not just this component's.
+const VIEWPORT_MARGIN = 24;
+
+interface Size {
+    width: number;
+    height: number;
+}
+
+type ResizeEdge = "left" | "top" | "corner";
 
 function parseAddresses(value: string): ComposeRecipientInput[] {
     return value
@@ -69,11 +87,13 @@ function HeaderButton({ label, onClick, icon: Icon }: { label: string; onClick: 
 export default function ComposeWindow({ session, onClose, onToggleMinimize }: ComposeWindowProps) {
     const { id, mailboxUid, initialTo, minimized } = session;
 
+    const windowRef = useRef<HTMLDivElement>(null);
     const [draftsFolderUid, setDraftsFolderUid] = useState<string | undefined>();
     const [folderError, setFolderError] = useState<string | null>(null);
     const [draft, setDraft] = useState<Message | null>(null);
     const [draftError, setDraftError] = useState<string | null>(null);
     const [expanded, setExpanded] = useState(false);
+    const [manualSize, setManualSize] = useState<Size | null>(null);
     const [to, setTo] = useState(initialTo ?? "");
     const [cc, setCc] = useState("");
     const [bcc, setBcc] = useState("");
@@ -99,6 +119,69 @@ export default function ComposeWindow({ session, onClose, onToggleMinimize }: Co
             .then(setDraft)
             .catch((err) => setDraftError(err instanceof ApiRequestError ? err.message : "Could not start a new draft."));
     }, [mailboxUid, draftsFolderUid, draft]);
+
+    /**
+     * Click-and-drag resize, from the window's own top/left edges (and the top-left corner, for both
+     * at once) — the window is anchored bottom-right (see `ComposeContext.tsx`'s stack), so growing it
+     * always means extending up and/or left, never down/right. `onMove`/`onUp` are fresh closures
+     * created per drag gesture (captured over this gesture's own start position/size) rather than
+     * stable component-level functions, specifically so `removeEventListener` in `onUp` always removes
+     * the exact listener `onMove`/`onUp` themselves just added — a version defined once per render and
+     * reused across gestures would need extra ref-juggling to avoid removing a stale (already-replaced)
+     * listener instead of the current one.
+     */
+    function handleResizeStart(edge: ResizeEdge) {
+        return (e: React.PointerEvent) => {
+            e.preventDefault();
+            const rect = windowRef.current!.getBoundingClientRect();
+            const startX = e.clientX;
+            const startY = e.clientY;
+            const startWidth = rect.width;
+            const startHeight = rect.height;
+
+            function onMove(ev: PointerEvent) {
+                const maxWidth = window.innerWidth - VIEWPORT_MARGIN;
+                const maxHeight = window.innerHeight - VIEWPORT_MARGIN;
+                const width = edge === "top" ? startWidth : Math.min(Math.max(startWidth - (ev.clientX - startX), MIN_WIDTH), maxWidth);
+                const height = edge === "left" ? startHeight : Math.min(Math.max(startHeight - (ev.clientY - startY), MIN_HEIGHT), maxHeight);
+                setManualSize({ width, height });
+            }
+            function onUp() {
+                window.removeEventListener("pointermove", onMove);
+                window.removeEventListener("pointerup", onUp);
+            }
+            window.addEventListener("pointermove", onMove);
+            window.addEventListener("pointerup", onUp);
+        };
+    }
+
+    function toggleExpanded() {
+        setExpanded((v) => !v);
+        setManualSize(null);
+    }
+
+    /** Uploads `file` as an attachment on the current draft, resolving to a URL the editor can preview
+     * it at immediately — see `BaseMailComposeRoute.rewriteInlineImageSources()`'s doc comment for how
+     * that URL gets swapped for the message's real inline `cid:` reference at send time. Resolves to
+     * `null` (surfacing `attachError` itself, reusing the same state "Attach files" already has) rather
+     * than throwing: unlike "Attach files" (`disabled={!draft}`), "Insert image" in the formatting
+     * toolbar is only gated on the *editor* being mounted, not on the draft existing yet — those two
+     * things load in parallel, so a real (if narrow) window exists where the button is clickable before
+     * `draft` resolves, and this needs to fail gracefully rather than crash on a null draft.
+     */
+    async function handleUploadImage(file: File): Promise<string | null> {
+        if (!draft) {
+            setAttachError("Please wait for the draft to finish loading before inserting an image.");
+            return null;
+        }
+        try {
+            const attachment = await uploadAttachment(draft.uid, file);
+            return attachmentContentUrl(attachment.uid);
+        } catch (err) {
+            setAttachError(err instanceof ApiRequestError ? err.message : "Could not upload image.");
+            return null;
+        }
+    }
 
     // The "Attach files" input is itself `disabled` until `draft` resolves (see its `disabled={!draft}`
     // below), so this can only ever fire once `draft` is set — no defensive null check needed, matching
@@ -176,13 +259,32 @@ export default function ComposeWindow({ session, onClose, onToggleMinimize }: Co
 
     return (
         <div
+            ref={windowRef}
             role="dialog"
             aria-labelledby={titleId}
+            style={manualSize ? { width: manualSize.width, height: manualSize.height } : undefined}
             className={[
-                "shrink-0 flex flex-col bg-surface border border-border border-b-0 rounded-t-md shadow-modal overflow-hidden",
-                expanded ? "w-[720px] h-[85vh]" : "w-[480px] h-[520px]",
+                "relative shrink-0 flex flex-col bg-surface border border-border border-b-0 rounded-t-md shadow-modal overflow-hidden",
+                manualSize ? "" : expanded ? "w-[720px] h-[85vh]" : "w-[480px] h-[520px]",
             ].join(" ")}
         >
+            <div
+                onPointerDown={handleResizeStart("top")}
+                aria-hidden="true"
+                className="absolute top-0 left-0 right-0 h-1.5 cursor-ns-resize z-20"
+            />
+            <div
+                onPointerDown={handleResizeStart("left")}
+                aria-hidden="true"
+                className="absolute top-0 left-0 bottom-0 w-1.5 cursor-ew-resize z-20"
+            />
+            <div
+                onPointerDown={handleResizeStart("corner")}
+                role="separator"
+                aria-label="Resize"
+                className="absolute top-0 left-0 w-3 h-3 cursor-nwse-resize z-30"
+            />
+
             <div
                 className="h-10 shrink-0 flex items-center justify-between gap-2 px-3 bg-primary-darker text-white cursor-pointer"
                 onClick={onToggleMinimize}
@@ -194,7 +296,7 @@ export default function ComposeWindow({ session, onClose, onToggleMinimize }: Co
                     <HeaderButton label="Minimize" onClick={onToggleMinimize} icon={HiOutlineMinus} />
                     <HeaderButton
                         label={expanded ? "Collapse" : "Expand"}
-                        onClick={() => setExpanded((v) => !v)}
+                        onClick={toggleExpanded}
                         icon={expanded ? HiOutlineArrowsPointingIn : HiOutlineArrowsPointingOut}
                     />
                     <HeaderButton label="Close" onClick={onClose} icon={HiOutlineXMark} />
@@ -262,7 +364,7 @@ export default function ComposeWindow({ session, onClose, onToggleMinimize }: Co
                 </div>
 
                 <div className="flex-1 min-h-0 p-2">
-                    <RichTextEditor value={html} onChange={setHtml} fill />
+                    <RichTextEditor value={html} onChange={setHtml} fill onUploadImage={handleUploadImage} />
                 </div>
 
                 {attachments.length > 0 && (

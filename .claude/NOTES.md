@@ -1318,3 +1318,102 @@ share one root cause — see below.
   clean. Full `yarn test`: 697/697 passing; coverage 100% except the one documented branch above.
   Real `yarn dev` + `curl` smoke test as described above.
 - **Not yet committed** — same standing "ask before committing" default as the styling work above.
+
+### 2026-09-08 — Compose window: resizable, emoji picker, GIF picker (Giphy), real file-upload for images/attachments
+
+JP asked for five Compose changes: (1) a resizable window (click-drag edges), (2) an "insert emoji"
+button with a scrollable unicode grid, (3) an "insert GIF" button backed by Giphy search, (4) the
+attachment button uploads a file (turned out already true from the earlier floating-overlay work),
+(5) "insert image" uploads a file instead of prompting for a URL.
+
+- **Resizing**: no new dependency — `ComposeWindow.tsx` gained three invisible pointer-drag handles
+  (top/left edges + one corner) using `onPointerDown` on the handle + window-level `pointermove`/
+  `pointerup` listeners created fresh per drag gesture (so `removeEventListener` always targets the
+  exact listener just added, avoiding stale-closure bugs). A `manualSize` state overrides the
+  Tailwind preset classes once the user drags; Expand/Collapse resets it back to a preset.
+  **Caught before running anything**: an early draft read `window.innerHeight` at module scope to
+  compute an "expanded" size constant — would crash every SSR render (`window` doesn't exist in
+  Node during this framework's SSR pass). Fixed by keeping the expanded preset a pure `85vh`
+  Tailwind class and only ever reading `window.inner{Width,Height}` inside the pointermove handler.
+- **Emoji picker**: `@emoji-mart/data` added as a pure JSON data dependency (NOT the full
+  `@emoji-mart` React picker) — `apps/shared/lib/emojiData.ts` imports it via
+  `import emojiData from "@emoji-mart/data" with { type: "json" }` and reshapes it into
+  `EMOJI_CATEGORIES` (~1870 emojis, 8 categories). `EmojiPicker.tsx` renders them grouped, no search
+  box (JP's request only asked for a browsable grid).
+- **GIF picker (Giphy)**: asked JP how to source an API key; he chose to provide one via config.
+  Server never exposes the key to the browser — `BaseGiphySearchRoute.ts` (`GET /mail/giphy/search`,
+  `@Config("giphy:api_key", undefined)`) proxies to Giphy's `/search`/`/trending` endpoints, mounted
+  via the same real-logic-in-`src/routes`-plus-trivial-`@ApiRoute`-subclass-in-`mongo`/`sql`
+  pattern already used for `BaseMailComposeRoute`. **Note: JP renamed the config key himself
+  mid-session** from my original `mail:giphy_api_key` to `giphy:api_key` while I was working —
+  detected via the file-changed-on-disk system reminder, so I updated my own doc-comment/test
+  references to match rather than reverting his edit. Confirmed working end-to-end live under
+  `yarn dev` with a real key configured — `curl`'d `/api/mail/giphy/search?q=cat` and got back real
+  Giphy results.
+- **Insert image → real upload, plus a correctness fix for send**: "Insert image" now uploads a real
+  file via the same attachment pipeline "Attach files" already used, then inserts the resulting
+  `/api/mail/attachments/:uid/content` URL (authenticated, browser-fetchable only while composing).
+  This alone would have shipped a broken image for recipients — that URL requires this server's own
+  session cookie, which a recipient's mail client obviously doesn't have. Fixed by adding
+  `rewriteInlineImageSources()` to `BaseMailComposeRoute.assemble()`: at send time, rewrites any
+  `<img src>` pointing at an attachment already uploaded to this draft into `cid:{contentId}`
+  instead, matching how `MailComposer`'s `attachments` array already tags every attachment with a
+  `cid` regardless of whether it's referenced inline. This wasn't explicitly requested but is
+  necessary for the feature to actually work — found and fixed proactively during design, not after
+  a bug report.
+- **Bug JP found mid-turn, real one**: "The new emoji and giphy popup menus aren't visible. They're
+  being hidden by the address/subject bar." Root cause: both pickers used `position: absolute`
+  nested inside ancestors with `overflow-hidden` (`RichTextEditor`'s own bordered wrapper,
+  `ComposeWindow`'s outer frame) — `z-index` cannot escape clipping from `overflow: hidden`. Fixed
+  with a new shared `PopoverPortal.tsx`: renders via `ReactDOM.createPortal` into `document.body`
+  with `position: fixed`, coordinates computed from the trigger button's own
+  `getBoundingClientRect()`, defaulting to opening below the trigger and flipping above only when
+  there isn't room. Both `EmojiPicker`/`GifPicker` now share this. **Outside-click-closes-popup race
+  worth remembering**: `pointerdown` fires before `click`, so a naive outside-click handler would
+  close a popup on the very click that's about to reopen it via the trigger's own `onClick`. Fixed
+  by having `PopoverPortal`'s pointerdown handler exclude both its own container AND the passed-in
+  `anchorRef` element from the "outside" check.
+- **Test hygiene, two recurring classes of bug worth remembering for next time**:
+  - A `fireEvent.X(window, ...)` call — a native DOM event dispatched on `window`, not on a
+    React-rendered element — does **not** get RTL's automatic `act()` wrapping. Needs explicit
+    `act(() => { fireEvent.X(window, ...); })`. **The callback must actually return `void`, not the
+    boolean `fireEvent.X()` itself returns** — `act(() => fireEvent.X(...))` (arrow-expression form,
+    implicitly returning that boolean) resolves TS's `act<T>(cb: () => T | Promise<T>): Promise<T>`
+    overload instead of the `act(cb: () => VoidOrUndefinedOnly): void` one, producing a genuine
+    floating promise that `typescript/no-floating-promises` correctly flags. Always use the
+    braced-block form (`() => { ...; }`) when wrapping a `fireEvent` call in `act()`.
+  - A promise that resolves after a test's last `await` (e.g. a manually-controlled
+    `resolveDraft!()` called with nothing awaited afterward) still fires its state update after the
+    test function returns, producing an `act()` warning even though the test passes. Fix: add a
+    trailing `await waitFor(...)` assertion after it, same pattern used repeatedly in earlier phases
+    of this project.
+  - `getBoundingClientRect()`'s return type is already `DOMRect`, so `vi.spyOn(el,
+    "getBoundingClientRect").mockReturnValue({...} as DOMRect)` triggers
+    `typescript/no-unnecessary-type-assertion` — the object literal alone already satisfies the
+    inferred parameter type, no cast needed.
+- **A second branch-coverage one-off nearly slipped in, caught before it became a habit**: this
+  project's `vitest.config.ts` already carries one documented `apps/**` branch exception
+  (`ComposeWindow.tsx`'s `?? []` — see the entry above) with an explicit comment that it "should stay
+  pinned to this one known branch, not a general excuse to skip writing branch-coverage tests." This
+  session's first full-suite run showed *two more* uncovered branches: `EmojiPicker.tsx`'s
+  `CATEGORY_LABELS[category.id] ?? category.id` fallback (real dataset never hits it — all 8
+  categories are always mapped) and `ComposeToolbar.tsx`'s GIF-button toggle-closed branch (a
+  toggle-closed test existed for the emoji button but was never added for the GIF button). Rather
+  than letting the numeric 99% floor silently absorb both, wrote actual tests for each: the
+  `EmojiPicker` one needed `vi.doMock` + `vi.resetModules()` + a dynamic `import()` inside the test
+  itself (the module was already statically imported at the top of the file with the real dataset,
+  so a plain `vi.mock` at module scope wouldn't have applied retroactively) to supply a category id
+  with no display-label mapping; the `ComposeToolbar` one just mirrored the existing emoji
+  toggle-closed test. End state: full-suite `apps/**` branch coverage is 99.23%+ with the *only*
+  remaining sub-100% branch being the one already-documented `ComposeWindow.tsx` line.
+- Verification: `yarn tsc --noEmit`, client `tsc -p tsconfig.client.json --noEmit`, `yarn lint` all
+  clean. Full `yarn test`: 744/744 passing, coverage gate passes (100% `apps/**` stmts/funcs/lines,
+  99%+ branches — only the one pre-existing documented exception left uncovered). Real `yarn dev`
+  smoke test: server boots clean, `GiphySearchRoute` registers and its live endpoint returns real
+  Giphy results end-to-end with JP's configured key, root page and its JS bundle both return `200`.
+  **No interactive browser click-through of the resize/emoji-picker/GIF-picker/file-upload flows
+  was done this session** — no browser-automation tool was available in this environment, so those
+  interaction flows are verified only via the component test suite plus the `curl`-level checks
+  above, not a real click-and-drag in a browser. JP should still verify those visually before
+  relying on them.
+- **Not yet committed** — same standing "ask before committing" default as prior entries.
