@@ -1439,3 +1439,160 @@ attachment button uploads a file (turned out already true from the earlier float
   above, not a real click-and-drag in a browser. JP should still verify those visually before
   relying on them.
 - **Not yet committed** — same standing "ask before committing" default as prior entries.
+
+### 2026-09-08 — Full mobile-responsiveness refactor of `apps/www` + `apps/admin` (10 phases)
+
+JP asked for both webmail apps to become fully usable on a phone, as groundwork for a future React
+Native port. Starting point was desktop-only with **zero** Tailwind responsive breakpoints anywhere
+in the codebase — every sidebar (icon rail, folder tree, mailbox switchers, Contacts/Tasks smart-
+filter sidebars, calendar mini-date-picker) was a fixed-pixel-width column, message/contact lists
+were fixed at 384px, and Compose was a fixed 480–720px floating window. Planned via `EnterPlanMode`
+after two rounds of `Explore`-agent research (a full fixed-width inventory, then specifically how
+list/detail selection and routing work today) plus a `Plan`-agent pass; JP confirmed two
+architectural decisions up front via `AskUserQuestion` before any code was written:
+1. Primary nav (Mail/Calendar/Contacts/Tasks) becomes a bottom tab bar below `md` (768px), desktop
+   icon rail unchanged above it.
+2. Mail/Contacts list+detail: desktop keeps its exact current `useState`-driven side-by-side panes,
+   zero regression; below `md`, tapping a row does a **real full-page navigation** to a new
+   dedicated detail route (mirroring the admin console's existing `mailboxes/detail` query-param
+   pattern) rather than an ad-hoc show/hide — real URL, real browser-back, translates cleanly to a
+   React Navigation stack later.
+
+JP additionally authorized autonomous execution mid-session ("commit each phase without my review
+and immediately proceed to the next phase... I will review all commits once everything is
+finished") — all 10 phases below were executed and committed back-to-back in one continuous run,
+each with its own `tsc`/lint/full-suite verification gate before moving on, rather than pausing for
+per-phase review.
+
+**Phase 0 — foundation** (commit `72c03bf`, bundled with Phase 1): new
+`apps/shared/lib/useIsMobile.ts` (a `matchMedia`-backed hook, SSR-safe default `false`, corrected in
+`useEffect` after mount — same "read real client state once mounted" convention as `MailShell`'s
+query-param reads); new `apps/shared/lib/Drawer.tsx` (copies `Modal.tsx`'s portal/backdrop/focus-
+trap/Escape handling verbatim, styled as a slide-in edge panel); new
+`apps/shared/components/layout/BottomTabBar.tsx`. Added a default `window.matchMedia` stub to
+`test/apps/setup.ts` (jsdom doesn't implement it at all — confirmed directly, not assumed) and a
+`mockMatchMedia()` helper to `testUtils.ts`.
+
+**Phase 1 — primary nav** (same commit): `AppShell`'s icon rail gained `hidden md:flex`;
+`BottomTabBar` wired in as a `md:hidden` sibling; established the test strategy reused for every
+pure-CSS change in every later phase — jsdom never evaluates `@media`, so tests assert **both
+variants exist in the DOM with the right Tailwind classes**, they don't simulate a resize.
+
+**Phases 2/4/6/7/8 — every shell's secondary sidebar → drawer** (`MailShell` `6b14235`,
+`ContactsShell` `864854c`, `CalendarShell`/calendar page `9e68e39`, `TasksShell` `dec1c29`,
+`AdminShell` `71e935a`): the same mechanical move every time — extract the `<aside>`'s inner content
+into a function (not a plain JSX constant), render it twice: once in a `hidden md:flex` `<aside>`
+(unchanged desktop), once inside `Drawer` (mobile), triggered by a `md:hidden` hamburger button.
+**Real bug found and fixed while doing this the first time (`MailShell`), then proactively fixed in
+`ContactsShell` too in the same commit**: the mailbox-switcher `<select id="mailbox-switcher">` +
+its `<label htmlFor="mailbox-switcher">` used a hardcoded id — since the aside is only CSS-hidden
+(not unmounted) while the drawer is open, both copies exist in the DOM simultaneously once opened,
+and duplicate ids break label association (confirmed via a real testing-library failure:
+`getByLabelText`/`getByRole("combobox", {name})` couldn't resolve the select's accessible name at
+all once both copies were mounted). Fixed by turning `sidebarContent` into `sidebarContent(idPrefix)`
+and calling it `("desktop")`/`("mobile")` everywhere this pattern is used.
+**Second real bug, a genuine race condition**: `ContactsShell`/`CalendarShell`/`TasksShell`'s "shows
+the mobile menu button" tests used a synchronous `getByRole` immediately after `await
+screen.findByText("content")` — `content` (children) can render on the very first "ready" pass,
+*before* the separate folder-fetch rejection that sets `folderError` (and therefore the button's
+visibility) has resolved. Caught when `TasksShell`'s copy of this test flaked; fixed in all three by
+awaiting the button too (`expect(await screen.findByRole(...))`), not just the content.
+**A fourth sidebar was missed on the first pass and only caught in Phase 10's final sweep**:
+`TasksSidebar.tsx` (Tasks' own My Day/Important/Planned/lists sidebar, analogous to
+`ContactsSidebar`) never got touched during Phase 7 — Phase 7's plan text said "TasksShell sidebar"
+and I read that too narrowly as just the shell's own thin mailbox-switcher aside, missing that
+Contacts' equivalent *page-level* sidebar (`ContactsSidebar`) had already been given this same
+treatment back in Phase 5. Fixed in Phase 10 (commit `ccb607d`) using the exact same self-contained
+pattern already established for `ContactsSidebar` (the sidebar owns its own hamburger button +
+`Drawer`, since it has its own async data-fetching — duplicating a full second mounted instance
+would double-fetch).
+
+**Phase 3 — Mail list/detail split** (commit `33f80ac`): new
+`apps/shared/components/mail/MessageDetailPane.tsx` (the reading pane extracted verbatim from
+`apps/www/index.tsx`, gaining an optional `backHref` prop — present only on the new mobile route,
+absent on desktop which never navigates away); new `apps/shared/lib/mailDetailHooks.ts`
+(`useMessageAttachments`/`useMarkMessageRead`, shared between the desktop pane's `onUpdated` — patch
+the in-memory list — and the new route's — just `setMessage`); new
+`apps/www/messages/detail/index.tsx` (`GET /messages/detail?uid=...`, structured exactly like
+`mailboxes/detail`). `handleSelect` branches on `useIsMobile()`: desktop unchanged, mobile does
+`window.location.href = "/messages/detail?uid=..."`. **Coverage gate caught a real gap on first full-
+suite run**: the read-marking `.map((m) => (m.uid === updated.uid ? updated : m))` only ever had one
+message in every test's fixture list, so the "leave a *different*, non-matching message alone"
+branch was never exercised — fixed with a two-message test, not a coverage-tool workaround.
+
+**Phase 5 — Contacts list/detail split** (commit `44f7884`): same shape as Phase 3 — new
+`ContactDetailPane.tsx`/`ContactForm.tsx` (extracted verbatim from `apps/www/contacts/index.tsx`,
+`ContactForm`'s two-column field grids also changed to `grid-cols-1 sm:grid-cols-2` while touching
+that file anyway), new `apps/www/contacts/detail/index.tsx`. **Explicit decision recorded, not
+silently resolved**: "New contact" stays an in-place mode-switch on every device, never a real
+route — an unsaved contact has no `uid` for a query param; only *existing-record* row taps get the
+real-navigation treatment, matching JP's own stated requirement precisely. **A second real
+coverage-gate-caught bug**: the new detail route's `handleDelete` had a redundant `if (!contact)
+return;` guard — the only caller is only ever rendered once `contact` is already resolved (same
+render-guard reasoning as `MailShell`'s dead `?? ""` fallbacks, fixed the same way previously: don't
+write a contrived test for an unreachable branch, restructure it away). Fixed by mirroring the
+desktop pane's own pattern exactly: `handleDelete(contact: Contact)` takes it as a parameter, not
+from closure state.
+
+**Phase 6 — Calendar** (commit `9e68e39`): **the actual root cause of the touch-vs-scroll conflict**
+— `useSensors(useSensor(PointerSensor))` (no activation threshold) captures a drag on the very first
+touch-move, indistinguishable from a scroll gesture. Fixed with dnd-kit's own documented pattern:
+`useSensor(MouseSensor, { activationConstraint: { distance: 8 } })` (desktop: no behavior change,
+still starts on a small deliberate movement) + `useSensor(TouchSensor, { activationConstraint: {
+delay: 250, tolerance: 8 } })` (touch: only activates after a brief press-and-hold, so a quick swipe
+scrolls normally). Confirmed via a real Explore-agent grep that no other calendar component
+configures its own separate sensors — one fix point. Work Week/Split view buttons hidden below `md`
+(too narrow to be usable); the calendar title hidden below `md` too (genuine space pressure on a
+crowded mobile toolbar: hamburger + New event + prev/today/next + view switcher already exceed
+375px without it) — initially over-hid the prev/today/next controls and title down to `sm:` as well
+before catching that this breaks essential navigation on a phone; reverted that part, kept the
+title-only hide at the more conservative `md:` cutoff matching the rest of the app's breakpoint
+convention. Month/Week grid views verified (not assumed) to already degrade gracefully — both use
+`flex-1`/`grid-cols-7` with `min-w-0`, which shrink columns rather than overflow, so no
+`overflow-x-auto` wrapper was needed there.
+
+**Phase 9 — Compose full-screen on mobile** (commit `362191f`): `ComposeWindow` renders `fixed
+inset-0 w-full h-full rounded-none` unconditionally on mobile (ignoring `expanded`/`manualSize`
+entirely) and hides the three pointer-drag resize handles plus the Expand/Collapse header button
+(both meaningless full-screen) — Minimize/Close stay, since minimizing to a small chip is still a
+real, useful action on mobile. **The multi-session-stacking question flagged as an open decision in
+the plan was resolved, not deferred**: `ComposeProvider` now renders every *minimized* session's
+chip regardless of device (they're small, stackable, harmless), but at most one *non-minimized*
+(full-screen) session on mobile — specifically the most recently opened one; earlier non-minimized
+sessions simply aren't rendered at all until whatever's "on top" is closed or minimized, at which
+point the next-most-recent non-minimized session (if any) takes its place. Verified with a real
+test: open two, only one dialog renders; minimize the visible one, the earlier one (never rendered
+until that moment) appears.
+
+**Phase 10 — final sweep**: grep swept `apps/**` for every remaining `w-96`/`w-[...]`/multi-column
+grid without a responsive variant — found and fixed the missed `TasksSidebar` gap above, plus one
+more: the Contacts table (3 columns, `overflow-y-auto` only) changed to `overflow-auto` (both axes)
+to match every other table in the app, which are all now `overflow-x-auto`-wrapped, for consistency
+even though its low column count made it lower-risk than the others. Verified UserMenu's `w-60`
+dropdown and the Emoji/GIF pickers' 288px popovers already fit any real phone width without changes
+(both already viewport-clamped from earlier work) — confirmed, not assumed, by re-reading their
+actual positioning logic.
+
+**Verification, every phase**: `yarn tsc --noEmit`, client `tsc -p tsconfig.client.json --noEmit`,
+`yarn lint`, full `yarn test` all clean before moving on — final state 832/832 passing, coverage
+gate holds (100% `apps/**` stmts/funcs/lines, 99%+ branches, only the one pre-existing documented
+`ComposeWindow.tsx` exception left uncovered; no new carve-outs added despite ten phases of new
+code). One transient, unrelated test flake observed once in a full-suite run (`contacts/index.test
+.tsx`'s "toolbar Import does nothing..." test, an async-timing hiccup) — confirmed not a regression
+via three clean consecutive re-runs before concluding it was transient. Real `yarn dev` +
+`curl`-level smoke test at the very end: every top-level route (`/`, `/calendar`, `/contacts`,
+`/tasks`, `/admin`) and both new mobile detail routes (`/messages/detail`, `/contacts/detail`)
+return `200`; the bottom-nav/drawer CSS classes (`md:hidden`, `hidden md:flex`, `aria-label="Mobile
+navigation"`) are present in the raw SSR HTML; the JS bundle loads. **No interactive browser click-
+through was done this session** — no browser-automation tool was available in this environment, so
+the actual drag-to-drop-below-`md`, tap-to-navigate, drawer-open/close, and full-screen-Compose
+flows are verified only via the component test suite plus these `curl`-level checks, not a real
+touch/click in a browser at real phone widths. **JP should still verify all of this visually** (real
+devtools responsive mode, ideally a real phone) before relying on it — this is explicitly called out
+in the approved plan itself, not a gap discovered after the fact.
+
+**All 10 phases committed individually as the work progressed** (`72c03bf` through `ccb607d`, see
+above), per JP's mid-session authorization to proceed autonomously; nothing was squashed or
+rewritten. JP has not yet reviewed the commits himself (that review was explicitly deferred to "once
+everything is finished," per his own instruction) — flag this NOTES.md entry to him alongside the
+commit range when reporting completion.
