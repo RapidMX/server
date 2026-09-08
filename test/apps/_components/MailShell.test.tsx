@@ -86,12 +86,54 @@ describe("MailShell", () => {
         expect(await screen.findByText("Could not load your mailboxes.")).toBeInTheDocument();
     });
 
+    it("shows a skeleton sidebar immediately, instead of a blank pane, while mailboxes are still loading", async () => {
+        let resolveMailboxes: (() => void) | undefined;
+        mockFetch((url) => {
+            if (url.startsWith("/api/mail/mailboxes")) {
+                return new Promise((resolve) => {
+                    resolveMailboxes = () => resolve(jsonResponse(200, [mailboxA]));
+                });
+            }
+            throw new Error(`unexpected ${url}`);
+        });
+        const { container } = render(<MailShell userUid="u1">content</MailShell>);
+
+        await waitFor(() => expect(resolveMailboxes).toBeDefined());
+        expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+        expect(screen.queryByText("content")).not.toBeInTheDocument();
+
+        resolveMailboxes!();
+        await screen.findByText("content");
+    });
+
+    it("shows a skeleton folder list while folders are still loading for an already-resolved mailbox", async () => {
+        let resolveFolders: (() => void) | undefined;
+        mockFetch((url) => {
+            if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailboxA]);
+            if (url.startsWith("/api/mail/folders")) {
+                return new Promise((resolve) => {
+                    resolveFolders = () => resolve(jsonResponse(200, [draftsFolder, inboxFolder]));
+                });
+            }
+            throw new Error(`unexpected ${url}`);
+        });
+        const { container } = render(<MailShell userUid="u1">content</MailShell>);
+
+        await waitFor(() => expect(resolveFolders).toBeDefined());
+        await screen.findByText("content");
+        expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+        expect(screen.queryByText("Inbox")).not.toBeInTheDocument();
+
+        resolveFolders!();
+        await screen.findByText("Inbox");
+    });
+
     it("shows a full-screen no-mailbox page — not the app's own chrome/content at all — when the caller has none", async () => {
         mockMailboxesAndFolders([], []);
         render(<MailShell userUid="u1">content</MailShell>);
         expect(await screen.findByText("No mailbox available")).toBeInTheDocument();
         expect(screen.queryByText("content")).not.toBeInTheDocument();
-        expect(screen.queryByRole("link", { name: "Compose" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Compose" })).not.toBeInTheDocument();
         expect(screen.queryByRole("navigation", { name: "Apps" })).not.toBeInTheDocument();
     });
 
@@ -102,13 +144,53 @@ describe("MailShell", () => {
         await screen.findByText("Inbox");
         expect(screen.queryByLabelText("Mailbox")).not.toBeInTheDocument();
         expect(screen.getByText("3")).toBeInTheDocument(); // Inbox unread badge
-        expect(screen.getByRole("link", { name: "Compose" })).toHaveAttribute("href", "/compose?mailboxUid=mb-a");
+        expect(screen.getByRole("button", { name: "Compose" })).toBeInTheDocument();
 
         const folderLinks = screen.getAllByRole("link").filter((el) => el.getAttribute("href")?.includes("folderUid="));
         expect(folderLinks.map((el) => el.getAttribute("href"))).toEqual([
             "/?mailboxUid=mb-a&folderUid=f-inbox",
             "/?mailboxUid=mb-a&folderUid=f-drafts",
         ]);
+    });
+
+    it("clicking Compose opens the floating Compose window for the resolved mailbox, without navigating away", async () => {
+        const draft = {
+            uid: "m1",
+            version: 0,
+            dateCreated: "2026-01-01T00:00:00.000Z",
+            dateModified: "2026-01-01T00:00:00.000Z",
+            folderUid: "f-drafts",
+            mailboxUid: "mb-a",
+            messageId: "abc@webmail",
+            subject: "",
+            from: { address: "a@example.com", type: "to" as const },
+            recipients: [],
+            sentDate: "2026-01-01T00:00:00.000Z",
+            receivedDate: "2026-01-01T00:00:00.000Z",
+            bodyPreview: "",
+            flags: { read: true, flagged: false, answered: false, forwarded: false },
+            importance: "normal" as const,
+            hasAttachments: false,
+        };
+        const fetchMock = mockFetch((url, init) => {
+            if (url.startsWith("/api/mail/mailboxes/auto-provision")) return jsonResponse(404, { message: "not enabled" });
+            if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailboxA]);
+            if (url.startsWith("/api/mail/folders")) return jsonResponse(200, [draftsFolder, inboxFolder]);
+            if (url === "/api/mail/messages" && (init?.method ?? "GET") === "POST") return jsonResponse(200, draft);
+            throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
+        });
+        const user = userEvent.setup();
+        render(<MailShell userUid="u1">content</MailShell>);
+        await screen.findByRole("button", { name: "Compose" });
+
+        await user.click(screen.getByRole("button", { name: "Compose" }));
+
+        expect(await screen.findByRole("dialog", { name: "New Message" })).toBeInTheDocument();
+        expect(screen.getByText("content")).toBeInTheDocument();
+        // `ComposeWindow` resolves its own Drafts folder from the mailboxUid it was opened with.
+        await waitFor(() =>
+            expect(fetchMock).toHaveBeenCalledWith("/api/mail/messages", expect.objectContaining({ method: "POST" })),
+        );
     });
 
     it("defaults to the mailbox's Inbox folder and highlights it", async () => {

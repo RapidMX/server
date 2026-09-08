@@ -53,6 +53,27 @@ afterEach(() => {
 });
 
 describe("ContactsShell", () => {
+    it("shows a skeleton sidebar immediately, instead of a blank pane, while mailboxes are still loading", async () => {
+        let resolveMailboxes: (() => void) | undefined;
+        mockFetch((url) => {
+            if (url.startsWith("/api/mail/mailboxes")) {
+                return new Promise((resolve) => {
+                    resolveMailboxes = () => resolve(jsonResponse(200, [mailboxA]));
+                });
+            }
+            throw new Error(`unexpected ${url}`);
+        });
+        const { container } = render(<ContactsShell userUid="u1">content</ContactsShell>);
+
+        await waitFor(() => expect(resolveMailboxes).toBeDefined());
+        expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+        expect(screen.queryByText("content")).not.toBeInTheDocument();
+
+        resolveMailboxes!();
+        await screen.findByText("content");
+    });
+
+
     it("redirects to auth-server's sign-in page when there is no userUid", async () => {
         const location = mockLocation();
         location.href = "https://mail.example.com/contacts";

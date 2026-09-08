@@ -60,4 +60,11 @@ describe("RichTextEditor", () => {
         rerender(<RichTextEditor value="" onChange={vi.fn()} height="600px" />);
         expect(screen.getByTestId("editor-content")).toHaveStyle({ height: "600px" });
     });
+
+    it("fills its parent's height via flexbox instead of a fixed height when fill is set.", () => {
+        render(<RichTextEditor value="" onChange={vi.fn()} fill />);
+        const content = screen.getByTestId("editor-content");
+        expect(content.style.height).toBe("");
+        expect(content.className).toContain("flex-1");
+    });
 });

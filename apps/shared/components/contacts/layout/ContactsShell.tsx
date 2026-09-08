@@ -6,6 +6,7 @@ import React, { createContext, PropsWithChildren, ReactNode, useContext, useEffe
 import { ApiRequestError } from "../../../lib/api.js";
 import { Folder, Mailbox, listFolders, listMailboxes } from "../../../lib/mailApi.js";
 import Alert from "../../feedback/Alert.js";
+import Skeleton, { SkeletonList } from "../../feedback/Skeleton.js";
 import AppShell, { AppShellProps } from "../../layout/AppShell.js";
 import MailboxProvisioning from "../../layout/MailboxProvisioning.js";
 
@@ -98,7 +99,18 @@ export default function ContactsShell({
     }
 
     let inner: ReactNode = null;
-    if (userUid && status === "error") {
+    if (userUid && status === "checking") {
+        // Renders immediately (no network round trip needed) so switching into Contacts never shows a
+        // blank pane while `listMailboxes()` is in flight — the real sidebar (favorites/lists/categories)
+        // lives in `apps/www/contacts/index.tsx`'s own content, so this mimics its rough shape rather
+        // than the (minimal, mailbox-switcher-only) shape of this shell's own sidebar.
+        inner = (
+            <div className="w-56 shrink-0 border-r border-border flex flex-col gap-4 p-3">
+                <Skeleton height="h-9" />
+                <SkeletonList count={5} />
+            </div>
+        );
+    } else if (userUid && status === "error") {
         inner = (
             <div className="flex-1 flex items-center justify-center p-8">
                 <div className="w-full max-w-md">

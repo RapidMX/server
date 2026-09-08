@@ -1244,3 +1244,77 @@ toolbar, vCard import/export
 - **Not yet committed** — this was a standalone styling request, not part of the Outlook-parity
   plan's per-phase commit authorization, so it follows this project's normal "ask before committing"
   default.
+
+## 2026-09-07 — Floating Compose window + shell skeleton loading states
+
+User feedback after using the rebuilt client: (1) Compose should be a Gmail-style overlay, not a
+dedicated page; (2) switching between Mail/Calendar/Contacts/Tasks feels slow with no loading
+feedback; (3) Compose/"Continue" buttons sometimes seemed to "get stuck." All three turned out to
+share one root cause — see below.
+
+- **Compose rewritten as a floating overlay** (`apps/shared/components/mail/compose/ComposeContext.tsx`
+  + `ComposeWindow.tsx`, new): `ComposeProvider` is mounted once in `AppShell` (shared by all four
+  webmail apps) and owns an array of open Compose sessions, rendered stacked bottom-right — Gmail
+  allows several at once, so this does too. `useCompose().openCompose({mailboxUid, to?})` opens one
+  from anywhere; `MailShell`'s "Compose" button and Contacts' "Email" toolbar action both call it now
+  instead of navigating to `/compose?...`. The old dedicated page/route (`apps/www/compose/`) is
+  deleted outright — there's no reason for it to exist anymore. `ComposeWindow` owns its own draft
+  lifecycle end to end (resolves its own Drafts folder from just a `mailboxUid`, since it can be
+  opened from pages that never mount `MailShell`), with a header (minimize/expand/close), compact
+  inline To/Cc/Bcc/Subject rows (not `FormField`-labeled form blocks), and `RichTextEditor` filling
+  the remaining space via a new `fill` prop (flexbox instead of a fixed pixel height).
+  - **Real bug caught before it shipped**: my first pass called `useCompose()` directly in
+    `MailShell`'s own top-level function body — but `ComposeProvider` is rendered *inside* the
+    `AppShell` that `MailShell` itself returns, i.e. a **descendant** of `MailShell`, not an
+    ancestor. A hook call in a parent component can never see a Provider one of its own children
+    creates, even though the JSX ends up nested inside it once rendered. Fixed by extracting a
+    separate `ComposeButton` component (rendered as part of `AppShell`'s `children`, correctly
+    inside the provider's subtree) — worth remembering for any future case of "a shell renders
+    `<AppShell>` and also wants context that provider supplies."
+- **Root-cause diagnosis for the "slow switching" and "stuck buttons" complaints**: this framework
+  has no client-side router — switching apps is a full browser navigation — and, worse, every one of
+  the four shells (`MailShell`/`CalendarShell`/`ContactsShell`/`TasksShell`) rendered **nothing at
+  all** in its content area while `listMailboxes()` was in flight (`inner` stayed `null` until
+  `status` became `"ready"` or `"error"`), then an empty-looking sidebar while the follow-up
+  `listFolders()` call was in flight. A full-page reload into a blank pane, sitting blank through two
+  serial network round trips, reads exactly like "the click did nothing" — which is what was being
+  reported as "buttons getting stuck," not an actual hang (traced `MailboxProvisioning`'s "Continue"
+  and the old Compose `<a href>` link specifically; found no unresolved promise or missing
+  error-state reset in either — the delay was real network+reload time with zero visual feedback).
+- **Fix**: new `apps/shared/components/feedback/Skeleton.tsx` (`Skeleton` — one pulsing bar —
+  and `SkeletonList` — a stack of icon+bar rows, the shape shared by every sidebar/list in this app).
+  Every one of the four shells now has an explicit `status === "checking"` branch rendering a
+  skeleton shaped like its own real sidebar, instead of falling through to `null`; `MailShell`
+  additionally got a `foldersLoading` flag so its folder list shows `SkeletonList` instead of a
+  blank `<nav>` during the second round trip. `CalendarShell`/`ContactsShell`/`TasksShell`'s *own*
+  sidebars are minimal (their rich sidebars live in each page's own content, one level down), so
+  their skeletons approximate that outer page's real shape rather than matching their own thin
+  mailbox-switcher-only sidebar exactly. **Verified live, not just via component tests**: `curl`'d
+  the real SSR HTML output and confirmed the skeleton (`animate-pulse` elements) renders in the raw
+  server response itself, before any client JS runs — the very first thing a browser paints while
+  switching apps is now a recognizable loading shape, not a blank frame.
+- **A real, reproducible v8-coverage-provider anomaly, thoroughly investigated, not worked around by
+  disabling the gate**: one branch in `ComposeWindow.tsx` (`e.target.files ?? []`, later `files ?
+  Array.from(files) : []` before that) reproducibly shows as uncovered *only* in the full ~68-file/
+  ~700-test suite — confirmed via many isolated and small-group re-runs (2, 4, and larger file
+  combinations) that the exact same test suite DOES exercise both sides of it, confirmed the gap
+  moves to whatever line holds that branch when the surrounding code is restructured (ruling out a
+  code-shape cause), and confirmed via `--fileParallelism=false` that it isn't a cross-process
+  coverage-merge artifact either (it persists even single-threaded). Symptom pattern (statements/
+  lines/functions all 100%, only *branches* affected, only at large total-file-count scale) matches
+  known limitations in how `@vitest/coverage-v8` derives per-branch data from V8's native block
+  coverage via AST remapping. Left as a known, documented finding for the user to decide how to
+  handle (accept a one-line carve-out — which would be the *first* exception to this project's
+  otherwise-universal 100% `apps/**` bar — switch coverage provider, or something else) rather than
+  deciding unilaterally, since every other threshold in `vitest.config.ts` has stayed at a strict
+  100% throughout this entire project.
+- Test files: `ComposeContext.test.tsx`, `ComposeWindow.test.tsx` (new, ports every scenario the old
+  `compose/index.test.tsx` covered plus minimize/expand/close/stacking); `RichTextEditor.test.tsx`
+  extended for `fill`; `MailShell.test.tsx`/`CalendarShell.test.tsx`/`ContactsShell.test.tsx`/
+  `TasksShell.test.tsx` extended with a "shows a skeleton instead of a blank pane" test each (a
+  pending-promise pattern already used elsewhere in this suite); `contacts/index.test.tsx`'s Email
+  toolbar-action test rewritten for the new overlay behavior.
+- Verification: `yarn tsc --noEmit`, client `tsc -p tsconfig.client.json --noEmit`, `yarn lint` all
+  clean. Full `yarn test`: 697/697 passing; coverage 100% except the one documented branch above.
+  Real `yarn dev` + `curl` smoke test as described above.
+- **Not yet committed** — same standing "ask before committing" default as the styling work above.

@@ -9,6 +9,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { emptyResponse, jsonResponse, mockFetch } from "../testUtils.js";
 import ContactsPage from "../../../apps/www/contacts/index.js";
 
+// The "Email" toolbar action opens a real `ComposeWindow` overlay — mocked here the same way every
+// compose-related test file mocks it, to avoid mounting real TipTap/ProseMirror (which needs DOM APIs
+// jsdom doesn't fully implement) in a test file that isn't otherwise exercising the editor itself.
+vi.mock("../../../apps/shared/components/mail/compose/RichTextEditor.js", () => ({
+    default: () => <textarea data-testid="html-editor" />,
+}));
+
 const mailbox = {
     uid: "mb1",
     version: 0,
@@ -711,18 +718,18 @@ describe("ContactsPage — sidebar views, sorting, and toolbar bulk actions", ()
         expect(await screen.findByText("Could not delete one or more contacts.")).toBeInTheDocument();
     });
 
-    it("toolbar Email navigates to compose with the checked contacts' addresses joined.", async () => {
+    it("toolbar Email opens the floating Compose window with the checked contacts' addresses joined.", async () => {
         mockShellAndContactsWithLists([jane, bob]);
         const user = userEvent.setup();
         render(<ContactsPage userUid="u1" />);
-        (window as any).location = { href: "" };
 
         await screen.findByText("Jane Doe");
         await user.click(screen.getByLabelText("Select all contacts"));
         await user.click(within(screen.getByRole("toolbar")).getByText("Email"));
 
         // Bob has no email, so only Jane's address should appear.
-        expect(window.location.href).toBe(`/compose?to=${encodeURIComponent("jane@example.com")}`);
+        expect(await screen.findByRole("dialog", { name: "New Message" })).toBeInTheDocument();
+        expect(screen.getByLabelText("To")).toHaveValue("jane@example.com");
     });
 
     it("toolbar Favorite marks every checked contact favorited, then relabels to Unfavorite once all are.", async () => {

@@ -8,6 +8,7 @@ import type { IconType } from "react-icons";
 import { HiOutlineCalendarDays, HiOutlineClipboardDocumentList, HiOutlineEnvelope, HiOutlineUsers } from "react-icons/hi2";
 import { useRedirectIfUnauthenticated } from "../../lib/session.js";
 import { stopImpersonating } from "../../lib/mailApi.js";
+import ComposeProvider from "../mail/compose/ComposeContext.js";
 import UserMenu from "./UserMenu.js";
 
 export type AppShellApp = "mail" | "calendar" | "contacts" | "tasks";
@@ -89,54 +90,56 @@ export default function AppShell({
     const activeApp = APPS.find((app) => app.id === active);
 
     return (
-        <div className="min-h-screen flex flex-col bg-surface-alt">
-            {impersonating && (
-                <div className="h-10 shrink-0 bg-warning text-warning-contrast flex items-center justify-center gap-3 text-sm font-medium px-4">
-                    <span>
-                        You are viewing as <strong>{userUid}</strong>.
-                    </span>
-                    <button
-                        type="button"
-                        onClick={handleStopImpersonating}
-                        disabled={stoppingImpersonation}
-                        className="underline hover:no-underline disabled:opacity-60"
-                    >
-                        {stoppingImpersonation ? "Returning to admin…" : "Return to admin"}
-                    </button>
-                </div>
-            )}
-            <div className="flex-1 flex min-h-0">
-                <nav
-                    aria-label="Apps"
-                    className="w-16 shrink-0 bg-surface border-r border-border flex flex-col items-center py-3 gap-1"
-                >
-                    <img src="/images/logo.svg" width="96" height="96" alt="" className="mb-3" />
-                    {APPS.map(({ id, href, label, icon: Icon }) => (
-                        <a
-                            key={id}
-                            href={href}
-                            aria-label={label}
-                            aria-current={id === active ? "page" : undefined}
-                            title={label}
-                            className={[
-                                "w-10 h-10 flex items-center justify-center rounded-sm",
-                                id === active
-                                    ? "bg-primary/10 text-primary-dark"
-                                    : "text-text-muted hover:bg-surface-alt hover:text-text",
-                            ].join(" ")}
+        <ComposeProvider>
+            <div className="min-h-screen flex flex-col bg-surface-alt">
+                {impersonating && (
+                    <div className="h-10 shrink-0 bg-warning text-warning-contrast flex items-center justify-center gap-3 text-sm font-medium px-4">
+                        <span>
+                            You are viewing as <strong>{userUid}</strong>.
+                        </span>
+                        <button
+                            type="button"
+                            onClick={handleStopImpersonating}
+                            disabled={stoppingImpersonation}
+                            className="underline hover:no-underline disabled:opacity-60"
                         >
-                            <Icon size={20} aria-hidden="true" />
-                        </a>
-                    ))}
-                </nav>
-                <div className="flex-1 flex flex-col min-w-0">
-                    <header className="h-16 shrink-0 bg-surface border-b border-border flex items-center justify-between gap-4 px-6">
-                        <span className="font-display font-bold text-lg uppercase tracking-wide">{activeApp?.label}</span>
-                        <UserMenu userUid={userUid} authServerUrl={authServerUrl} onSignOut={handleSignOut} showAdminLink={trusted} />
-                    </header>
-                    <div className="flex-1 flex min-h-0">{children}</div>
+                            {stoppingImpersonation ? "Returning to admin…" : "Return to admin"}
+                        </button>
+                    </div>
+                )}
+                <div className="flex-1 flex min-h-0">
+                    <nav
+                        aria-label="Apps"
+                        className="w-16 shrink-0 bg-surface border-r border-border flex flex-col items-center py-3 gap-1"
+                    >
+                        <img src="/images/logo.svg" width="96" height="96" alt="" className="mb-3" />
+                        {APPS.map(({ id, href, label, icon: Icon }) => (
+                            <a
+                                key={id}
+                                href={href}
+                                aria-label={label}
+                                aria-current={id === active ? "page" : undefined}
+                                title={label}
+                                className={[
+                                    "w-10 h-10 flex items-center justify-center rounded-sm",
+                                    id === active
+                                        ? "bg-primary/10 text-primary-dark"
+                                        : "text-text-muted hover:bg-surface-alt hover:text-text",
+                                ].join(" ")}
+                            >
+                                <Icon size={20} aria-hidden="true" />
+                            </a>
+                        ))}
+                    </nav>
+                    <div className="flex-1 flex flex-col min-w-0">
+                        <header className="h-16 shrink-0 bg-surface border-b border-border flex items-center justify-between gap-4 px-6">
+                            <span className="font-display font-bold text-lg uppercase tracking-wide">{activeApp?.label}</span>
+                            <UserMenu userUid={userUid} authServerUrl={authServerUrl} onSignOut={handleSignOut} showAdminLink={trusted} />
+                        </header>
+                        <div className="flex-1 flex min-h-0">{children}</div>
+                    </div>
                 </div>
             </div>
-        </div>
+        </ComposeProvider>
     );
 }

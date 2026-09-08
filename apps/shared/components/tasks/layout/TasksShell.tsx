@@ -6,6 +6,7 @@ import React, { createContext, PropsWithChildren, ReactNode, useContext, useEffe
 import { ApiRequestError } from "../../../lib/api.js";
 import { Folder, Mailbox, listFolders, listMailboxes } from "../../../lib/mailApi.js";
 import Alert from "../../feedback/Alert.js";
+import Skeleton, { SkeletonList } from "../../feedback/Skeleton.js";
 import AppShell, { AppShellProps } from "../../layout/AppShell.js";
 import MailboxProvisioning from "../../layout/MailboxProvisioning.js";
 
@@ -101,7 +102,18 @@ export default function TasksShell({
     }
 
     let inner: ReactNode = null;
-    if (userUid && status === "error") {
+    if (userUid && status === "checking") {
+        // Renders immediately (no network round trip needed) so switching into Tasks never shows a
+        // blank pane while `listMailboxes()` is in flight — the real sidebar (My Day/Important/Planned/
+        // lists) lives in `apps/www/tasks/index.tsx`'s own content, so this mimics its rough shape rather
+        // than the (minimal, mailbox-switcher-only) shape of this shell's own sidebar.
+        inner = (
+            <aside className="w-56 shrink-0 bg-surface border-r border-border flex flex-col p-3 gap-4">
+                <Skeleton height="h-9" />
+                <SkeletonList count={5} />
+            </aside>
+        );
+    } else if (userUid && status === "error") {
         inner = (
             <div className="flex-1 flex items-center justify-center p-8">
                 <div className="w-full max-w-md">

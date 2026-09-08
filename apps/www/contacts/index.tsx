@@ -18,6 +18,7 @@ import {
     updateContact,
 } from "../../shared/lib/contactsApi.js";
 import { contactsToVCardFile, contactToVCard, parseVCards } from "../../shared/lib/vcard.js";
+import { useCompose } from "../../shared/components/mail/compose/ComposeContext.js";
 import ContactsShell, { ContactsShellProps, useContactsShell } from "../../shared/components/contacts/layout/ContactsShell.js";
 import ContactsSidebar, { ContactsView } from "../../shared/components/contacts/ContactsSidebar.js";
 import ContactsToolbar from "../../shared/components/contacts/ContactsToolbar.js";
@@ -58,6 +59,7 @@ function downloadTextFile(filename: string, content: string): void {
 
 function ContactsContent() {
     const { folderUid, mailboxUid } = useContactsShell();
+    const { openCompose } = useCompose();
     const [contacts, setContacts] = useState<Contact[]>([]);
     const [deletedContacts, setDeletedContacts] = useState<Contact[]>([]);
     const [deletedLoading, setDeletedLoading] = useState(false);
@@ -235,7 +237,9 @@ function ContactsContent() {
 
     function handleEmail() {
         const addresses = checkedContacts.map((c) => c.emails[0]?.address).filter((a): a is string => Boolean(a));
-        window.location.href = `/compose?to=${encodeURIComponent(addresses.join(", "))}`;
+        // `ContactsShell` only ever renders this component once `mailboxUid` is resolved (see its own
+        // invariant comment) — same non-null pattern as `organizerAddress` in the calendar page.
+        openCompose({ mailboxUid: mailboxUid!, to: addresses.join(", ") });
     }
 
     async function handleToggleFavorite() {

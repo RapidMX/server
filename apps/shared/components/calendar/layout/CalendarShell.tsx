@@ -6,6 +6,7 @@ import React, { createContext, PropsWithChildren, ReactNode, useContext, useEffe
 import { ApiRequestError } from "../../../lib/api.js";
 import { Folder, Mailbox, listFolders, listMailboxes } from "../../../lib/mailApi.js";
 import Alert from "../../feedback/Alert.js";
+import Skeleton, { SkeletonList } from "../../feedback/Skeleton.js";
 import AppShell, { AppShellProps } from "../../layout/AppShell.js";
 import MailboxProvisioning from "../../layout/MailboxProvisioning.js";
 
@@ -109,7 +110,18 @@ export default function CalendarShell({
     }
 
     let inner: ReactNode = null;
-    if (userUid && status === "error") {
+    if (userUid && status === "checking") {
+        // Renders immediately (no network round trip needed) so switching into Calendar never shows a
+        // blank pane while `listMailboxes()` is in flight — the actual sidebar (mini date-picker +
+        // calendar list) lives in `apps/www/calendar/index.tsx`'s own content, so this mimics its rough
+        // shape rather than the (minimal, mailbox-switcher-only) shape of this shell's own sidebar.
+        inner = (
+            <div className="w-56 shrink-0 bg-surface border-r border-border p-3 flex flex-col gap-4">
+                <Skeleton height="h-40" className="rounded-md" />
+                <SkeletonList count={4} />
+            </div>
+        );
+    } else if (userUid && status === "error") {
         inner = (
             <div className="flex-1 flex items-center justify-center p-8">
                 <div className="w-full max-w-md">

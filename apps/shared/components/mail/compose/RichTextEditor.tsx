@@ -17,20 +17,24 @@ export interface RichTextEditorProps {
     value: string;
     onChange: (value: string) => void;
     height?: string;
+    /** When true, the editor fills its parent's height via flexbox instead of a fixed `height` — for
+     * embedding inside a flex-column container of variable height (the floating Compose window) where
+     * a literal pixel height can't be computed up front. `height` is ignored when this is set. */
+    fill?: boolean;
 }
 
 /**
- * A WYSIWYG rich-text editor for the compose page's message body — replaces `MonacoHtmlEditor` (an HTML
+ * A WYSIWYG rich-text editor for the Compose window's message body — replaces `MonacoHtmlEditor` (an HTML
  * *source* editor) with a real Outlook-Home-tab-style formatting experience, built on TipTap/ProseMirror.
- * Same `{value, onChange, height?}` prop contract as the component it replaces, so `apps/www/compose`
- * needed no changes beyond swapping the import.
+ * Used by `ComposeWindow` (the floating overlay, not a dedicated page — see `ComposeContext.tsx`'s doc
+ * comment).
  *
  * `value` seeds the editor's initial content only — like `MonacoHtmlEditor`, this never re-syncs from a
  * later `value` prop change; TipTap owns its own document once created. Live edits flow out as HTML (via
  * `editor.getHTML()`) through `onChange`.
  *
- * `immediatelyRender: false` is required for this framework's SSR: `apps/www/compose` is rendered
- * server-side under plain Node before hydration (see `ReactRoute`), and TipTap's default
+ * `immediatelyRender: false` is required for this framework's SSR: the page embedding `ComposeWindow` is
+ * rendered server-side under plain Node before hydration (see `ReactRoute`), and TipTap's default
  * (`immediatelyRender: true`) tries to mount its ProseMirror view during that very first render, which
  * both can't work without a real DOM and produces a hydration mismatch. With it `false`, `useEditor`
  * returns `null` until the editor actually mounts client-side after hydration — `ComposeToolbar`/
@@ -40,7 +44,7 @@ export interface RichTextEditorProps {
  * sufficient here since TipTap (unlike Monaco) never touches the DOM at module-evaluation time, only when
  * an editor view actually mounts.
  */
-export default function RichTextEditor({ value, onChange, height = "360px" }: RichTextEditorProps) {
+export default function RichTextEditor({ value, onChange, height = "360px", fill = false }: RichTextEditorProps) {
     const onChangeRef = useRef(onChange);
     onChangeRef.current = onChange;
 
@@ -60,12 +64,17 @@ export default function RichTextEditor({ value, onChange, height = "360px" }: Ri
     });
 
     return (
-        <div className="border border-border rounded-sm overflow-hidden">
+        <div className={["border border-border rounded-sm overflow-hidden", fill ? "h-full flex flex-col" : ""].filter(Boolean).join(" ")}>
             <ComposeToolbar editor={editor} />
             <EditorContent
                 editor={editor}
-                style={{ height }}
-                className="overflow-y-auto px-3 py-2 text-sm [&_.tiptap]:outline-none [&_.tiptap]:h-full"
+                style={fill ? undefined : { height }}
+                className={[
+                    "overflow-y-auto px-3 py-2 text-sm [&_.tiptap]:outline-none [&_.tiptap]:h-full",
+                    fill ? "flex-1 min-h-0" : "",
+                ]
+                    .filter(Boolean)
+                    .join(" ")}
             />
         </div>
     );

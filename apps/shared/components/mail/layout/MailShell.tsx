@@ -6,8 +6,10 @@ import React, { createContext, PropsWithChildren, ReactNode, useContext, useEffe
 import { ApiRequestError } from "../../../lib/api.js";
 import { Folder, Mailbox, listFolders, listMailboxes } from "../../../lib/mailApi.js";
 import Alert from "../../feedback/Alert.js";
+import Skeleton, { SkeletonList } from "../../feedback/Skeleton.js";
 import AppShell, { AppShellProps } from "../../layout/AppShell.js";
 import MailboxProvisioning from "../../layout/MailboxProvisioning.js";
+import { useCompose } from "../compose/ComposeContext.js";
 
 export type MailShellProps = Omit<AppShellProps, "active">;
 
@@ -55,6 +57,27 @@ function folderSortKey(folder: Folder): number {
 type Status = "checking" | "error" | "ready";
 
 /**
+ * A separate component (not inlined into `MailShell`'s own render) so `useCompose()` resolves against
+ * `ComposeProvider` correctly: that provider is rendered *inside* the `AppShell` that `MailShell` itself
+ * returns, i.e. a descendant of `MailShell`, not an ancestor — a hook call made directly in `MailShell`'s
+ * own function body would see only whatever context exists *above* `MailShell`, never a provider one of
+ * its own descendants creates. This button, rendered as part of `AppShell`'s `children`, sits correctly
+ * inside that subtree.
+ */
+function ComposeButton({ mailboxUid }: { mailboxUid: string }) {
+    const { openCompose } = useCompose();
+    return (
+        <button
+            type="button"
+            onClick={() => openCompose({ mailboxUid })}
+            className="block text-center w-full py-2.5 px-4 rounded-sm font-semibold text-sm bg-primary text-white hover:bg-primary-dark"
+        >
+            Compose
+        </button>
+    );
+}
+
+/**
  * Mail's own contextual sidebar (mailbox switcher + folder tree) + content area, rendered inside the shared
  * `AppShell` chrome (icon rail, header, impersonation banner — see that component). There is no client-side
  * router in this framework (see `ReactRoute`'s file-convention resolver) — the selected mailbox/folder live
@@ -74,6 +97,7 @@ export default function MailShell({
     const [error, setError] = useState<string | null>(null);
     const [mailboxes, setMailboxes] = useState<Mailbox[]>([]);
     const [folders, setFolders] = useState<Folder[]>([]);
+    const [foldersLoading, setFoldersLoading] = useState(true);
     const [folderError, setFolderError] = useState<string | null>(null);
     const [requestedMailboxUid, setRequestedMailboxUid] = useState<string | null>(null);
     const [requestedFolderUid, setRequestedFolderUid] = useState<string | null>(null);
@@ -109,9 +133,11 @@ export default function MailShell({
             return;
         }
         setFolderError(null);
+        setFoldersLoading(true);
         listFolders(mailboxUid)
             .then((result) => setFolders(result.filter((f) => MAIL_FOLDER_TYPES.has(f.type))))
-            .catch((err) => setFolderError(err instanceof ApiRequestError ? err.message : "Could not load folders."));
+            .catch((err) => setFolderError(err instanceof ApiRequestError ? err.message : "Could not load folders."))
+            .finally(() => setFoldersLoading(false));
     }, [mailboxUid]);
 
     const folderUid: string | undefined =
@@ -135,7 +161,16 @@ export default function MailShell({
     }
 
     let inner: ReactNode = null;
-    if (userUid && status === "error") {
+    if (userUid && status === "checking") {
+        // Renders immediately (no network round trip needed) so switching into Mail never shows a blank
+        // pane while `listMailboxes()` is in flight — the outline below mirrors the real sidebar's shape.
+        inner = (
+            <aside className="w-64 shrink-0 bg-surface border-r border-border flex flex-col p-3 gap-4">
+                <Skeleton height="h-9" className="rounded-sm" />
+                <SkeletonList count={6} />
+            </aside>
+        );
+    } else if (userUid && status === "error") {
         inner = (
             <div className="flex-1 flex items-center justify-center p-8">
                 <div className="w-full max-w-md">
@@ -148,12 +183,7 @@ export default function MailShell({
             <>
                 <aside className="w-64 shrink-0 bg-surface border-r border-border flex flex-col">
                     <div className="p-3">
-                        <a
-                            href={`/compose?mailboxUid=${encodeURIComponent(mailboxUid)}`}
-                            className="block text-center w-full py-2.5 px-4 rounded-sm font-semibold text-sm bg-primary text-white hover:bg-primary-dark"
-                        >
-                            Compose
-                        </a>
+                        <ComposeButton mailboxUid={mailboxUid} />
                     </div>
                     {mailboxes.length > 1 && (
                         <div className="px-3 pb-2">
@@ -186,25 +216,29 @@ export default function MailShell({
                         </div>
                     )}
                     <nav className="flex-1 overflow-y-auto px-3 pb-3 flex flex-col gap-0.5">
-                        {sortedFolders.map((folder) => (
-                            <a
-                                key={folder.uid}
-                                href={`/?mailboxUid=${encodeURIComponent(mailboxUid)}&folderUid=${encodeURIComponent(folder.uid)}`}
-                                className={[
-                                    "flex items-center justify-between text-sm rounded-sm py-1.5 px-2.5",
-                                    folder.uid === folderUid
-                                        ? "bg-primary/10 text-primary-dark font-semibold"
-                                        : "text-text hover:bg-surface-alt",
-                                ].join(" ")}
-                            >
-                                <span>{FOLDER_LABELS[folder.type] ?? folder.name}</span>
-                                {folder.unreadCount > 0 && (
-                                    <span className="text-xs font-bold rounded-pill py-0.5 px-1.5 bg-surface-alt text-text-muted">
-                                        {folder.unreadCount}
-                                    </span>
-                                )}
-                            </a>
-                        ))}
+                        {foldersLoading ? (
+                            <SkeletonList count={5} className="pt-1" />
+                        ) : (
+                            sortedFolders.map((folder) => (
+                                <a
+                                    key={folder.uid}
+                                    href={`/?mailboxUid=${encodeURIComponent(mailboxUid)}&folderUid=${encodeURIComponent(folder.uid)}`}
+                                    className={[
+                                        "flex items-center justify-between text-sm rounded-sm py-1.5 px-2.5",
+                                        folder.uid === folderUid
+                                            ? "bg-primary/10 text-primary-dark font-semibold"
+                                            : "text-text hover:bg-surface-alt",
+                                    ].join(" ")}
+                                >
+                                    <span>{FOLDER_LABELS[folder.type] ?? folder.name}</span>
+                                    {folder.unreadCount > 0 && (
+                                        <span className="text-xs font-bold rounded-pill py-0.5 px-1.5 bg-surface-alt text-text-muted">
+                                            {folder.unreadCount}
+                                        </span>
+                                    )}
+                                </a>
+                            ))
+                        )}
                     </nav>
                 </aside>
                 <main className="flex-1 min-w-0 overflow-y-auto">
