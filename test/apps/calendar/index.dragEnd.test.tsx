@@ -13,6 +13,7 @@
  * normally — `@dnd-kit`'s own context has safe no-op defaults outside a real `DndContext`.
  */
 import React from "react";
+import { MouseSensor, TouchSensor } from "@dnd-kit/core";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { jsonResponse, mockFetch } from "../testUtils.js";
@@ -20,6 +21,7 @@ import { dayDropId, resizeDragId, slotDropId } from "../../../apps/shared/lib/ca
 import CalendarPage from "../../../apps/www/calendar/index.js";
 
 let capturedOnDragEnd: ((event: { active: { id: string }; over: { id: string } | null }) => Promise<void>) | undefined;
+const capturedSensorCalls: { sensor: unknown; options: unknown }[] = [];
 
 vi.mock("@dnd-kit/core", async () => {
     const actual = await vi.importActual<typeof import("@dnd-kit/core")>("@dnd-kit/core");
@@ -28,6 +30,10 @@ vi.mock("@dnd-kit/core", async () => {
         DndContext: ({ onDragEnd, children }: { onDragEnd: typeof capturedOnDragEnd; children: React.ReactNode }) => {
             capturedOnDragEnd = onDragEnd;
             return <>{children}</>;
+        },
+        useSensor: (sensor: unknown, options: unknown) => {
+            capturedSensorCalls.push({ sensor, options });
+            return actual.useSensor(sensor as never, options as never);
         },
     };
 });
@@ -94,10 +100,33 @@ beforeEach(() => {
 afterEach(() => {
     vi.unstubAllGlobals();
     capturedOnDragEnd = undefined;
+    capturedSensorCalls.length = 0;
     window.history.pushState(null, "", "/");
 });
 
 describe("CalendarPage handleDragEnd", () => {
+    it("configures MouseSensor/TouchSensor with activation constraints, not a bare PointerSensor", async () => {
+        mockShellAndEvents();
+        render(<CalendarPage userUid="u1" />);
+        await screen.findByText(/Standup/);
+
+        // `useSensor` is re-invoked on every render (React re-renders `CalendarContent` several times as
+        // its data loads), so this checks that every capture matches one of the two expected
+        // sensor/options pairs, rather than asserting an exact call count.
+        expect(capturedSensorCalls.length).toBeGreaterThan(0);
+        for (const call of capturedSensorCalls) {
+            if (call.sensor === MouseSensor) {
+                expect(call.options).toEqual({ activationConstraint: { distance: 8 } });
+            } else if (call.sensor === TouchSensor) {
+                expect(call.options).toEqual({ activationConstraint: { delay: 250, tolerance: 8 } });
+            } else {
+                throw new Error(`unexpected sensor class: ${String(call.sensor)}`);
+            }
+        }
+        expect(capturedSensorCalls.some((c) => c.sensor === MouseSensor)).toBe(true);
+        expect(capturedSensorCalls.some((c) => c.sensor === TouchSensor)).toBe(true);
+    });
+
     it("moves an occurrence to the dropped-on day and reloads", async () => {
         const fetchMock = mockShellAndEvents((url, init) =>
             url === "/api/mail/calendar-events/e1" && init?.method === "PUT" ? jsonResponse(200, { ...event, startDate: "2026-06-16T15:00:00.000Z", endDate: "2026-06-16T15:30:00.000Z" }) : undefined,

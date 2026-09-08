@@ -3,7 +3,9 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { createContext, PropsWithChildren, ReactNode, useContext, useEffect, useMemo, useState } from "react";
+import { HiOutlineBars3 } from "react-icons/hi2";
 import { ApiRequestError } from "../../../lib/api.js";
+import Drawer from "../../../lib/Drawer.js";
 import { Folder, Mailbox, listFolders, listMailboxes } from "../../../lib/mailApi.js";
 import Alert from "../../feedback/Alert.js";
 import Skeleton, { SkeletonList } from "../../feedback/Skeleton.js";
@@ -58,6 +60,7 @@ export default function CalendarShell({
     const [folders, setFolders] = useState<Folder[]>([]);
     const [folderError, setFolderError] = useState<string | null>(null);
     const [requestedMailboxUid, setRequestedMailboxUid] = useState<string | null>(null);
+    const [drawerOpen, setDrawerOpen] = useState(false);
 
     useEffect(() => {
         setRequestedMailboxUid(new URLSearchParams(window.location.search).get("mailboxUid"));
@@ -130,39 +133,65 @@ export default function CalendarShell({
             </div>
         );
     } else if (userUid && status === "ready") {
+        // A function, not a plain JSX constant — see MailShell/ContactsShell's identical comment: it's
+        // rendered twice (desktop `<aside>` + mobile `Drawer`), possibly simultaneously mounted, so the
+        // `<select>`'s `id`/its `<label>`'s `htmlFor` need a distinct value per instance.
+        const mailboxSwitcher = (idPrefix: string) =>
+            mailboxes.length > 1 && (
+                <div>
+                    <label
+                        className="block text-xs font-bold uppercase tracking-wide text-text-muted mb-1"
+                        htmlFor={`${idPrefix}-calendar-mailbox-switcher`}
+                    >
+                        Mailbox
+                    </label>
+                    <select
+                        id={`${idPrefix}-calendar-mailbox-switcher`}
+                        className="w-full text-sm border border-border rounded-sm py-1.5 px-2 bg-surface"
+                        value={mailboxUid}
+                        onChange={(e) => {
+                            window.location.href = `/calendar?mailboxUid=${encodeURIComponent(e.target.value)}`;
+                        }}
+                    >
+                        {mailboxes.map((mb) => (
+                            <option key={mb.uid} value={mb.uid}>
+                                {mb.displayName}
+                                {mb.ownerUserUid ? "" : " (shared)"}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            );
+
         inner = (
             <>
                 {mailboxes.length > 1 && (
-                    <div className="w-56 shrink-0 bg-surface border-r border-border p-3">
-                        <label
-                            className="block text-xs font-bold uppercase tracking-wide text-text-muted mb-1"
-                            htmlFor="calendar-mailbox-switcher"
-                        >
-                            Mailbox
-                        </label>
-                        <select
-                            id="calendar-mailbox-switcher"
-                            className="w-full text-sm border border-border rounded-sm py-1.5 px-2 bg-surface"
-                            value={mailboxUid}
-                            onChange={(e) => {
-                                window.location.href = `/calendar?mailboxUid=${encodeURIComponent(e.target.value)}`;
-                            }}
-                        >
-                            {mailboxes.map((mb) => (
-                                <option key={mb.uid} value={mb.uid}>
-                                    {mb.displayName}
-                                    {mb.ownerUserUid ? "" : " (shared)"}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                    <div className="hidden md:block w-56 shrink-0 bg-surface border-r border-border p-3">{mailboxSwitcher("desktop")}</div>
                 )}
-                {folderError && (
-                    <div className="p-3">
-                        <Alert>{folderError}</Alert>
+                <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="Mailbox">
+                    <div className="flex flex-col gap-3">
+                        {mailboxSwitcher("mobile")}
+                        {folderError && <Alert>{folderError}</Alert>}
                     </div>
-                )}
-                <CalendarShellContext.Provider value={contextValue}>{children}</CalendarShellContext.Provider>
+                </Drawer>
+                <div className="flex-1 min-w-0 flex flex-col">
+                    {(mailboxes.length > 1 || folderError) && (
+                        <button
+                            type="button"
+                            className="md:hidden m-3 w-9 h-9 flex items-center justify-center rounded-sm text-text-muted hover:bg-surface-alt hover:text-text"
+                            aria-label="Open mailbox switcher"
+                            onClick={() => setDrawerOpen(true)}
+                        >
+                            <HiOutlineBars3 size={20} aria-hidden="true" />
+                        </button>
+                    )}
+                    {folderError && (
+                        <div className="hidden md:block p-3">
+                            <Alert>{folderError}</Alert>
+                        </div>
+                    )}
+                    <CalendarShellContext.Provider value={contextValue}>{children}</CalendarShellContext.Provider>
+                </div>
             </>
         );
     }

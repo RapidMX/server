@@ -3,7 +3,8 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { useEffect, useMemo, useState } from "react";
-import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { HiOutlineBars3 } from "react-icons/hi2";
 import {
     addDays,
     addMonths,
@@ -24,6 +25,7 @@ import { moveOccurrence, resizeOccurrenceEnd } from "../../shared/lib/calendarMu
 import { resolveDragAction } from "../../shared/lib/calendarDragIds.js";
 import { createFolder } from "../../shared/lib/mailApi.js";
 import { CalendarOccurrence, expandAllOccurrences } from "../../shared/lib/recurrence.js";
+import Drawer from "../../shared/lib/Drawer.js";
 import CalendarShell, { CalendarShellProps, useCalendarShell } from "../../shared/components/calendar/layout/CalendarShell.js";
 import CalendarListSidebar from "../../shared/components/calendar/CalendarListSidebar.js";
 import EventModal from "../../shared/components/calendar/EventModal.js";
@@ -60,8 +62,17 @@ function CalendarContent() {
     // `CalendarShell` only ever renders this component once `mailboxUid` is set, and always to a value
     // drawn from `mailboxes` itself (see its own resolution logic) — the lookup below always succeeds.
     const organizerAddress = mailboxes.find((mb) => mb.uid === mailboxUid)!.primarySmtpAddress;
-    const sensors = useSensors(useSensor(PointerSensor));
+    // `PointerSensor` alone activates a drag on the very first touch-move, indistinguishable from a
+    // scroll gesture on a touch device. `MouseSensor` (a small `distance` — desktop drags still start
+    // immediately on a deliberate movement, no change from before) + `TouchSensor` (a `delay`+`tolerance`
+    // — a touch drag only activates after a brief press-and-hold, so a quick swipe scrolls normally) is
+    // dnd-kit's own documented pattern for this exact conflict.
+    const sensors = useSensors(
+        useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+        useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
+    );
 
+    const [drawerOpen, setDrawerOpen] = useState(false);
     const [view, setView] = useState<ViewType>("month");
     const [viewDate, setViewDate] = useState(() => startOfDay(new Date()));
     const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -266,19 +277,34 @@ function CalendarContent() {
               ? `${format(rangeStart, "MMM d")} – ${format(rangeEnd, "MMM d, yyyy")}`
               : format(viewDate, "EEEE, MMMM d, yyyy");
 
+    const sidebarContent = (
+        <>
+            <MiniDatePicker selected={viewDate} onSelect={(date) => setViewDate(startOfDay(date))} />
+            <CalendarListSidebar
+                calendars={calendarFolders}
+                checkedFolderUids={checkedFolderUids}
+                onToggle={toggleCalendar}
+                onAddCalendar={handleAddCalendar}
+            />
+        </>
+    );
+
     return (
         <div className="flex-1 flex min-h-0">
-            <div className="w-56 shrink-0 border-r border-border flex flex-col overflow-y-auto">
-                <MiniDatePicker selected={viewDate} onSelect={(date) => setViewDate(startOfDay(date))} />
-                <CalendarListSidebar
-                    calendars={calendarFolders}
-                    checkedFolderUids={checkedFolderUids}
-                    onToggle={toggleCalendar}
-                    onAddCalendar={handleAddCalendar}
-                />
-            </div>
+            <div className="hidden md:flex w-56 shrink-0 border-r border-border flex-col overflow-y-auto">{sidebarContent}</div>
+            <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="Calendars">
+                <div className="flex flex-col">{sidebarContent}</div>
+            </Drawer>
             <div className="flex-1 flex flex-col min-h-0">
                 <div className="flex items-center gap-3 p-3 border-b border-border shrink-0">
+                    <button
+                        type="button"
+                        className="md:hidden w-9 h-9 flex items-center justify-center rounded-sm text-text-muted hover:bg-surface-alt hover:text-text shrink-0"
+                        aria-label="Open calendars"
+                        onClick={() => setDrawerOpen(true)}
+                    >
+                        <HiOutlineBars3 size={20} aria-hidden="true" />
+                    </button>
                     <Button type="button" onClick={() => openNewEvent()} className="!w-auto shrink-0">
                         + New event
                     </Button>
@@ -293,14 +319,20 @@ function CalendarContent() {
                             &rsaquo;
                         </button>
                     </div>
-                    <h1 className="text-lg font-bold tracking-tight">{title}</h1>
-                    <div className="ml-auto flex gap-1">
+                    <h1 className="hidden md:block text-lg font-bold tracking-tight">{title}</h1>
+                    <div className="ml-auto flex gap-1 overflow-x-auto">
                         {VIEW_TYPES.map((v) => (
                             <button
                                 key={v}
                                 type="button"
                                 onClick={() => setView(v)}
-                                className={["px-3 h-7 text-sm rounded-sm whitespace-nowrap", view === v ? "bg-primary text-white" : "hover:bg-surface-alt"].join(" ")}
+                                className={[
+                                    "px-3 h-7 text-sm rounded-sm whitespace-nowrap",
+                                    view === v ? "bg-primary text-white" : "hover:bg-surface-alt",
+                                    (v === "workWeek" || v === "split") && "hidden md:inline-block",
+                                ]
+                                    .filter(Boolean)
+                                    .join(" ")}
                             >
                                 {VIEW_LABELS[v]}
                             </button>

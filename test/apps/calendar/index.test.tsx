@@ -10,12 +10,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { emptyResponse, jsonResponse, mockFetch } from "../testUtils.js";
 import CalendarPage from "../../../apps/www/calendar/index.js";
 
-// `@dnd-kit/core`'s real `PointerSensor` can't be driven from jsdom (it calls `setPointerCapture`,
-// which jsdom doesn't implement, and that breaks the rest of synthetic event dispatch — see
-// `MonthView.test.tsx`'s identical note). This page wires a real `PointerSensor` for production drag
-// support, so plain-click tests here neutralize it the same way: `useSensors` is forced to return no
-// active sensors, leaving `DndContext`/`useDraggable`/`useDroppable` themselves real so the grids
-// still render normally.
+// `@dnd-kit/core`'s real sensors can't be driven from jsdom (they call `setPointerCapture`, which
+// jsdom doesn't implement, and that breaks the rest of synthetic event dispatch — see
+// `MonthView.test.tsx`'s identical note). This page wires real `MouseSensor`/`TouchSensor` instances
+// for production drag support, so plain-click tests here neutralize them the same way: `useSensors`
+// is forced to return no active sensors, leaving `DndContext`/`useDraggable`/`useDroppable` themselves
+// real so the grids still render normally.
 vi.mock("@dnd-kit/core", async () => {
     const actual = await vi.importActual<typeof import("@dnd-kit/core")>("@dnd-kit/core");
     return { ...actual, useSensors: () => [] };
@@ -373,5 +373,32 @@ describe("CalendarPage", () => {
         await user.click(screen.getByLabelText("New event at 9:00 AM in Personal"));
         const dialog = screen.getByRole("dialog", { name: "New event" });
         expect(within(dialog).getByLabelText("Calendar")).toHaveValue("f-cal2");
+    });
+
+    it("opens the calendars drawer via the mobile menu button, holding its own copy of the mini date picker/calendar list", async () => {
+        mockShellAndEvents([]);
+        const user = userEvent.setup();
+        render(<CalendarPage userUid="u1" />);
+        await screen.findByRole("heading", { name: "June 2026" });
+
+        expect(screen.queryByRole("dialog", { name: "Calendars" })).not.toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: "Open calendars" }));
+        const drawer = screen.getByRole("dialog", { name: "Calendars" });
+        expect(within(drawer).getByRole("navigation", { name: "Mini calendar" })).toBeInTheDocument();
+        expect(within(drawer).getByText("Calendar")).toBeInTheDocument();
+
+        await user.click(within(drawer).getByRole("button", { name: "Close" }));
+        expect(screen.queryByRole("dialog", { name: "Calendars" })).not.toBeInTheDocument();
+    });
+
+    it("hides Work Week and Split view options on mobile, still selectable on desktop", async () => {
+        mockShellAndEvents([]);
+        render(<CalendarPage userUid="u1" />);
+        await screen.findByRole("heading", { name: "June 2026" });
+
+        expect(screen.getByRole("button", { name: "Work Week" })).toHaveClass("hidden", "md:inline-block");
+        expect(screen.getByRole("button", { name: "Split" })).toHaveClass("hidden", "md:inline-block");
+        expect(screen.getByRole("button", { name: "Month" }).className).not.toContain("hidden");
     });
 });
