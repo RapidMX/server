@@ -6,7 +6,7 @@ import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { jsonResponse, mockFetch } from "../testUtils.js";
+import { jsonResponse, mockFetch, mockLocation } from "../testUtils.js";
 import ComposePage from "../../../apps/www/compose/index.js";
 
 vi.mock("../../../apps/shared/components/mail/compose/RichTextEditor.js", () => ({
@@ -69,8 +69,15 @@ function mockShellAndCompose(extra?: (url: string, init?: RequestInit) => Respon
     });
 }
 
+// `mockLocation()` permanently replaces `window.location` via `Object.defineProperty` (not `vi.stubGlobal`,
+// so `vi.unstubAllGlobals()` below doesn't undo it) — capture jsdom's real one once and restore it after
+// every test, or a `?to=`/etc. query string set by one test leaks into every later test in this file that
+// doesn't call `mockLocation()` itself and expects the real (empty) default.
+const realLocation = window.location;
+
 afterEach(() => {
     vi.unstubAllGlobals();
+    Object.defineProperty(window, "location", { configurable: true, writable: true, value: realLocation });
 });
 
 describe("ComposePage", () => {
@@ -81,6 +88,23 @@ describe("ComposePage", () => {
             expect(fetchMock).toHaveBeenCalledWith("/api/mail/messages", expect.objectContaining({ method: "POST" })),
         );
         expect(screen.getByLabelText("Attachments")).not.toBeDisabled();
+    });
+
+    it("prefills the To field from a ?to= query param (e.g. Contacts' Email action).", async () => {
+        const location = mockLocation();
+        (location as any).search = "?to=" + encodeURIComponent("jane@example.com");
+        mockShellAndCompose();
+        render(<ComposePage userUid="u1" />);
+        // `findByLabelText` resolves the instant the (always-rendered) "To" input exists in the DOM, which
+        // can race ahead of the mount effect that seeds its value from `?to=` — `waitFor` retries the value
+        // assertion itself instead of trusting a single snapshot taken at the earliest possible moment.
+        await waitFor(() => expect(screen.getByLabelText("To")).toHaveValue("jane@example.com"));
+    });
+
+    it("leaves the To field blank when no ?to= query param is present.", async () => {
+        mockShellAndCompose();
+        render(<ComposePage userUid="u1" />);
+        expect(await screen.findByLabelText("To")).toHaveValue("");
     });
 
     it("shows an error message when starting the draft fails", async () => {

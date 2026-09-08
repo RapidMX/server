@@ -998,3 +998,62 @@ features behind them.
 - **Next**: Phase 2 (Contacts — sortable table + avatars + checkboxes + a real sidebar wiring up the
   already-existing-but-unused `ContactList` backend entity, plus the new `favorite`/`categories`
   fields from Phase 0).
+
+### 2026-09-07 — Outlook-parity redesign, Phase 2: Contacts — sortable table, sidebar, ribbon
+toolbar, vCard import/export
+
+- **`apps/shared/lib/contactsApi.ts`**: `favorite`/`categories`/`contactListUid` threaded through
+  `Contact`/`ContactInput`; `listDeletedContacts()`, `setContactFavorite()`, and full `ContactList`
+  CRUD wrappers (`listContactLists`/`createContactList`/`updateContactList`/`deleteContactList`).
+- **Real backend gap found, deliberately not fixed this session**: restoring a soft-deleted
+  contact has no working path through the currently-mounted generic route —
+  `@rapidmx/restapi`'s `BaseScopedChildRoute.update()` looks its target up via a plain `findOne()`
+  with no `includeDeleted` option, so it 404s on an already-deleted record before a `deleted:
+  false` update could ever apply. Fixing it means changing that shared base class in
+  `@rapidmx/restapi` (a real, if small, cross-repo change) — out of proportion to fix unreviewed,
+  so `listDeletedContacts()` deliberately has no `restoreContact()` counterpart; the "Deleted"
+  sidebar view is browse-only (confirmed working end-to-end via a real `yarn dev` soft-delete +
+  `?deleted=true` list call) until that lands.
+- **New**: `ContactAvatar.tsx` (circular initials avatar, deterministic color from a name hash —
+  no photo-upload feature exists to key off instead), `vcard.ts` (pure client-side vCard 3.0
+  generate/parse/round-trip — no backend vCard support exists or is needed), `ContactsSidebar.tsx`
+  (Your contacts/Favorites/Deleted/Your contact lists — real `ContactList` records, with an inline
+  "+" create form — /Categories, derived from the distinct `categories` values across loaded
+  contacts, colored via a fixed client palette keyed by name), `ContactsToolbar.tsx` (New contact,
+  Edit, Delete, Email, Favorite/Unfavorite, Add category, Export, Import — presentational, every
+  action a callback the page implements).
+- **`apps/www/contacts/index.tsx` rewritten**: flat `<ul>` → sortable `<table>` (Name/Contact info
+  columns, checkbox column + "select all", avatars); sidebar view selection filters the table
+  client-side (`favorites`/`list`/`category` derived from the already-loaded flat list; `deleted`
+  is the one case needing its own separate fetch, done lazily only when that view is selected).
+  `ContactForm` gained a `favorite` checkbox and a comma-separated `categories` text field.
+  "Email" toolbar action deep-links to `/compose?to=<joined addresses>` — needed a small, separate
+  addition to `apps/www/compose/index.tsx` (a `?to=` query-param read on mount, matching this
+  app's other query-param-reading conventions) since compose had no `to` prefill mechanism before.
+- **Real bug found and fixed via test failures, not just live testing**: every bulk toolbar action
+  (Delete/Favorite/Add category/Import) originally did `setError(<failure message>)` inside its
+  own per-item try/catch loop, then unconditionally called `reload()` immediately after — but
+  `reload()` itself always starts with `setError(null)` (a legitimate reset for its own fresh
+  fetch), which silently wiped out the bulk action's just-set error message before the user ever
+  saw it, since both calls happen synchronously in the same handler. Fixed by having `reload()`
+  return its promise, awaiting it in every bulk handler, and only setting the captured error
+  message *after* the reload completes (so it's the last write, not the first).
+- **Test flakiness found and fixed**: a new compose test asserting `?to=` prefill used
+  `expect(await screen.findByLabelText("To")).toHaveValue(...)` — `findByLabelText` resolves the
+  instant the (always-rendered) input exists in the DOM, which can race ahead of the mount effect
+  that seeds its value, intermittently failing (confirmed via repeated runs: sometimes 15/15,
+  sometimes 14/15). Fixed by switching to `waitFor(() => expect(...).toHaveValue(...))`, which
+  retries the assertion itself instead of trusting a single snapshot at the earliest possible
+  moment — not a production bug, `useEffect` always flushes before paint in a real browser.
+- **Two genuinely dead defensive branches simplified**, same pattern as this session's earlier
+  restapi/`ComposeToolbar` work: `ContactsToolbar`'s own `run()`-equivalent guard, and
+  `handleToolbarEdit`'s `checkedContacts.length === 1` check — both unreachable in practice since
+  their only caller (a toolbar button) is itself `disabled` outside that exact state.
+- Verification: `yarn tsc --noEmit`, client `tsc -p tsconfig.client.json --noEmit`, `yarn lint`,
+  full `yarn test` (597/597, `apps/**` still 100%) all clean. Real `yarn dev` + `curl` smoke test:
+  contacts page SSR, creating a `ContactList`, creating a `Contact` with
+  `favorite`/`categories`/`contactListUid` all set, soft-deleting it, and confirming it reappears
+  via `GET /mail/contacts?folderUid=...&deleted=true` — all worked end-to-end on the first try.
+- **Not yet committed** — same standing rule as every prior entry in this file.
+- **Next**: Phase 3 (Tasks — `TaskList` sidebar wiring mirroring this phase's `ContactList` pattern,
+  My Day/Important/Planned/Assigned-to-me smart filters, Flagged-email cross-folder fan-out).

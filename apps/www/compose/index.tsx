@@ -56,6 +56,18 @@ function ComposeContent() {
     const [sending, setSending] = useState(false);
     const [sent, setSent] = useState(false);
 
+    // Seeded from `?to=` (e.g. Contacts' "Email" toolbar action) once, on mount only — never re-read on a
+    // later query-string change, matching this framework's other query-param readers (e.g. calendar's own
+    // `?view=`/`?date=`). Reading it inside a `useEffect` rather than the render body keeps SSR (which never
+    // sees a real query string) and the client's first hydration pass in sync — see `MailShell`'s original
+    // doc comment on this exact hazard.
+    useEffect(() => {
+        const requestedTo = new URLSearchParams(window.location.search).get("to");
+        if (requestedTo) {
+            setTo(requestedTo);
+        }
+    }, []);
+
     useEffect(() => {
         if (!mailboxUid || !draftsFolderUid || draft) {
             return;

@@ -6,10 +6,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { emptyResponse, jsonResponse, mockFetch } from "../testUtils.js";
 import {
     createContact,
+    createContactList,
     deleteContact,
+    deleteContactList,
     getContact,
+    listContactLists,
     listContacts,
+    listDeletedContacts,
+    setContactFavorite,
     updateContact,
+    updateContactList,
 } from "../../../apps/shared/lib/contactsApi.js";
 
 const contact = {
@@ -122,6 +128,79 @@ describe("deleteContact", () => {
         await deleteContact("c/1", 3);
         expect(fetchMock).toHaveBeenCalledWith(
             "/api/mail/contacts/c%2F1?version=3",
+            expect.objectContaining({ method: "DELETE" }),
+        );
+    });
+});
+
+describe("listDeletedContacts", () => {
+    it("fetches scoped by folderUid, constrained to deleted=true", async () => {
+        const fetchMock = mockFetch(() => jsonResponse(200, [{ ...contact, deleted: true }]));
+        const result = await listDeletedContacts("f1");
+        expect(fetchMock).toHaveBeenCalledWith(
+            "/api/mail/contacts?limit=25&page=0&folderUid=f1&deleted=true&sort=" +
+                encodeURIComponent(JSON.stringify({ displayName: "ASC" })),
+            expect.anything(),
+        );
+        expect(result[0].deleted).toBe(true);
+    });
+});
+
+describe("setContactFavorite", () => {
+    it("PUTs the contact with favorite set to the given value", async () => {
+        const fetchMock = mockFetch(() => jsonResponse(200, { ...contact, favorite: true }));
+        await setContactFavorite(contact, true);
+        const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+        expect(body.favorite).toBe(true);
+        expect(body.uid).toBe("c1");
+    });
+});
+
+describe("listContactLists", () => {
+    it("fetches scoped by mailboxUid, sorted by name", async () => {
+        const list = { uid: "cl1", version: 0, dateCreated: "", dateModified: "", mailboxUid: "mb1", name: "Friends" };
+        const fetchMock = mockFetch(() => jsonResponse(200, [list]));
+        const result = await listContactLists("mb1");
+        expect(fetchMock).toHaveBeenCalledWith(
+            "/api/mail/contact-lists?limit=25&page=0&mailboxUid=mb1&sort=" + encodeURIComponent(JSON.stringify({ name: "ASC" })),
+            expect.anything(),
+        );
+        expect(result).toEqual([list]);
+    });
+});
+
+describe("createContactList", () => {
+    it("posts mailboxUid/name", async () => {
+        const fetchMock = mockFetch(() => jsonResponse(200, { uid: "cl1" }));
+        await createContactList({ mailboxUid: "mb1", name: "Friends" });
+        expect(fetchMock).toHaveBeenCalledWith(
+            "/api/mail/contact-lists",
+            expect.objectContaining({ method: "POST", body: JSON.stringify({ mailboxUid: "mb1", name: "Friends" }) }),
+        );
+    });
+});
+
+describe("updateContactList", () => {
+    it("PUTs the encoded uid with the input", async () => {
+        const fetchMock = mockFetch(() => jsonResponse(200, { uid: "cl1", name: "Renamed" }));
+        const result = await updateContactList({ uid: "cl/1", version: 0, name: "Renamed" });
+        expect(fetchMock).toHaveBeenCalledWith(
+            "/api/mail/contact-lists/cl%2F1",
+            expect.objectContaining({
+                method: "PUT",
+                body: JSON.stringify({ uid: "cl/1", version: 0, name: "Renamed" }),
+            }),
+        );
+        expect(result.name).toBe("Renamed");
+    });
+});
+
+describe("deleteContactList", () => {
+    it("DELETEs the encoded uid with the version query param", async () => {
+        const fetchMock = mockFetch(() => emptyResponse(200));
+        await deleteContactList("cl/1", 2);
+        expect(fetchMock).toHaveBeenCalledWith(
+            "/api/mail/contact-lists/cl%2F1?version=2",
             expect.objectContaining({ method: "DELETE" }),
         );
     });
