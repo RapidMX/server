@@ -3,7 +3,7 @@
 // Copyright (C) 2026 Jean-Philippe Steinmetz. All rights reserved.
 ///////////////////////////////////////////////////////////////////////////////
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { jsonResponse, mockFetch } from "../testUtils.js";
@@ -137,6 +137,34 @@ describe("TasksSidebar", () => {
         rerender(<TasksSidebar mailboxUid="mb1" tasks={[]} active={{ type: "all" }} onSelect={vi.fn()} refreshToken={2} />);
         await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
         await screen.findByText("Lists");
+    });
+
+    it("opens the mobile drawer via the menu button, and selecting a view closes it again.", async () => {
+        mockFetch(() => jsonResponse(200, []));
+        const onSelect = vi.fn();
+        const user = userEvent.setup();
+        render(<TasksSidebar mailboxUid="mb1" tasks={[]} active={{ type: "all" }} onSelect={onSelect} />);
+
+        expect(screen.queryByRole("dialog", { name: "Tasks" })).not.toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: "Open tasks menu" }));
+        const drawer = screen.getByRole("dialog", { name: "Tasks" });
+        await user.click(within(drawer).getByText("My Day"));
+
+        expect(onSelect).toHaveBeenCalledWith({ type: "myDay" });
+        expect(screen.queryByRole("dialog", { name: "Tasks" })).not.toBeInTheDocument();
+    });
+
+    it("closes the mobile drawer via its own Close button", async () => {
+        mockFetch(() => jsonResponse(200, []));
+        const user = userEvent.setup();
+        render(<TasksSidebar mailboxUid="mb1" tasks={[]} active={{ type: "all" }} onSelect={vi.fn()} />);
+
+        await user.click(screen.getByRole("button", { name: "Open tasks menu" }));
+        const drawer = screen.getByRole("dialog", { name: "Tasks" });
+        await user.click(within(drawer).getByRole("button", { name: "Close" }));
+
+        expect(screen.queryByRole("dialog", { name: "Tasks" })).not.toBeInTheDocument();
     });
 
     it("opens a new-list form, creates the list, and appends it to the sidebar sorted by name.", async () => {

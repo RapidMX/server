@@ -3,8 +3,10 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { FormEvent, useEffect, useMemo, useState } from "react";
+import { HiOutlineBars3 } from "react-icons/hi2";
 import { ApiRequestError } from "../../lib/api.js";
 import { Task, TaskList, createTaskList, listTaskLists } from "../../lib/tasksApi.js";
+import Drawer from "../../lib/Drawer.js";
 
 export type TasksView =
     | { type: "myDay" }
@@ -62,6 +64,7 @@ export default function TasksSidebar({ mailboxUid, tasks, userUid, active, onSel
     const [listsError, setListsError] = useState<string | null>(null);
     const [addingList, setAddingList] = useState(false);
     const [newListName, setNewListName] = useState("");
+    const [drawerOpen, setDrawerOpen] = useState(false);
 
     useEffect(() => {
         if (!mailboxUid) {
@@ -103,27 +106,35 @@ export default function TasksSidebar({ mailboxUid, tasks, userUid, active, onSel
         }
     }
 
-    return (
-        <nav aria-label="Tasks" className="w-56 shrink-0 border-r border-border flex flex-col gap-4 p-3 overflow-y-auto">
+    function handleSelect(view: TasksView) {
+        onSelect(view);
+        setDrawerOpen(false);
+    }
+
+    // A function, not a plain JSX constant — rendered both in the desktop `<nav>` and the mobile
+    // `Drawer` (see `ContactsSidebar` for the identical pattern and the duplicate-id reasoning behind
+    // the `idPrefix`).
+    const navContent = (idPrefix: string) => (
+        <>
             <div className="flex flex-col gap-0.5">
-                <NavItem label="My Day" count={myDayCount} active={active.type === "myDay"} onClick={() => onSelect({ type: "myDay" })} />
+                <NavItem label="My Day" count={myDayCount} active={active.type === "myDay"} onClick={() => handleSelect({ type: "myDay" })} />
                 <NavItem
                     label="Important"
                     count={importantCount}
                     active={active.type === "important"}
-                    onClick={() => onSelect({ type: "important" })}
+                    onClick={() => handleSelect({ type: "important" })}
                 />
-                <NavItem label="Planned" count={plannedCount} active={active.type === "planned"} onClick={() => onSelect({ type: "planned" })} />
+                <NavItem label="Planned" count={plannedCount} active={active.type === "planned"} onClick={() => handleSelect({ type: "planned" })} />
                 <NavItem
                     label="Assigned to me"
                     count={assignedToMeCount}
                     active={active.type === "assignedToMe"}
-                    onClick={() => onSelect({ type: "assignedToMe" })}
+                    onClick={() => handleSelect({ type: "assignedToMe" })}
                 />
-                <NavItem label="Flagged email" active={active.type === "flagged"} onClick={() => onSelect({ type: "flagged" })} />
+                <NavItem label="Flagged email" active={active.type === "flagged"} onClick={() => handleSelect({ type: "flagged" })} />
             </div>
 
-            <NavItem label="Tasks" count={tasks.length} active={active.type === "all"} onClick={() => onSelect({ type: "all" })} />
+            <NavItem label="Tasks" count={tasks.length} active={active.type === "all"} onClick={() => handleSelect({ type: "all" })} />
 
             <div>
                 <div className="flex items-center justify-between px-2.5 mb-1">
@@ -145,7 +156,7 @@ export default function TasksSidebar({ mailboxUid, tasks, userUid, active, onSel
                             label={list.name}
                             count={listCounts.get(list.uid) ?? 0}
                             active={active.type === "list" && active.uid === list.uid}
-                            onClick={() => onSelect({ type: "list", uid: list.uid, name: list.name })}
+                            onClick={() => handleSelect({ type: "list", uid: list.uid, name: list.name })}
                         />
                     ))}
                 </div>
@@ -155,6 +166,7 @@ export default function TasksSidebar({ mailboxUid, tasks, userUid, active, onSel
                             type="text"
                             autoFocus
                             aria-label="New list name"
+                            id={`${idPrefix}-new-list-name`}
                             value={newListName}
                             onChange={(e) => setNewListName(e.target.value)}
                             className="flex-1 text-xs py-1 px-1.5 border border-border rounded-sm bg-surface"
@@ -165,6 +177,25 @@ export default function TasksSidebar({ mailboxUid, tasks, userUid, active, onSel
                     </form>
                 )}
             </div>
-        </nav>
+        </>
+    );
+
+    return (
+        <>
+            <button
+                type="button"
+                className="md:hidden m-3 w-9 h-9 flex items-center justify-center rounded-sm text-text-muted hover:bg-surface-alt hover:text-text"
+                aria-label="Open tasks menu"
+                onClick={() => setDrawerOpen(true)}
+            >
+                <HiOutlineBars3 size={20} aria-hidden="true" />
+            </button>
+            <nav aria-label="Tasks" className="hidden md:flex w-56 shrink-0 border-r border-border flex-col gap-4 p-3 overflow-y-auto">
+                {navContent("desktop")}
+            </nav>
+            <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="Tasks">
+                <div className="flex flex-col gap-4">{navContent("mobile")}</div>
+            </Drawer>
+        </>
     );
 }

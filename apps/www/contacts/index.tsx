@@ -348,7 +348,7 @@ function ContactsContent() {
                 ) : sorted.length === 0 ? (
                     <p className="p-4 text-sm text-text-muted">No contacts found.</p>
                 ) : (
-                    <div className="flex-1 overflow-y-auto">
+                    <div className="flex-1 overflow-auto">
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b border-border text-left">
