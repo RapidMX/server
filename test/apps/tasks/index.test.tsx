@@ -788,4 +788,16 @@ describe("TasksPage — sidebar views, toolbar bulk actions, and grid mode", () 
 
         expect(await screen.findByText("Could not delete one or more tasks.")).toBeInTheDocument();
     });
+
+    it("wraps the task table (Grid view) in a horizontally-scrollable container, so it doesn't break the layout on a narrow screen.", async () => {
+        mockShellAndTasksWithLists([todayTask], [list], [tasksFolder]);
+        const user = userEvent.setup();
+        render(<TasksPage userUid="u1" />);
+        await screen.findByText("Today task");
+
+        await user.click(within(screen.getByRole("toolbar")).getByText("Grid"));
+
+        const table = await screen.findByRole("table");
+        expect(table.parentElement).toHaveClass("overflow-x-auto");
+    });
 });

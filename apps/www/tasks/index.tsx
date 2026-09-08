@@ -480,49 +480,51 @@ function TaskTable({ tasks, checkedUids, onToggleChecked, onToggle, onDelete }: 
     }
 
     return (
-        <table className="w-full text-sm bg-surface border border-border rounded-md">
-            <thead>
-                <tr className="border-b border-border text-left">
-                    <th className="w-8 px-3 py-2">
-                        <input type="checkbox" aria-label="Select all tasks" checked={allChecked} onChange={toggleAll} />
-                    </th>
-                    <th className="w-8 px-3 py-2" />
-                    <th className="px-3 py-2 text-xs font-bold uppercase tracking-wide text-text-muted">Title</th>
-                    <th className="px-3 py-2 text-xs font-bold uppercase tracking-wide text-text-muted">Due Date</th>
-                    <th className="px-3 py-2 text-xs font-bold uppercase tracking-wide text-text-muted">Importance</th>
-                    <th className="w-8 px-3 py-2" />
-                </tr>
-            </thead>
-            <tbody>
-                {tasks.map((task) => (
-                    <tr key={task.uid} className="border-b border-border last:border-0">
-                        <td className="px-3 py-2">
-                            <input
-                                type="checkbox"
-                                aria-label={`Select ${task.title}`}
-                                checked={checkedUids.has(task.uid)}
-                                onChange={() => onToggleChecked(task.uid)}
-                            />
-                        </td>
-                        <td className="px-3 py-2">
-                            <CompletionToggle task={task} onToggle={onToggle} />
-                        </td>
-                        <td className={["px-3 py-2", task.completed ? "line-through text-text-muted" : ""].join(" ")}>{task.title}</td>
-                        <td className="px-3 py-2 text-text-muted">{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : ""}</td>
-                        <td className={["px-3 py-2", PRIORITY_CLASS[task.priority]].join(" ")}>{PRIORITY_LABEL[task.priority]}</td>
-                        <td className="px-3 py-2">
-                            <button
-                                type="button"
-                                onClick={() => onDelete(task)}
-                                aria-label={`Delete "${task.title}"`}
-                                className="text-text-muted hover:text-danger text-sm px-1"
-                            >
-                                &times;
-                            </button>
-                        </td>
+        <div className="overflow-x-auto">
+            <table className="w-full text-sm bg-surface border border-border rounded-md">
+                <thead>
+                    <tr className="border-b border-border text-left">
+                        <th className="w-8 px-3 py-2">
+                            <input type="checkbox" aria-label="Select all tasks" checked={allChecked} onChange={toggleAll} />
+                        </th>
+                        <th className="w-8 px-3 py-2" />
+                        <th className="px-3 py-2 text-xs font-bold uppercase tracking-wide text-text-muted">Title</th>
+                        <th className="px-3 py-2 text-xs font-bold uppercase tracking-wide text-text-muted">Due Date</th>
+                        <th className="px-3 py-2 text-xs font-bold uppercase tracking-wide text-text-muted">Importance</th>
+                        <th className="w-8 px-3 py-2" />
                     </tr>
-                ))}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {tasks.map((task) => (
+                        <tr key={task.uid} className="border-b border-border last:border-0">
+                            <td className="px-3 py-2">
+                                <input
+                                    type="checkbox"
+                                    aria-label={`Select ${task.title}`}
+                                    checked={checkedUids.has(task.uid)}
+                                    onChange={() => onToggleChecked(task.uid)}
+                                />
+                            </td>
+                            <td className="px-3 py-2">
+                                <CompletionToggle task={task} onToggle={onToggle} />
+                            </td>
+                            <td className={["px-3 py-2", task.completed ? "line-through text-text-muted" : ""].join(" ")}>{task.title}</td>
+                            <td className="px-3 py-2 text-text-muted">{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : ""}</td>
+                            <td className={["px-3 py-2", PRIORITY_CLASS[task.priority]].join(" ")}>{PRIORITY_LABEL[task.priority]}</td>
+                            <td className="px-3 py-2">
+                                <button
+                                    type="button"
+                                    onClick={() => onDelete(task)}
+                                    aria-label={`Delete "${task.title}"`}
+                                    className="text-text-muted hover:text-danger text-sm px-1"
+                                >
+                                    &times;
+                                </button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
     );
 }

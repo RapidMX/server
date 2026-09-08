@@ -208,7 +208,7 @@ describe("CalendarShell", () => {
         });
         render(<CalendarShell userUid="u1">content</CalendarShell>);
         await screen.findByText("content");
-        expect(screen.getByRole("button", { name: "Open mailbox switcher" })).toBeInTheDocument();
+        expect(await screen.findByRole("button", { name: "Open mailbox switcher" })).toBeInTheDocument();
     });
 
     it("provides the resolved mailbox/folder/mailboxes to children via useCalendarShell()", async () => {

@@ -3,7 +3,9 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { createContext, PropsWithChildren, ReactNode, useContext, useEffect, useMemo, useState } from "react";
+import { HiOutlineBars3 } from "react-icons/hi2";
 import { ApiRequestError } from "../../../lib/api.js";
+import Drawer from "../../../lib/Drawer.js";
 import { Folder, Mailbox, listFolders, listMailboxes } from "../../../lib/mailApi.js";
 import Alert from "../../feedback/Alert.js";
 import Skeleton, { SkeletonList } from "../../feedback/Skeleton.js";
@@ -53,6 +55,7 @@ export default function TasksShell({
     const [folders, setFolders] = useState<Folder[]>([]);
     const [folderError, setFolderError] = useState<string | null>(null);
     const [requestedMailboxUid, setRequestedMailboxUid] = useState<string | null>(null);
+    const [drawerOpen, setDrawerOpen] = useState(false);
 
     useEffect(() => {
         setRequestedMailboxUid(new URLSearchParams(window.location.search).get("mailboxUid"));
@@ -122,37 +125,61 @@ export default function TasksShell({
             </div>
         );
     } else if (userUid && status === "ready") {
+        // A function, not a plain JSX constant — see MailShell/ContactsShell/CalendarShell's identical
+        // comment: it's rendered twice (desktop `<aside>` + mobile `Drawer`), possibly simultaneously
+        // mounted, so the `<select>`'s `id`/its `<label>`'s `htmlFor` need a distinct value per instance.
+        const sidebarContent = (idPrefix: string) => (
+            <>
+                {mailboxes.length > 1 && (
+                    <div>
+                        <label
+                            className="block text-xs font-bold uppercase tracking-wide text-text-muted mb-1"
+                            htmlFor={`${idPrefix}-tasks-mailbox-switcher`}
+                        >
+                            Mailbox
+                        </label>
+                        <select
+                            id={`${idPrefix}-tasks-mailbox-switcher`}
+                            className="w-full text-sm border border-border rounded-sm py-1.5 px-2 bg-surface"
+                            value={mailboxUid}
+                            onChange={(e) => {
+                                window.location.href = `/tasks?mailboxUid=${encodeURIComponent(e.target.value)}`;
+                            }}
+                        >
+                            {mailboxes.map((mb) => (
+                                <option key={mb.uid} value={mb.uid}>
+                                    {mb.displayName}
+                                    {mb.ownerUserUid ? "" : " (shared)"}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+                {folderError && <Alert>{folderError}</Alert>}
+            </>
+        );
+
         inner = (
             <>
-                <aside className="w-56 shrink-0 bg-surface border-r border-border flex flex-col p-3 gap-3">
-                    {mailboxes.length > 1 && (
-                        <div>
-                            <label
-                                className="block text-xs font-bold uppercase tracking-wide text-text-muted mb-1"
-                                htmlFor="tasks-mailbox-switcher"
-                            >
-                                Mailbox
-                            </label>
-                            <select
-                                id="tasks-mailbox-switcher"
-                                className="w-full text-sm border border-border rounded-sm py-1.5 px-2 bg-surface"
-                                value={mailboxUid}
-                                onChange={(e) => {
-                                    window.location.href = `/tasks?mailboxUid=${encodeURIComponent(e.target.value)}`;
-                                }}
-                            >
-                                {mailboxes.map((mb) => (
-                                    <option key={mb.uid} value={mb.uid}>
-                                        {mb.displayName}
-                                        {mb.ownerUserUid ? "" : " (shared)"}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
-                    {folderError && <Alert>{folderError}</Alert>}
+                <aside className="hidden md:flex w-56 shrink-0 bg-surface border-r border-border flex-col p-3 gap-3">
+                    {sidebarContent("desktop")}
                 </aside>
-                <TasksShellContext.Provider value={contextValue}>{children}</TasksShellContext.Provider>
+                <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="Mailbox">
+                    <div className="flex flex-col gap-3">{sidebarContent("mobile")}</div>
+                </Drawer>
+                <main className="flex-1 min-w-0 flex flex-col">
+                    {(mailboxes.length > 1 || folderError) && (
+                        <button
+                            type="button"
+                            className="md:hidden m-3 w-9 h-9 flex items-center justify-center rounded-sm text-text-muted hover:bg-surface-alt hover:text-text"
+                            aria-label="Open mailbox switcher"
+                            onClick={() => setDrawerOpen(true)}
+                        >
+                            <HiOutlineBars3 size={20} aria-hidden="true" />
+                        </button>
+                    )}
+                    <TasksShellContext.Provider value={contextValue}>{children}</TasksShellContext.Provider>
+                </main>
             </>
         );
     }

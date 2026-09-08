@@ -208,7 +208,7 @@ describe("ContactsShell", () => {
         });
         render(<ContactsShell userUid="u1">content</ContactsShell>);
         await screen.findByText("content");
-        expect(screen.getByRole("button", { name: "Open mailbox switcher" })).toBeInTheDocument();
+        expect(await screen.findByRole("button", { name: "Open mailbox switcher" })).toBeInTheDocument();
     });
 
     it("provides the resolved mailbox/folder/mailboxes to children via useContactsShell()", async () => {
