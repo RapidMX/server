@@ -82,11 +82,13 @@ describe("AdminShell", () => {
         const quarantine = rail.getByRole("link", { name: "Quarantine" });
         const ingestQueue = rail.getByRole("link", { name: "Ingest Queue" });
         const domains = rail.getByRole("link", { name: "Domains" });
+        const auditLog = rail.getByRole("link", { name: "Audit Log" });
 
         expect(mailboxes).toHaveAttribute("href", "/admin");
         expect(quarantine).toHaveAttribute("href", "/admin/quarantine");
         expect(ingestQueue).toHaveAttribute("href", "/admin/ingest-queue");
         expect(domains).toHaveAttribute("href", "/admin/domains");
+        expect(auditLog).toHaveAttribute("href", "/admin/audit-log");
 
         expect(quarantine).toHaveAttribute("aria-current", "page");
         expect(quarantine.className).toContain("bg-primary/10");

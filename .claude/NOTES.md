@@ -1796,6 +1796,59 @@ Phases 2–4:**
   scans once at startup, not on new-file creation (editing an *existing* entry file hot-reloads fine).
   A `500` with "Manifest entry ... not found" on a route that returns `200` after a restart is this,
   not a real bug — worth remembering before spending time debugging it again.
-- Not yet committed — holding for JP's review/commit-authorization per this plan's "ask before
-  committing" default (distinct from the mobile-responsiveness plan's blanket authorization, which
-  doesn't carry over to this new plan).
+- Committed (`ce4926c`) with JP's explicit go-ahead. `.github/workflows/ci.yml` had an unrelated local
+  modification (`actions/checkout@v4` → `v6` across several jobs) sitting in the working tree at the
+  time — not something this session touched, so left out of the commit and flagged to JP rather than
+  swept in or reverted.
+
+### 2026-09-08 — Wiring `@rapidmx/restapi`'s new features into `server`: Phase 2 (Audit log)
+
+Second slice of the same 15-phase plan (see the Phase 0/1 entry directly above for full context).
+Read-only by design — `BaseAuditLogRoute` unconditionally 403s every write path, trusted callers
+included (the only writer is restapi's own server-internal `recordAuditLog()`), so there's no CRUD
+form here, just a filterable list.
+
+- `apps/shared/lib/auditLogApi.ts` (new) — `AuditLogEntry` type + a single `listAuditLog(filters,
+  params)`; deliberately has no `create`/`update`/`delete` exports at all (unlike every other new
+  `*Api.ts` wrapper so far) since the backend genuinely has none to call. Every filter
+  (`mailboxUid`/`actorUserUid`/`action`/`targetType`) is optional and only added to the query string
+  when actually set — own direct unit tests in `test/apps/_lib/auditLogApi.test.ts`, matching the
+  `domainsApi.ts`/`mailApi.ts` precedent of testing every wrapper function directly.
+- `src/mongo/routes/AuditLogRoute.ts` + `src/sql/routes/AuditLogRoute.ts` (new) — same one-line
+  `@ApiRoute("mail/audit-log")` wrapper pattern as every other entity; no DI wiring needed (no
+  `@Inject` token, no background job — unlike Phase 1's `Domain`/`DnsResolver`).
+  `apps/admin/audit-log/index.tsx` (new) — a filter row (4 plain text inputs) above a table, filters
+  seeded from the query string on mount (`readFiltersFromUrl()`, same `typeof window === "undefined"`
+  SSR-guard convention as `quarantine`'s `readMailboxUid()`, own `.ssr.test.tsx`) *and* written back to
+  the URL as they change via `window.history.replaceState`, so a filtered view is itself
+  shareable/bookmarkable — the one new idiom this page introduces relative to Phase 1's read-only
+  list pages, which don't persist any state to the URL. `details` (arbitrary JSON) renders via a plain
+  native `<details>`/`<summary>` disclosure per row rather than any custom expand/collapse component —
+  literally the semantically-correct HTML element for "disclosure", needs no JS state of its own.
+- `AdminShell.tsx`: `AdminSection` gains `"auditLog"`, `NAV_ITEMS` gains a 5th entry
+  (`HiOutlineClipboardDocumentList`, `/admin/audit-log`).
+- **Two real test-authoring mistakes caught by actually running the suite, not just writing tests that
+  compile** — both worth remembering for the next URL-seeded-filter page:
+  1. `screen.findByLabelText(...)` resolves the instant the *element* exists in the DOM, which for this
+     page is on the very first render — *before* the mount effect that seeds `filters` from the query
+     string has run. Asserting `.toHaveValue(...)` immediately after `findByLabelText` races that
+     effect and can catch the pre-seeded (empty) render. Fixed by asserting on the seeded value
+     appearing at all (`screen.findByDisplayValue("mb1")`) rather than finding the label first and
+     checking its value as a separate, unguarded step.
+  2. A stray leftover `../../../testUtils.js` import path (three `../` instead of two) copied from a
+     *deeper* page's test file (`domains/detail/index.test.tsx`, one directory level deeper) rather
+     than a same-depth sibling (`quarantine/index.test.tsx`) — Vite's import-analysis plugin fails the
+     whole file immediately with a clear "Failed to resolve import" error, easy to miss if only
+     skimming a pass/fail count rather than actually reading a failing suite's output. When copying a
+     test file's import block as a template, match it against a sibling at the *same* directory depth,
+     not whichever file was open most recently.
+- Verification: `yarn tsc --noEmit`, client `tsc -p tsconfig.client.json --noEmit`, `yarn lint` all
+  clean. Full `yarn test`: 880/880 passing, coverage gate holds with no new carve-outs. `yarn dev` +
+  `curl`: `/admin/audit-log` returns `200`; created a real `Domain` via the API and confirmed its
+  `domain.create` audit entry (actor, action, target, `details: {name: ...}`) round-trips through
+  `GET /api/mail/audit-log` and the `targetType=Domain` filter correctly. **Could not confirm the
+  rendered page markup via `curl`** — same standing `AdminShell` client-hydration-gated limitation as
+  every prior admin-page entry. **No interactive browser click-through was done** — same standing
+  limitation as every entry in this file; JP should verify visually before relying on this, especially
+  the filter-to-URL round-trip and the details disclosure.
+- Not yet committed — holding for JP's review/commit-authorization, same default as every entry above.
