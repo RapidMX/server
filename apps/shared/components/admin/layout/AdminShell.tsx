@@ -9,6 +9,7 @@ import {
     HiOutlineGlobeAlt,
     HiOutlineInboxStack,
     HiOutlineQueueList,
+    HiOutlineShieldCheck,
     HiOutlineShieldExclamation,
     HiOutlineUserGroup,
 } from "react-icons/hi2";
@@ -18,7 +19,14 @@ import Alert from "../../feedback/Alert.js";
 import BottomTabBar, { NavItem } from "../../layout/BottomTabBar.js";
 import UserMenu from "../../layout/UserMenu.js";
 
-export type AdminSection = "mailboxes" | "quarantine" | "ingestQueue" | "domains" | "auditLog" | "distributionLists";
+export type AdminSection =
+    | "mailboxes"
+    | "quarantine"
+    | "ingestQueue"
+    | "domains"
+    | "auditLog"
+    | "distributionLists"
+    | "transportRules";
 
 export interface AdminShellProps {
     /** Which icon in the rail is highlighted as the current section. */
@@ -48,6 +56,12 @@ const NAV_ITEMS: NavItem[] = [
         href: "/admin/distribution-lists",
         label: "Distribution Lists",
         icon: HiOutlineUserGroup,
+    },
+    {
+        id: "transportRules",
+        href: "/admin/transport-rules",
+        label: "Transport Rules",
+        icon: HiOutlineShieldCheck,
     },
 ];
 

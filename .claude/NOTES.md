@@ -1941,4 +1941,77 @@ which `encodeURIComponent` passes through unchanged, so Phase 1's `domainsApi.ts
   entry. **No interactive browser click-through was done** — same standing limitation as every entry
   in this file; JP should verify visually before relying on this, especially the member add/remove
   flow now that its underlying routing bug is fixed.
+- Committed (`8cb9c53`) with JP's explicit go-ahead.
+
+### 2026-09-08 — Wiring `@rapidmx/restapi`'s new features into `server`: Phase 4 (Transport rules + shared `RuleBuilder`)
+
+Fourth slice of the same 15-phase plan (see the Phase 0–3 entries above for full context). The first
+phase to introduce a genuinely new shared component rather than a per-scope admin page pattern.
+
+- `apps/shared/lib/transportRulesApi.ts` (new) — `TransportRule` type + full CRUD, no uid-derivation
+  on create (unlike `Domain`/`Mailbox`/`DistributionList` — a transport rule has no natural address).
+  Own direct unit tests in `test/apps/_lib/transportRulesApi.test.ts`.
+- `apps/shared/components/rules/RuleBuilder.tsx` (new) — deliberately scope-neutral location (not
+  under `admin/`), since Phase 11's mail filters will reuse it. Shares the condition-row editor and
+  enabled/sequence/stop-processing chrome across both future consumers via a declarative
+  `conditionFields: ConditionFieldDef[]` prop (`"list"` kind renders an add/remove chip editor for a
+  `string[]` field, `"boolean"` a checkbox) — `TransportRuleConditions` and (later) `MailFilterConditions`
+  aren't identical shapes, so this is driven by config rather than the component hardcoding either
+  vocabulary. Actions stay a small per-scope registry (`ActionTypeDef<A>[]`, each with `createDefault()`
+  + `render()`) exactly as the plan called for — transport-rule actions (reject/quarantine/add-header/
+  add-recipient) and mail-filter actions (move/copy/delete/mark-read/forward) are different enough
+  vocabularies that one component special-casing both would be worse than this split. Generic over
+  `<C extends object, A extends {type: string}>` — TypeScript's `Record<string, unknown>` constraint
+  needs an explicit index signature that plain domain interfaces like `TransportRuleConditions` don't
+  have, so the constraint is the weaker `object` with an internal `as Record<string, unknown>` cast at
+  the one place dynamic keyed access is unavoidable, keeping the *public* `TransportRuleConditions`/
+  `MailFilterConditions` types themselves unchanged. Own full test file,
+  `test/apps/_components/RuleBuilder.test.tsx`, using a small local two-field/two-action-type fixture
+  rather than the real transport-rule vocabulary, so this suite documents and locks in `RuleBuilder`'s
+  own contract independent of any one consumer.
+- `apps/admin/transport-rules/transportRuleConfig.tsx` (new) — the actual per-scope
+  `conditionFields`/`actionTypes` registry for `TransportRule`, shared between `new/index.tsx` and
+  `detail/index.tsx` (both need the identical config) rather than duplicated inline in each.
+- `apps/admin/transport-rules/{index,new,detail}.tsx` (new) — list/create/detail three-page shape,
+  but **`detail` is the first phase-4-and-earlier detail page that's actually editable** (Phases 1–3's
+  detail pages were view-plus-one-action, e.g. Domain's "Verify now"; this one is a real form with
+  `RuleBuilder` wired to local draft state, saved via a single `PUT`). List page sorts client-side by
+  `sequence` (evaluation order) since that's the one thing an admin actually needs to scan for here.
+- `AdminShell.tsx`: `AdminSection` gains `"transportRules"`, `NAV_ITEMS` gains a 7th entry
+  (`HiOutlineShieldCheck`, `/admin/transport-rules`).
+- `src/mongo/routes/TransportRuleRoute.ts` + `src/sql/routes/TransportRuleRoute.ts` (new) — same
+  one-line `@ApiRoute("mail/transport-rules")` wrapper pattern; no new DI wiring needed.
+- Two more instances of the by-now-familiar "dead guard the UI structurally can't trigger" pattern
+  (Phase 1's `DomainDetailContent.handleVerify`, Phase 3-adjacent `QuarantineContent.handleRelease`):
+  `TransportRuleDetailContent.handleSubmit`'s `if (!original || !rule) return;` (only ever invoked from
+  a form that itself only renders once both are loaded) — removed in favor of `original!`/`rule!`
+  assertions with the same explanatory comment. Caught by the coverage gate, not by inspection, this
+  time — worth remembering that this class of gotcha shows up as an uncovered-branch failure just as
+  reliably as it shows up on a close read.
+- **One genuinely new lesson this phase, not a repeat of an earlier one**: `RuleBuilder`'s own
+  `addAction()` has an analogous guard (`if (!def) return`, for when `newActionType` matches nothing in
+  `actionTypes`) that looked at first like the same "UI can't trigger this" dead code — but it's
+  reachable in a real (if degenerate) case a *reusable* component has to account for that a one-off
+  page doesn't: a consumer rendering `RuleBuilder` with an **empty `actionTypes` array**. Fixed by
+  writing the genuine test for that case (`actionTypes={[]}`, click "Add action", assert it's a no-op)
+  rather than removing the guard — the distinguishing question worth carrying forward: a dead-guard
+  removal is right when only *this specific page's own JSX* could ever call the function; it's wrong
+  once the function lives on a component other, not-yet-written consumers can also render, since a
+  future caller might not respect the same invariant. Also surfaced a **full-suite-only coverage gap**
+  on this exact line (100% in isolation and in the Phase-4-only subset, 97.82%/90% at full-suite scale)
+  — traced to ground truth via the raw v8 `coverage-final.json` statement map (`node -e` reading
+  `entry.s`/`entry.statementMap` directly), not the text reporter's line-range summary, which was
+  imprecise here. Genuinely fixed (not a `ComposeWindow.tsx`-style accepted tooling exception) — no new
+  `vitest.config.ts` carve-out needed.
+- Verification: `yarn tsc --noEmit`, client `tsc -p tsconfig.client.json --noEmit`, `yarn lint` all
+  clean. Full `yarn test`: 960/960 passing (one `Server.mongo.test.ts` `ECONNRESET` on the first
+  attempt, confirmed transient by an immediate clean re-run — real `mongodb-memory-server` network
+  flakiness, not a regression), coverage gate holds with no new carve-outs. `yarn dev` + real `fetch()`
+  calls: `/admin/transport-rules` and `/admin/transport-rules/detail?uid=...` both `200`, a real
+  transport rule created end-to-end with `anyRecipientExternal`/`add_header` and confirmed round-tripping
+  through the list endpoint. **Could not confirm the rendered page markup via `curl`** — same standing
+  `AdminShell` client-hydration-gated limitation as every prior admin-page entry. **No interactive
+  browser click-through was done** — same standing limitation as every entry in this file; JP should
+  verify visually before relying on this, especially `RuleBuilder`'s own condition-chip and
+  action-registry UX, which has no automated visual check.
 - Not yet committed — holding for JP's review/commit-authorization, same default as every entry above.
