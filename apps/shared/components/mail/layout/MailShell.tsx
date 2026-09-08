@@ -3,7 +3,9 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { createContext, PropsWithChildren, ReactNode, useContext, useEffect, useMemo, useState } from "react";
+import { HiOutlineBars3 } from "react-icons/hi2";
 import { ApiRequestError } from "../../../lib/api.js";
+import Drawer from "../../../lib/Drawer.js";
 import { Folder, Mailbox, listFolders, listMailboxes } from "../../../lib/mailApi.js";
 import Alert from "../../feedback/Alert.js";
 import Skeleton, { SkeletonList } from "../../feedback/Skeleton.js";
@@ -101,6 +103,7 @@ export default function MailShell({
     const [folderError, setFolderError] = useState<string | null>(null);
     const [requestedMailboxUid, setRequestedMailboxUid] = useState<string | null>(null);
     const [requestedFolderUid, setRequestedFolderUid] = useState<string | null>(null);
+    const [drawerOpen, setDrawerOpen] = useState(false);
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -179,69 +182,84 @@ export default function MailShell({
             </div>
         );
     } else if (userUid && status === "ready") {
+        const sidebarContent = (
+            <>
+                <div className="p-3">
+                    <ComposeButton mailboxUid={mailboxUid} />
+                </div>
+                {mailboxes.length > 1 && (
+                    <div className="px-3 pb-2">
+                        <label
+                            className="block text-xs font-bold uppercase tracking-wide text-text-muted mb-1"
+                            htmlFor="mailbox-switcher"
+                        >
+                            Mailbox
+                        </label>
+                        <select
+                            id="mailbox-switcher"
+                            className="w-full text-sm border border-border rounded-sm py-1.5 px-2 bg-surface"
+                            value={mailboxUid}
+                            onChange={(e) => {
+                                window.location.href = `/?mailboxUid=${encodeURIComponent(e.target.value)}`;
+                            }}
+                        >
+                            {mailboxes.map((mb) => (
+                                <option key={mb.uid} value={mb.uid}>
+                                    {mb.displayName}
+                                    {mb.ownerUserUid ? "" : " (shared)"}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+                {folderError && (
+                    <div className="px-3 pb-2">
+                        <Alert>{folderError}</Alert>
+                    </div>
+                )}
+                <nav className="flex-1 overflow-y-auto px-3 pb-3 flex flex-col gap-0.5">
+                    {foldersLoading ? (
+                        <SkeletonList count={5} className="pt-1" />
+                    ) : (
+                        sortedFolders.map((folder) => (
+                            <a
+                                key={folder.uid}
+                                href={`/?mailboxUid=${encodeURIComponent(mailboxUid)}&folderUid=${encodeURIComponent(folder.uid)}`}
+                                className={[
+                                    "flex items-center justify-between text-sm rounded-sm py-1.5 px-2.5",
+                                    folder.uid === folderUid
+                                        ? "bg-primary/10 text-primary-dark font-semibold"
+                                        : "text-text hover:bg-surface-alt",
+                                ].join(" ")}
+                            >
+                                <span>{FOLDER_LABELS[folder.type] ?? folder.name}</span>
+                                {folder.unreadCount > 0 && (
+                                    <span className="text-xs font-bold rounded-pill py-0.5 px-1.5 bg-surface-alt text-text-muted">
+                                        {folder.unreadCount}
+                                    </span>
+                                )}
+                            </a>
+                        ))
+                    )}
+                </nav>
+            </>
+        );
+
         inner = (
             <>
-                <aside className="w-64 shrink-0 bg-surface border-r border-border flex flex-col">
-                    <div className="p-3">
-                        <ComposeButton mailboxUid={mailboxUid} />
-                    </div>
-                    {mailboxes.length > 1 && (
-                        <div className="px-3 pb-2">
-                            <label
-                                className="block text-xs font-bold uppercase tracking-wide text-text-muted mb-1"
-                                htmlFor="mailbox-switcher"
-                            >
-                                Mailbox
-                            </label>
-                            <select
-                                id="mailbox-switcher"
-                                className="w-full text-sm border border-border rounded-sm py-1.5 px-2 bg-surface"
-                                value={mailboxUid}
-                                onChange={(e) => {
-                                    window.location.href = `/?mailboxUid=${encodeURIComponent(e.target.value)}`;
-                                }}
-                            >
-                                {mailboxes.map((mb) => (
-                                    <option key={mb.uid} value={mb.uid}>
-                                        {mb.displayName}
-                                        {mb.ownerUserUid ? "" : " (shared)"}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
-                    {folderError && (
-                        <div className="px-3 pb-2">
-                            <Alert>{folderError}</Alert>
-                        </div>
-                    )}
-                    <nav className="flex-1 overflow-y-auto px-3 pb-3 flex flex-col gap-0.5">
-                        {foldersLoading ? (
-                            <SkeletonList count={5} className="pt-1" />
-                        ) : (
-                            sortedFolders.map((folder) => (
-                                <a
-                                    key={folder.uid}
-                                    href={`/?mailboxUid=${encodeURIComponent(mailboxUid)}&folderUid=${encodeURIComponent(folder.uid)}`}
-                                    className={[
-                                        "flex items-center justify-between text-sm rounded-sm py-1.5 px-2.5",
-                                        folder.uid === folderUid
-                                            ? "bg-primary/10 text-primary-dark font-semibold"
-                                            : "text-text hover:bg-surface-alt",
-                                    ].join(" ")}
-                                >
-                                    <span>{FOLDER_LABELS[folder.type] ?? folder.name}</span>
-                                    {folder.unreadCount > 0 && (
-                                        <span className="text-xs font-bold rounded-pill py-0.5 px-1.5 bg-surface-alt text-text-muted">
-                                            {folder.unreadCount}
-                                        </span>
-                                    )}
-                                </a>
-                            ))
-                        )}
-                    </nav>
-                </aside>
+                <aside className="hidden md:flex w-64 shrink-0 bg-surface border-r border-border flex-col">{sidebarContent}</aside>
+                <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="Folders">
+                    <div className="flex flex-col">{sidebarContent}</div>
+                </Drawer>
                 <main className="flex-1 min-w-0 overflow-y-auto">
+                    <button
+                        type="button"
+                        className="md:hidden m-3 w-9 h-9 flex items-center justify-center rounded-sm text-text-muted hover:bg-surface-alt hover:text-text"
+                        aria-label="Open folders"
+                        onClick={() => setDrawerOpen(true)}
+                    >
+                        <HiOutlineBars3 size={20} aria-hidden="true" />
+                    </button>
                     <MailShellContext.Provider value={contextValue}>{children}</MailShellContext.Provider>
                 </main>
             </>

@@ -3,7 +3,7 @@
 // Copyright (C) 2026 Jean-Philippe Steinmetz. All rights reserved.
 ///////////////////////////////////////////////////////////////////////////////
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { jsonResponse, mockFetch, mockLocation } from "../testUtils.js";
@@ -406,6 +406,24 @@ describe("MailShell", () => {
 
         await user.click(await screen.findByRole("button", { name: "Return to admin" }));
         await waitFor(() => expect(location.href).toBe("/admin"));
+    });
+
+    it("opens the folder drawer via the mobile hamburger button, and closes it via the drawer's own close button", async () => {
+        mockMailboxesAndFolders([mailboxA], [draftsFolder, inboxFolder]);
+        const user = userEvent.setup();
+        render(<MailShell userUid="u1">content</MailShell>);
+        await screen.findByText("content");
+
+        expect(screen.queryByRole("dialog", { name: "Folders" })).not.toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: "Open folders" }));
+        const drawer = screen.getByRole("dialog", { name: "Folders" });
+        expect(drawer).toBeInTheDocument();
+        // The drawer holds its own copy of the folder tree (for mobile) — confirm it rendered, not just the dialog chrome.
+        expect(within(drawer).getByRole("link", { name: /Inbox/ })).toBeInTheDocument();
+
+        await user.click(within(drawer).getByRole("button", { name: "Close" }));
+        expect(screen.queryByRole("dialog", { name: "Folders" })).not.toBeInTheDocument();
     });
 
     it("provides the resolved mailbox/folder/lists to children via useMailShell()", async () => {
