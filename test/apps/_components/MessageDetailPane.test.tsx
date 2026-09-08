@@ -4,7 +4,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { jsonResponse, mockFetch } from "../testUtils.js";
 import MessageDetailPane from "../../../apps/shared/components/mail/MessageDetailPane.js";
 
 function messageFixture(overrides: Record<string, unknown> = {}) {
@@ -28,6 +30,10 @@ function messageFixture(overrides: Record<string, unknown> = {}) {
         ...overrides,
     };
 }
+
+afterEach(() => {
+    vi.unstubAllGlobals();
+});
 
 describe("MessageDetailPane", () => {
     it("shows a placeholder and no back link when no message is given", () => {
@@ -104,5 +110,103 @@ describe("MessageDetailPane", () => {
         expect(screen.getByText(/tiny\.txt \(500 B\)/)).toBeInTheDocument();
         expect(screen.getByText(/medium\.txt \(2\.5 KB\)/)).toBeInTheDocument();
         expect(screen.getByText(/big\.pdf \(2\.5 MB\)/)).toBeInTheDocument();
+    });
+
+    describe("recall", () => {
+        it("shows neither the button nor the indicator when isSentItems is not set", () => {
+            render(<MessageDetailPane message={messageFixture() as any} attachments={[]} />);
+            expect(screen.queryByRole("button", { name: "Recall this message" })).not.toBeInTheDocument();
+            expect(screen.queryByText("Recall requested")).not.toBeInTheDocument();
+        });
+
+        it("shows neither the button nor the indicator when isSentItems is false", () => {
+            render(<MessageDetailPane message={messageFixture() as any} attachments={[]} isSentItems={false} />);
+            expect(screen.queryByRole("button", { name: "Recall this message" })).not.toBeInTheDocument();
+            expect(screen.queryByText("Recall requested")).not.toBeInTheDocument();
+        });
+
+        it("shows the Recall button when isSentItems is true and recallRequestedAt is unset", () => {
+            render(<MessageDetailPane message={messageFixture() as any} attachments={[]} isSentItems />);
+            expect(screen.getByRole("button", { name: "Recall this message" })).toBeInTheDocument();
+            expect(screen.queryByText("Recall requested")).not.toBeInTheDocument();
+        });
+
+        it("shows the 'Recall requested' indicator instead of the button once recallRequestedAt is set", () => {
+            render(
+                <MessageDetailPane
+                    message={messageFixture({ recallRequestedAt: "2026-01-02T00:00:00.000Z" }) as any}
+                    attachments={[]}
+                    isSentItems
+                />,
+            );
+            expect(screen.getByText("Recall requested")).toBeInTheDocument();
+            expect(screen.queryByRole("button", { name: "Recall this message" })).not.toBeInTheDocument();
+        });
+
+        it("opens the confirmation modal, and Cancel closes it without calling the API", async () => {
+            const fetchMock = mockFetch(() => jsonResponse(200, {}));
+            const user = userEvent.setup();
+            render(<MessageDetailPane message={messageFixture() as any} attachments={[]} isSentItems />);
+
+            await user.click(screen.getByRole("button", { name: "Recall this message" }));
+            expect(screen.getByRole("dialog", { name: "Recall this message?" })).toBeInTheDocument();
+
+            await user.click(screen.getByRole("button", { name: "Cancel" }));
+            expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+            expect(fetchMock).not.toHaveBeenCalled();
+        });
+
+        it("also closes via the modal's own close button (Modal's onClose, distinct from the Cancel button)", async () => {
+            const user = userEvent.setup();
+            render(<MessageDetailPane message={messageFixture() as any} attachments={[]} isSentItems />);
+
+            await user.click(screen.getByRole("button", { name: "Recall this message" }));
+            await user.click(screen.getByRole("button", { name: "Close" }));
+
+            expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+        });
+
+        it("recalls the message, closes the modal, and calls onRecalled with the server's updated copy", async () => {
+            const updated = messageFixture({ recallRequestedAt: "2026-01-02T00:00:00.000Z" });
+            const fetchMock = mockFetch(() => jsonResponse(200, updated));
+            const onRecalled = vi.fn();
+            const user = userEvent.setup();
+            render(<MessageDetailPane message={messageFixture() as any} attachments={[]} isSentItems onRecalled={onRecalled} />);
+
+            await user.click(screen.getByRole("button", { name: "Recall this message" }));
+            await user.click(screen.getByRole("button", { name: "Recall message" }));
+
+            expect(fetchMock).toHaveBeenCalledWith(
+                "/api/mail/messages/m1/recall",
+                expect.objectContaining({ method: "POST" }),
+            );
+            expect(await screen.findByRole("button", { name: "Recall this message" })).toBeInTheDocument(); // dialog closed, re-rendered with the still-unset prop
+            expect(onRecalled).toHaveBeenCalledWith(updated);
+        });
+
+        it("shows an error message and keeps the modal open when recall fails", async () => {
+            mockFetch(() => jsonResponse(500, { message: "boom" }));
+            const user = userEvent.setup();
+            render(<MessageDetailPane message={messageFixture() as any} attachments={[]} isSentItems />);
+
+            await user.click(screen.getByRole("button", { name: "Recall this message" }));
+            await user.click(screen.getByRole("button", { name: "Recall message" }));
+
+            expect(await screen.findByText("boom")).toBeInTheDocument();
+            expect(screen.getByRole("dialog", { name: "Recall this message?" })).toBeInTheDocument();
+        });
+
+        it("shows a generic error message when recall fails with a non-API error", async () => {
+            mockFetch(() => {
+                throw new TypeError("network down");
+            });
+            const user = userEvent.setup();
+            render(<MessageDetailPane message={messageFixture() as any} attachments={[]} isSentItems />);
+
+            await user.click(screen.getByRole("button", { name: "Recall this message" }));
+            await user.click(screen.getByRole("button", { name: "Recall message" }));
+
+            expect(await screen.findByText("Could not recall this message.")).toBeInTheDocument();
+        });
     });
 });

@@ -25,7 +25,7 @@ export default function InboxPage(props: MailShellProps) {
 }
 
 function InboxContent() {
-    const { folderUid, mailboxUid } = useMailShell();
+    const { folderUid, mailboxUid, folders } = useMailShell();
     const isMobile = useIsMobile();
     const [viewMode, setViewMode] = useState<ViewMode>("date");
     const [messages, setMessages] = useState<Message[]>([]);
@@ -72,6 +72,7 @@ function InboxContent() {
     const selectedConversation = conversations.find((c) => c.conversationId === selectedConversationId) ?? null;
     const attachments = useMessageAttachments(selected);
     useMarkMessageRead(selected, (updated) => setMessages((prev) => prev.map((m) => (m.uid === updated.uid ? updated : m))));
+    const isSentItems = folders.find((f) => f.uid === folderUid)?.type === "sent_items";
 
     function handleSelect(message: Message) {
         if (isMobile) {
@@ -180,9 +181,14 @@ function InboxContent() {
             </div>
             <div className="hidden md:flex flex-1 min-w-0">
                 {viewMode === "conversation" ? (
-                    <ConversationThreadPane conversation={selectedConversation} />
+                    <ConversationThreadPane conversation={selectedConversation} folders={folders} />
                 ) : (
-                    <MessageDetailPane message={selected} attachments={attachments} />
+                    <MessageDetailPane
+                        message={selected}
+                        attachments={attachments}
+                        isSentItems={isSentItems}
+                        onRecalled={(updated) => setMessages((prev) => prev.map((m) => (m.uid === updated.uid ? updated : m)))}
+                    />
                 )}
             </div>
         </div>

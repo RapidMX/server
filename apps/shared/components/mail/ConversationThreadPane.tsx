@@ -4,13 +4,17 @@
 ///////////////////////////////////////////////////////////////////////////////
 import React, { useEffect, useState } from "react";
 import { ApiRequestError } from "../../lib/api.js";
-import { Attachment, Message, getMessage, listAttachments, setMessageRead } from "../../lib/mailApi.js";
+import { Attachment, Folder, Message, getMessage, listAttachments, setMessageRead } from "../../lib/mailApi.js";
 import { ConversationSummary } from "../../lib/conversationsApi.js";
 import MessageDetailPane from "./MessageDetailPane.js";
 import Alert from "../feedback/Alert.js";
 
 export interface ConversationThreadPaneProps {
     conversation: ConversationSummary | null;
+    /** The mailbox's full folder list — a conversation can span folders (e.g. an Inbox message and the
+     * Sent Items copy of its reply), so each message's own recall eligibility is looked up individually
+     * against its own `folderUid` rather than assuming one folder for the whole thread. */
+    folders: Folder[];
 }
 
 /**
@@ -21,7 +25,7 @@ export interface ConversationThreadPaneProps {
  * lightweight summary, since mounting a full `MessageDetailPane` (and its iframe) for every message in
  * a long thread up front would be wasteful.
  */
-export default function ConversationThreadPane({ conversation }: ConversationThreadPaneProps) {
+export default function ConversationThreadPane({ conversation, folders }: ConversationThreadPaneProps) {
     const [messages, setMessages] = useState<Record<string, Message>>({});
     const [attachmentsByUid, setAttachmentsByUid] = useState<Record<string, Attachment[]>>({});
     const [expandedUids, setExpandedUids] = useState<Set<string>>(new Set());
@@ -146,7 +150,12 @@ export default function ConversationThreadPane({ conversation }: ConversationThr
                         >
                             Collapse
                         </button>
-                        <MessageDetailPane message={message} attachments={attachmentsByUid[uid] ?? []} />
+                        <MessageDetailPane
+                            message={message}
+                            attachments={attachmentsByUid[uid] ?? []}
+                            isSentItems={folders.find((f) => f.uid === message.folderUid)?.type === "sent_items"}
+                            onRecalled={(updated) => setMessages((prev) => ({ ...prev, [uid]: updated }))}
+                        />
                     </div>
                 );
             })}

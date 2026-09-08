@@ -331,6 +331,10 @@ export interface Message {
     flags: MessageFlags;
     importance: MessageImportance;
     hasAttachments: boolean;
+    /** Set once `recallMessage()` has been called on this message — a recall is asynchronous and
+     * best-effort (see that function's own doc comment), so this is the only signal a caller gets;
+     * there is no separate "recalled successfully"/"failed" outcome synced onto the record itself. */
+    recallRequestedAt?: string;
 }
 
 /** Lists messages in a folder, newest first. */
@@ -342,6 +346,17 @@ export function listMessages(folderUid: string, params: ListParams = {}): Promis
 
 export function getMessage(uid: string): Promise<Message> {
     return apiFetch(`/mail/messages/${encodeURIComponent(uid)}`);
+}
+
+/**
+ * Attempts to recall a message this mailbox previously sent — only valid for a message currently in
+ * Sent Items (enforced server-side). Asynchronous and best-effort: this composes and relays a control
+ * message to every original recipient, but the actual delete-if-still-unread mutation happens later on
+ * each recipient's own mail system — there is no synchronous "recalled" outcome to report back, and the
+ * only visible effect here is `recallRequestedAt` getting set on the response.
+ */
+export function recallMessage(uid: string): Promise<Message> {
+    return apiFetch(`/mail/messages/${encodeURIComponent(uid)}/recall`, { method: "POST" });
 }
 
 /**

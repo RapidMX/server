@@ -6,7 +6,7 @@ import React, { useEffect, useState } from "react";
 import { ApiRequestError } from "../../../shared/lib/api.js";
 import { Message, getMessage } from "../../../shared/lib/mailApi.js";
 import { useMarkMessageRead, useMessageAttachments } from "../../../shared/lib/mailDetailHooks.js";
-import MailShell, { MailShellProps } from "../../../shared/components/mail/layout/MailShell.js";
+import MailShell, { MailShellProps, useMailShell } from "../../../shared/components/mail/layout/MailShell.js";
 import MessageDetailPane from "../../../shared/components/mail/MessageDetailPane.js";
 import Alert from "../../../shared/components/feedback/Alert.js";
 
@@ -30,6 +30,7 @@ export default function MessageDetailPage(props: MailShellProps) {
 }
 
 function MessageDetailContent() {
+    const { folders } = useMailShell();
     const [uid, setUid] = useState<string | null>(null);
     const [message, setMessage] = useState<Message | null>(null);
     const [loading, setLoading] = useState(true);
@@ -65,5 +66,14 @@ function MessageDetailContent() {
     }
 
     const backHref = `/?mailboxUid=${encodeURIComponent(message.mailboxUid)}&folderUid=${encodeURIComponent(message.folderUid)}`;
-    return <MessageDetailPane message={message} attachments={attachments} backHref={backHref} />;
+    const isSentItems = folders.find((f) => f.uid === message.folderUid)?.type === "sent_items";
+    return (
+        <MessageDetailPane
+            message={message}
+            attachments={attachments}
+            backHref={backHref}
+            isSentItems={isSentItems}
+            onRecalled={setMessage}
+        />
+    );
 }

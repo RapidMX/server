@@ -2135,3 +2135,63 @@ confirmed via `AskUserQuestion` during this plan's own planning phase.
   especially the merged-thread expand/collapse interaction and the view-mode toggle, which have no
   automated visual check.
 - Not yet committed — holding for JP's review/commit-authorization, same default as every entry above.
+
+### 2026-09-08 — Wiring `@rapidmx/restapi`'s new features into `server`: Phase 7 (Message recall, webmail)
+
+Seventh slice of the same 15-phase plan (see the Phase 0–6 entries above for full context). Adds the
+"Recall this message" action to Sent Items messages, wired through every place a message can be read.
+
+- `apps/shared/lib/mailApi.ts`: `Message` gains `recallRequestedAt?: string` (doc comment explains
+  it's the *only* signal a recall was requested — the actual outcome is asynchronous/best-effort with
+  no synchronous success/fail, matching `BaseMessageRoute.recall()`'s own real contract, confirmed by
+  reading restapi's source rather than assumed); new `recallMessage(uid): Promise<Message>`
+  (`POST /mail/messages/:id/recall`).
+- `MessageDetailPane.tsx`: new `isSentItems?: boolean`/`onRecalled?: (updated: Message) => void`
+  props. When `isSentItems` and no `recallRequestedAt` yet, shows a "Recall this message" button;
+  clicking opens a confirmation `Modal` (the existing shared primitive, not a new dialog) whose copy
+  sets fire-and-forget expectations explicitly ("You'll only know it worked if the original recipient
+  never receives it, or a real follow-up email arrives later"); once `recallRequestedAt` is set,
+  swaps the button for a persistent "Recall requested" pill — no spinner, no optimistic "recalled"
+  state, since there's nothing to poll.
+- All three places a message can be read now compute `isSentItems` per-message from the mailbox's own
+  folder list (`useMailShell().folders`) rather than assuming one folder for a whole view, and pass a
+  matching `onRecalled` that patches just that message back into whatever state shape that call site
+  already keeps: `apps/www/index.tsx` (desktop inline reading pane — patches the single-message list
+  by uid), `apps/www/messages/detail/index.tsx` (mobile detail page — `setMessage` directly), and
+  `ConversationThreadPane.tsx` (patches the per-uid `messages` record; `folders` is now a required
+  prop on `ConversationThreadPaneProps`, since — as the doc comment added this phase explains — a
+  conversation can span folders, so each message's own recall eligibility has to be looked up
+  individually against its own `folderUid` rather than the thread as a whole).
+- One more instance of the "dead guard the UI structurally can't trigger" pattern (same precedent as
+  every phase so far): `MessageDetailPane.handleRecall`'s `message!`/non-null assertion — the Recall
+  button only ever renders once `message` is already loaded.
+- Two real coverage gaps worth naming, both fixed with genuine tests rather than contrived ones:
+  `Modal`'s own `onClose` (its "Close" button/Escape/backdrop path) was never exercised separately
+  from the inline "Cancel" button's own `onClick` — same `setConfirming(false)` outcome, but a
+  structurally distinct code path; and the `.map()` non-matching-message branch of the `onRecalled`
+  patch in both `apps/www/index.tsx` and `ConversationThreadPane.tsx` needed a genuine 2-message test
+  to prove the *other* message is left untouched, mirroring the pre-existing identical fix for the
+  mark-as-read patch in earlier phases.
+- One test-fixture bug caught and fixed along the way: `test/apps/messages/detail/index.test.tsx`'s
+  recall test originally used an unread message fixture, which combined with a mock that always
+  echoed `flags.read: false` on the mark-as-read `PUT` into an infinite mark-as-read retry loop
+  (`useMarkMessageRead`'s guard re-fires on every `setMessage`, including the one from a successful
+  recall) that kept silently reverting `recallRequestedAt` back to unset before the test could observe
+  it. Fixed by pre-marking the test's `sentMessage` fixture as already read, isolating the test to the
+  recall flow — documented inline.
+- All new/touched files reached 100% coverage this phase (`mailApi.ts`'s new function,
+  `MessageDetailPane.tsx`, `apps/www/index.tsx`, `apps/www/messages/detail/index.tsx`,
+  `ConversationThreadPane.tsx`), confirmed both per-file via `lcov.info` and at full-suite scale.
+- Verification: `yarn tsc --noEmit`, client `tsc -p tsconfig.client.json --noEmit`, `yarn lint` all
+  clean. Full `yarn test`: 1024/1024 passing, coverage gate holds with no new carve-outs. Real
+  `yarn dev` + `curl` (dev auto-auth, cookie jar): created a real mailbox, a real `sent_items`-type
+  folder, and a real `Message` record inside it (via the existing `POST /mail/messages` draft-create
+  route, pointed at the Sent Items folder instead of Drafts — same route `createDraft()` already
+  uses), then `POST .../recall` → `200` with `recallRequestedAt` set on the response exactly as the
+  UI expects; confirmed the same call against a message in a non-Sent-Items folder correctly `400`s
+  ("Only a message in Sent Items can be recalled."); confirmed both the webmail index and the mobile
+  message-detail page still return `200`. No dev-server restart was needed — this phase only modified
+  existing pages, added no new page files. **No interactive browser click-through was done** — same
+  standing limitation as every entry in this file; JP should verify visually before relying on this,
+  particularly the confirmation modal's copy and the "Recall requested" indicator's placement.
+- Not yet committed — holding for JP's review/commit-authorization, same default as every entry above.

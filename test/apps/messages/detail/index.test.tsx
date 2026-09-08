@@ -4,6 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { jsonResponse, mockFetch } from "../../testUtils.js";
 import MessageDetailPage from "../../../../apps/www/messages/detail/index.js";
@@ -32,6 +33,7 @@ const inboxFolder = {
     unreadCount: 0,
     totalCount: 1,
 };
+const sentItemsFolder = { ...inboxFolder, uid: "f2", name: "Sent Items", type: "sent_items" as const };
 const message = {
     uid: "m1",
     version: 0,
@@ -144,5 +146,38 @@ describe("MessageDetailPage", () => {
         mockShell((url) => (url === "/api/mail/messages/m1" ? jsonResponse(200, null) : undefined));
         render(<MessageDetailPage userUid="u1" />);
         expect(await screen.findByText("Message not found.")).toBeInTheDocument();
+    });
+
+    describe("recall", () => {
+        it("does not show the Recall button for a message outside Sent Items", async () => {
+            mockShell((url) => (url === "/api/mail/messages/m1" ? jsonResponse(200, message) : undefined));
+            render(<MessageDetailPage userUid="u1" />);
+
+            await screen.findByRole("heading", { name: "Hello there" });
+            expect(screen.queryByRole("button", { name: "Recall this message" })).not.toBeInTheDocument();
+        });
+
+        it("shows the Recall button for a message in Sent Items, and recalling it updates the page's own state", async () => {
+            // Already read, so `useMarkMessageRead` is a no-op — isolates this test to the recall flow.
+            const sentMessage = { ...message, folderUid: "f2", flags: { ...message.flags, read: true } };
+            mockFetch((url, init) => {
+                if (url.startsWith("/api/mail/mailboxes/auto-provision")) return jsonResponse(404, { message: "not enabled" });
+                if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailbox]);
+                if (url.startsWith("/api/mail/folders")) return jsonResponse(200, [inboxFolder, sentItemsFolder]);
+                if (url === "/api/mail/messages/m1/recall" && init?.method === "POST") {
+                    return jsonResponse(200, { ...sentMessage, recallRequestedAt: "2026-01-02T00:00:00.000Z" });
+                }
+                if (url === "/api/mail/messages/m1") return jsonResponse(200, sentMessage);
+                throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
+            });
+            const user = userEvent.setup();
+            render(<MessageDetailPage userUid="u1" />);
+
+            await user.click(await screen.findByRole("button", { name: "Recall this message" }));
+            await user.click(screen.getByRole("button", { name: "Recall message" }));
+
+            expect(await screen.findByText("Recall requested")).toBeInTheDocument();
+            expect(screen.queryByRole("button", { name: "Recall this message" })).not.toBeInTheDocument();
+        });
     });
 });

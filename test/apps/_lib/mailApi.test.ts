@@ -22,6 +22,7 @@ import {
     listMailboxes,
     listMessages,
     listQuarantine,
+    recallMessage,
     releaseQuarantineEntry,
     revokeMailboxAccess,
     sendMessage,
@@ -335,6 +336,19 @@ describe("getMessage", () => {
         const result = await getMessage("m/1");
         expect(fetchMock).toHaveBeenCalledWith("/api/mail/messages/m%2F1", expect.anything());
         expect(result).toEqual(message);
+    });
+});
+
+describe("recallMessage", () => {
+    it("POSTs to the encoded uid's recall route", async () => {
+        const updated = { ...message, recallRequestedAt: "2026-01-02T00:00:00.000Z" };
+        const fetchMock = mockFetch(() => jsonResponse(200, updated));
+        const result = await recallMessage("m/1");
+        expect(fetchMock).toHaveBeenCalledWith(
+            "/api/mail/messages/m%2F1/recall",
+            expect.objectContaining({ method: "POST" }),
+        );
+        expect(result).toEqual(updated);
     });
 });
 

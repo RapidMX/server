@@ -14,8 +14,23 @@ import InboxPage from "../../apps/www/index.js";
 // file only exercises `InboxPage`/`InboxContent`'s own concerns: the message list, loading/error/empty
 // states, and the desktop-vs-mobile selection branch.
 vi.mock("../../apps/shared/components/mail/MessageDetailPane.js", () => ({
-    default: ({ message }: { message: { uid: string } | null }) => (
-        <div data-testid="detail-pane">{message ? `message:${message.uid}` : "no-message"}</div>
+    default: ({
+        message,
+        isSentItems,
+        onRecalled,
+    }: {
+        message: Record<string, unknown> | null;
+        isSentItems?: boolean;
+        onRecalled?: (updated: Record<string, unknown>) => void;
+    }) => (
+        <div data-testid="detail-pane">
+            {message ? `message:${message.uid}` : "no-message"} sentItems:{String(!!isSentItems)}
+            {message && onRecalled && (
+                <button type="button" onClick={() => onRecalled({ ...message, recallRequestedAt: "2026-01-02T00:00:00.000Z" })}>
+                    simulate-recall
+                </button>
+            )}
+        </div>
     ),
 }));
 
@@ -53,6 +68,7 @@ const inboxFolder = {
     unreadCount: 0,
     totalCount: 2,
 };
+const sentItemsFolder = { ...inboxFolder, uid: "f2", name: "Sent Items", type: "sent_items" as const };
 
 function messageFixture(overrides: Record<string, unknown> = {}) {
     return {
@@ -209,6 +225,63 @@ describe("InboxPage", () => {
             await waitFor(() =>
                 expect(fetchMock).toHaveBeenCalledWith("/api/mail/messages/m1", expect.objectContaining({ method: "PUT" })),
             );
+        });
+
+        it("passes isSentItems=false for a message in a non-Sent-Items folder", async () => {
+            const msg = messageFixture();
+            mockShellAndInbox([msg]);
+            render(<InboxPage userUid="u1" />);
+
+            await screen.findByText("Hello there");
+            expect(screen.getByTestId("detail-pane")).toHaveTextContent("sentItems:false");
+        });
+
+        it("passes isSentItems=true for a message in the selected Sent Items folder", async () => {
+            window.history.pushState(null, "", "/?mailboxUid=mb1&folderUid=f2");
+            const msg = messageFixture({ folderUid: "f2" });
+            mockFetch((url) => {
+                if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailbox]);
+                if (url.startsWith("/api/mail/folders")) return jsonResponse(200, [inboxFolder, sentItemsFolder]);
+                if (url.startsWith("/api/mail/messages")) return jsonResponse(200, [msg]);
+                throw new Error(`unexpected ${url}`);
+            });
+            render(<InboxPage userUid="u1" />);
+
+            await screen.findByText("Hello there");
+            expect(screen.getByTestId("detail-pane")).toHaveTextContent("sentItems:true");
+            window.history.pushState(null, "", "/");
+        });
+
+        it("patches the recalled message into the list via onRecalled", async () => {
+            const msg = messageFixture();
+            mockShellAndInbox([msg]);
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+
+            await user.click(await screen.findByText("Hello there"));
+            await user.click(await screen.findByRole("button", { name: "simulate-recall" }));
+
+            expect(await screen.findByTestId("detail-pane")).toHaveTextContent("message:m1");
+            // A second selection round-trip proves the update landed in `messages` state itself (the
+            // patched copy persists), not just in the already-rendered detail pane's own local props.
+            await user.click(screen.getByText("Hello there"));
+            expect(screen.getByTestId("detail-pane")).toHaveTextContent("message:m1");
+        });
+
+        it("leaves other messages in the list untouched when patching the recalled one", async () => {
+            const first = messageFixture({ uid: "m1", subject: "First" });
+            const second = messageFixture({ uid: "m2", subject: "Second" });
+            mockShellAndInbox([first, second]);
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+
+            await user.click(await screen.findByText("First"));
+            await user.click(await screen.findByRole("button", { name: "simulate-recall" }));
+
+            // "Second" surviving unchanged proves the recall patch's own `.map()` correctly left the
+            // non-matching message alone — the same class of gap the mark-as-read patch above already
+            // guards against, for this separate update path.
+            expect(screen.getByText("Second")).toBeInTheDocument();
         });
 
         it("leaves other messages in the list untouched when marking one of several read", async () => {

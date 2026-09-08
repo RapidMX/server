@@ -2,8 +2,12 @@
 // Copyright (C) 2026 Jean-Philippe Steinmetz
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
-import React from "react";
-import { Attachment, Message, attachmentContentUrl } from "../../lib/mailApi.js";
+import React, { useState } from "react";
+import { ApiRequestError } from "../../lib/api.js";
+import { Attachment, Message, attachmentContentUrl, recallMessage } from "../../lib/mailApi.js";
+import Modal from "../../lib/Modal.js";
+import Alert from "../feedback/Alert.js";
+import Button from "../buttons/Button.js";
 
 export interface MessageDetailPaneProps {
     message: Message | null;
@@ -12,6 +16,15 @@ export interface MessageDetailPaneProps {
      * on the desktop reading pane, which never navigates away (selecting a different message just swaps
      * `message` in place). */
     backHref?: string;
+    /** Whether `message` currently lives in Sent Items — the only folder recall is offered from, matching
+     * Outlook's own restriction (and `BaseMessageRoute.recall()`'s own server-side check). Each caller
+     * computes this from its own already-loaded folder list rather than this component fetching folders
+     * itself. */
+    isSentItems?: boolean;
+    /** Called with the server's updated copy (carrying `recallRequestedAt`) after a successful recall, so
+     * the caller can patch its own in-memory message/list state — mirrors `mailDetailHooks.ts`'s
+     * `useMarkMessageRead`'s identical `onUpdated` callback. */
+    onRecalled?: (updated: Message) => void;
 }
 
 function formatBytes(bytes: number): string {
@@ -22,13 +35,36 @@ function formatBytes(bytes: number): string {
 
 /**
  * A message's reading pane — header (subject/from/to/attachments) plus a sandboxed iframe for the body.
- * Shared by the desktop inline pane (`apps/www/index.tsx`, always visible alongside the message list) and
+ * Shared by the desktop inline pane (`apps/www/index.tsx`, always visible alongside the message list),
  * the mobile detail route (`apps/www/messages/detail/index.tsx`, a full page on its own reached by tapping
- * a message row) — see each call site for how `message`/`attachments` are sourced.
+ * a message row), and `ConversationThreadPane` (one per expanded message in a thread) — see each call
+ * site for how `message`/`attachments`/`isSentItems` are sourced.
  */
-export default function MessageDetailPane({ message, attachments, backHref }: MessageDetailPaneProps) {
+export default function MessageDetailPane({ message, attachments, backHref, isSentItems, onRecalled }: MessageDetailPaneProps) {
+    const [confirming, setConfirming] = useState(false);
+    const [recalling, setRecalling] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
     if (!message) {
         return <p className="p-8 text-sm text-text-muted">Select a message to read it.</p>;
+    }
+
+    async function handleRecall() {
+        // Only ever invoked from the confirmation modal below, which itself only renders once `message`
+        // is loaded (the early return above covers the only other state) — the non-null assertion
+        // reflects that real invariant, matching this codebase's established pattern for the same class
+        // of always-true-in-practice guard.
+        setRecalling(true);
+        setError(null);
+        try {
+            const updated = await recallMessage(message!.uid);
+            setConfirming(false);
+            onRecalled?.(updated);
+        } catch (err) {
+            setError(err instanceof ApiRequestError ? err.message : "Could not recall this message.");
+        } finally {
+            setRecalling(false);
+        }
     }
 
     return (
@@ -39,7 +75,24 @@ export default function MessageDetailPane({ message, attachments, backHref }: Me
                         &larr; Back to messages
                     </a>
                 )}
-                <h1 className="text-lg font-bold tracking-tight">{message.subject || "(no subject)"}</h1>
+                <div className="flex items-start justify-between gap-3">
+                    <h1 className="text-lg font-bold tracking-tight">{message.subject || "(no subject)"}</h1>
+                    {isSentItems &&
+                        (message.recallRequestedAt ? (
+                            <span className="text-xs font-medium text-text-muted shrink-0 py-1 px-2.5 rounded-pill bg-surface-alt">
+                                Recall requested
+                            </span>
+                        ) : (
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                className="!w-auto shrink-0"
+                                onClick={() => setConfirming(true)}
+                            >
+                                Recall this message
+                            </Button>
+                        ))}
+                </div>
                 <p className="text-sm text-text-muted mt-1">
                     From {message.from.displayName || message.from.address} &middot;{" "}
                     {new Date(message.receivedDate).toLocaleString()}
@@ -69,6 +122,29 @@ export default function MessageDetailPane({ message, attachments, backHref }: Me
                 sandbox=""
                 className="flex-1 w-full border-0"
             />
+
+            <Modal open={confirming} onClose={() => setConfirming(false)} title="Recall this message?">
+                <p className="text-sm text-text-muted mb-4">
+                    This asks every original recipient's mail system to delete their copy, but only if it's
+                    still unread there — there's no way to guarantee it, and no confirmation once it either
+                    succeeds or fails. Recipients who already read the message will keep it.
+                </p>
+                {error && <Alert>{error}</Alert>}
+                <div className="flex gap-3">
+                    <Button type="button" loading={recalling} disabled={recalling} onClick={handleRecall} className="!w-auto">
+                        Recall message
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={recalling}
+                        onClick={() => setConfirming(false)}
+                        className="!w-auto"
+                    >
+                        Cancel
+                    </Button>
+                </div>
+            </Modal>
         </div>
     );
 }

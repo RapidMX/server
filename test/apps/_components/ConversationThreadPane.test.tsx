@@ -13,12 +13,41 @@ import ConversationThreadPane from "../../../apps/shared/components/mail/Convers
 // only exercises `ConversationThreadPane`'s own concerns: fetching every message, expand/collapse, and
 // lazy per-message attachment-loading/mark-as-read.
 vi.mock("../../../apps/shared/components/mail/MessageDetailPane.js", () => ({
-    default: ({ message, attachments }: { message: { uid: string } | null; attachments: { filename: string }[] }) => (
+    default: ({
+        message,
+        attachments,
+        isSentItems,
+        onRecalled,
+    }: {
+        message: { uid: string; recallRequestedAt?: string } | null;
+        attachments: { filename: string }[];
+        isSentItems?: boolean;
+        onRecalled?: (updated: Record<string, unknown>) => void;
+    }) => (
         <div data-testid={`detail-${message?.uid}`}>
-            {message ? `message:${message.uid}` : "no-message"} attachments:{attachments.map((a) => a.filename).join(",")}
+            {message ? `message:${message.uid}` : "no-message"} attachments:{attachments.map((a) => a.filename).join(",")}{" "}
+            sentItems:{String(!!isSentItems)} recallRequestedAt:{message?.recallRequestedAt ?? "unset"}
+            {message && onRecalled && (
+                <button type="button" onClick={() => onRecalled({ ...message, recallRequestedAt: "2026-01-02T00:00:00.000Z" })}>
+                    simulate-recall-{message.uid}
+                </button>
+            )}
         </div>
     ),
 }));
+
+const inboxFolder = {
+    uid: "f1",
+    version: 0,
+    dateCreated: "2026-01-01T00:00:00.000Z",
+    dateModified: "2026-01-01T00:00:00.000Z",
+    mailboxUid: "mb1",
+    name: "Inbox",
+    type: "inbox" as const,
+    unreadCount: 0,
+    totalCount: 1,
+};
+const sentItemsFolder = { ...inboxFolder, uid: "f2", name: "Sent Items", type: "sent_items" as const };
 
 function messageFixture(overrides: Record<string, unknown> = {}) {
     return {
@@ -63,7 +92,7 @@ afterEach(() => {
 
 describe("ConversationThreadPane", () => {
     it("shows a placeholder when no conversation is given", () => {
-        render(<ConversationThreadPane conversation={null} />);
+        render(<ConversationThreadPane conversation={null} folders={[inboxFolder]} />);
         expect(screen.getByText("Select a conversation to read it.")).toBeInTheDocument();
     });
 
@@ -77,7 +106,7 @@ describe("ConversationThreadPane", () => {
             }
             return jsonResponse(200, messageFixture({ uid: "m2", flags: { read: true, flagged: false, answered: false, forwarded: false } }));
         });
-        render(<ConversationThreadPane conversation={conversationFixture()} />);
+        render(<ConversationThreadPane conversation={conversationFixture()} folders={[inboxFolder]} />);
         expect(await screen.findByText("Loading…")).toBeInTheDocument();
         resolveFirst!();
         expect(await screen.findByText("Hello there")).toBeInTheDocument();
@@ -85,7 +114,7 @@ describe("ConversationThreadPane", () => {
 
     it("shows an error message when a message fails to load", async () => {
         mockFetch(() => jsonResponse(500, { message: "boom" }));
-        render(<ConversationThreadPane conversation={conversationFixture()} />);
+        render(<ConversationThreadPane conversation={conversationFixture()} folders={[inboxFolder]} />);
         expect(await screen.findByText("boom")).toBeInTheDocument();
     });
 
@@ -93,7 +122,7 @@ describe("ConversationThreadPane", () => {
         mockFetch(() => {
             throw new TypeError("network down");
         });
-        render(<ConversationThreadPane conversation={conversationFixture()} />);
+        render(<ConversationThreadPane conversation={conversationFixture()} folders={[inboxFolder]} />);
         expect(await screen.findByText("Could not load this conversation.")).toBeInTheDocument();
     });
 
@@ -102,14 +131,21 @@ describe("ConversationThreadPane", () => {
             const uid = url.split("/").pop();
             return jsonResponse(200, messageFixture({ uid, flags: { read: true, flagged: false, answered: false, forwarded: false } }));
         });
-        const { rerender } = render(<ConversationThreadPane conversation={conversationFixture({ messageCount: 2 })} />);
+        const { rerender } = render(
+            <ConversationThreadPane conversation={conversationFixture({ messageCount: 2 })} folders={[inboxFolder]} />,
+        );
         expect(await screen.findByText("2 messages")).toBeInTheDocument();
 
         mockFetch((url) => {
             const uid = url.split("/").pop();
             return jsonResponse(200, messageFixture({ uid, flags: { read: true, flagged: false, answered: false, forwarded: false } }));
         });
-        rerender(<ConversationThreadPane conversation={conversationFixture({ conversationId: "c2", messageUids: ["m1"], messageCount: 1 })} />);
+        rerender(
+            <ConversationThreadPane
+                conversation={conversationFixture({ conversationId: "c2", messageUids: ["m1"], messageCount: 1 })}
+                folders={[inboxFolder]}
+            />,
+        );
         expect(await screen.findByText("1 message")).toBeInTheDocument();
     });
 
@@ -122,7 +158,7 @@ describe("ConversationThreadPane", () => {
                     : { uid, subject: "Second", flags: { read: false, flagged: false, answered: false, forwarded: false } };
             return jsonResponse(200, messageFixture(overrides));
         });
-        render(<ConversationThreadPane conversation={conversationFixture()} />);
+        render(<ConversationThreadPane conversation={conversationFixture()} folders={[inboxFolder]} />);
 
         expect(await screen.findByTestId("detail-m2")).toHaveTextContent("message:m2");
         expect(screen.queryByTestId("detail-m1")).not.toBeInTheDocument();
@@ -152,7 +188,7 @@ describe("ConversationThreadPane", () => {
             throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
         });
         const user = userEvent.setup();
-        render(<ConversationThreadPane conversation={conversationFixture()} />);
+        render(<ConversationThreadPane conversation={conversationFixture()} folders={[inboxFolder]} />);
 
         await screen.findByTestId("detail-m2");
         await user.click(screen.getByText("Sender One"));
@@ -167,7 +203,7 @@ describe("ConversationThreadPane", () => {
             const uid = url.split("/").pop();
             return jsonResponse(200, messageFixture({ uid, flags: { read: true, flagged: false, answered: false, forwarded: false }, hasAttachments: true }));
         });
-        render(<ConversationThreadPane conversation={conversationFixture()} />);
+        render(<ConversationThreadPane conversation={conversationFixture()} folders={[inboxFolder]} />);
 
         expect(await screen.findByTestId("detail-m2")).toHaveTextContent("attachments:");
     });
@@ -179,7 +215,7 @@ describe("ConversationThreadPane", () => {
             const uid = url.split("/").pop();
             return jsonResponse(200, messageFixture({ uid, flags: { read: true, flagged: false, answered: false, forwarded: false } }));
         });
-        render(<ConversationThreadPane conversation={conversationFixture()} />);
+        render(<ConversationThreadPane conversation={conversationFixture()} folders={[inboxFolder]} />);
 
         expect(await screen.findByTestId("detail-m2")).toBeInTheDocument();
         expect(screen.queryByTestId("detail-m1")).not.toBeInTheDocument();
@@ -193,7 +229,7 @@ describe("ConversationThreadPane", () => {
             const uid = url.split("/").pop();
             return jsonResponse(200, messageFixture({ uid, flags: { read: false, flagged: false, answered: false, forwarded: false }, hasAttachments: true }));
         });
-        render(<ConversationThreadPane conversation={conversationFixture()} />);
+        render(<ConversationThreadPane conversation={conversationFixture()} folders={[inboxFolder]} />);
 
         // Nothing renders for m2 at all (same render-side guard as the collapsed case above), and — the
         // behavior unique to this test — the attachment/read-marking effect never touches it either:
@@ -212,7 +248,7 @@ describe("ConversationThreadPane", () => {
             }
             return jsonResponse(200, messageFixture(overrides));
         });
-        render(<ConversationThreadPane conversation={conversationFixture({ subject: "" })} />);
+        render(<ConversationThreadPane conversation={conversationFixture({ subject: "" })} folders={[inboxFolder]} />);
 
         expect(await screen.findByText("(no subject)")).toBeInTheDocument();
         expect(screen.getByText("first@example.com")).toBeInTheDocument();
@@ -224,7 +260,7 @@ describe("ConversationThreadPane", () => {
             return jsonResponse(200, messageFixture({ uid, flags: { read: true, flagged: false, answered: false, forwarded: false } }));
         });
         const user = userEvent.setup();
-        render(<ConversationThreadPane conversation={conversationFixture()} />);
+        render(<ConversationThreadPane conversation={conversationFixture()} folders={[inboxFolder]} />);
 
         await screen.findByTestId("detail-m2");
         await user.click(screen.getByRole("button", { name: "Collapse" }));
@@ -243,7 +279,7 @@ describe("ConversationThreadPane", () => {
             return jsonResponse(200, messageFixture({ uid, from, flags: { read: true, flagged: false, answered: false, forwarded: false }, hasAttachments: true }));
         });
         const user = userEvent.setup();
-        render(<ConversationThreadPane conversation={conversationFixture()} />);
+        render(<ConversationThreadPane conversation={conversationFixture()} folders={[inboxFolder]} />);
 
         await screen.findByTestId("detail-m2");
         await user.click(screen.getByRole("button", { name: "Collapse" }));
@@ -261,7 +297,7 @@ describe("ConversationThreadPane", () => {
             return jsonResponse(200, messageFixture({ uid, flags: { read, flagged: false, answered: false, forwarded: false } }));
         });
         const user = userEvent.setup();
-        render(<ConversationThreadPane conversation={conversationFixture()} />);
+        render(<ConversationThreadPane conversation={conversationFixture()} folders={[inboxFolder]} />);
 
         await screen.findByTestId("detail-m2");
         await user.click(screen.getByText("Sender One"));
@@ -275,7 +311,7 @@ describe("ConversationThreadPane", () => {
             return jsonResponse(200, messageFixture({ uid, flags: { read: true, flagged: false, answered: false, forwarded: false } }));
         });
         const user = userEvent.setup();
-        render(<ConversationThreadPane conversation={conversationFixture()} />);
+        render(<ConversationThreadPane conversation={conversationFixture()} folders={[inboxFolder]} />);
 
         await screen.findByTestId("detail-m2");
         await user.click(screen.getByText("Sender One"));
@@ -289,10 +325,53 @@ describe("ConversationThreadPane", () => {
             const uid = url.split("/").pop();
             return jsonResponse(200, messageFixture({ uid, flags: { read: true, flagged: false, answered: false, forwarded: false } }));
         });
-        const { rerender } = render(<ConversationThreadPane conversation={conversationFixture()} />);
+        const { rerender } = render(<ConversationThreadPane conversation={conversationFixture()} folders={[inboxFolder]} />);
         await screen.findByTestId("detail-m2");
 
-        rerender(<ConversationThreadPane conversation={null} />);
+        rerender(<ConversationThreadPane conversation={null} folders={[inboxFolder]} />);
         expect(screen.getByText("Select a conversation to read it.")).toBeInTheDocument();
+    });
+
+    describe("recall", () => {
+        it("computes isSentItems per-message from the message's own folderUid, not a single conversation-wide value", async () => {
+            mockFetch((url) => {
+                const uid = url.split("/").pop();
+                const overrides: Record<string, unknown> = { uid, flags: { read: true, flagged: false, answered: false, forwarded: false } };
+                if (uid === "m1") {
+                    overrides.folderUid = "f2"; // Sent Items
+                }
+                return jsonResponse(200, messageFixture(overrides));
+            });
+            const user = userEvent.setup();
+            render(
+                <ConversationThreadPane
+                    conversation={conversationFixture({ folderUids: ["f1", "f2"] })}
+                    folders={[inboxFolder, sentItemsFolder]}
+                />,
+            );
+
+            expect(await screen.findByTestId("detail-m2")).toHaveTextContent("sentItems:false");
+            await user.click(screen.getByText("Sender One")); // expand m1, the Sent Items copy
+            expect(await screen.findByTestId("detail-m1")).toHaveTextContent("sentItems:true");
+        });
+
+        it("patches the recalled message into state via onRecalled without disturbing other messages", async () => {
+            mockFetch((url) => {
+                const uid = url.split("/").pop();
+                return jsonResponse(200, messageFixture({ uid, flags: { read: true, flagged: false, answered: false, forwarded: false } }));
+            });
+            const user = userEvent.setup();
+            render(<ConversationThreadPane conversation={conversationFixture()} folders={[inboxFolder]} />);
+
+            await screen.findByTestId("detail-m2");
+            await user.click(screen.getByText("Sender One")); // expand m1
+            await screen.findByTestId("detail-m1");
+
+            await user.click(screen.getByRole("button", { name: "simulate-recall-m1" }));
+
+            expect(screen.getByTestId("detail-m1")).toHaveTextContent("recallRequestedAt:2026-01-02T00:00:00.000Z");
+            // m2 stays mounted/unaffected by m1's patch.
+            expect(screen.getByTestId("detail-m2")).toHaveTextContent("recallRequestedAt:unset");
+        });
     });
 });
