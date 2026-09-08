@@ -5,8 +5,8 @@
 import React from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
-import { jsonResponse, mockFetch } from "../testUtils.js";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { jsonResponse, mockFetch, mockMatchMedia } from "../testUtils.js";
 import ComposeWindow from "../../../apps/shared/components/mail/compose/ComposeWindow.js";
 import type { ComposeSession } from "../../../apps/shared/components/mail/compose/ComposeContext.js";
 
@@ -86,6 +86,10 @@ function mockCompose(extra?: (url: string, init?: RequestInit) => Response | und
         throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
     });
 }
+
+afterEach(() => {
+    vi.unstubAllGlobals();
+});
 
 describe("ComposeWindow", () => {
     it("resolves the Drafts folder for the given mailbox and starts a blank draft", async () => {
@@ -587,5 +591,24 @@ describe("ComposeWindow", () => {
 
         expect(dialog.style.width).toBe("");
         expect(dialog.className).toContain("w-[720px]");
+    });
+
+    describe("on mobile", () => {
+        it("renders full-screen, ignoring expanded/manualSize, and hides the resize handles and Expand/Collapse button", async () => {
+            mockMatchMedia(true);
+            mockCompose();
+            render(<ComposeWindow session={session()} onClose={vi.fn()} onToggleMinimize={vi.fn()} />);
+            const dialog = await screen.findByRole("dialog", { name: "New Message" });
+
+            expect(dialog.className).toContain("fixed inset-0 w-full h-full rounded-none");
+            expect(dialog.className).not.toContain("w-[480px]");
+            expect(screen.queryByRole("separator", { name: "Resize" })).not.toBeInTheDocument();
+            expect(screen.queryByRole("button", { name: "Expand" })).not.toBeInTheDocument();
+            expect(screen.queryByRole("button", { name: "Collapse" })).not.toBeInTheDocument();
+            // Minimize/Close stay available — minimizing is still meaningful full-screen (see
+            // ComposeContext's mobile session-visibility logic).
+            expect(screen.getByRole("button", { name: "Minimize" })).toBeInTheDocument();
+            expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+        });
     });
 });

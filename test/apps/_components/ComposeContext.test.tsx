@@ -6,7 +6,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { jsonResponse, mockFetch } from "../testUtils.js";
+import { jsonResponse, mockFetch, mockMatchMedia } from "../testUtils.js";
 import ComposeProvider, { useCompose } from "../../../apps/shared/components/mail/compose/ComposeContext.js";
 
 vi.mock("../../../apps/shared/components/mail/compose/RichTextEditor.js", () => ({
@@ -151,6 +151,48 @@ describe("ComposeProvider / useCompose", () => {
         // One window collapsed to its compact bar (no more editor for it); the other still has one.
         expect(screen.getAllByTestId("html-editor")).toHaveLength(1);
         expect(screen.getAllByRole("dialog", { name: "New Message" })).toHaveLength(2);
+    });
+
+    describe("on mobile", () => {
+        it("renders only the most recently opened non-minimized session, not both stacked", async () => {
+            mockMatchMedia(true);
+            mockDraft();
+            const user = userEvent.setup();
+            render(
+                <ComposeProvider>
+                    <Opener mailboxUid="mb1" />
+                    <Opener mailboxUid="mb2" />
+                </ComposeProvider>,
+            );
+
+            await user.click(screen.getByRole("button", { name: "Open mb1" }));
+            await user.click(screen.getByRole("button", { name: "Open mb2" }));
+
+            expect(await screen.findAllByRole("dialog", { name: "New Message" })).toHaveLength(1);
+        });
+
+        it("minimizing the visible session reveals the previous one, which was not rendered at all until then", async () => {
+            mockMatchMedia(true);
+            mockDraft();
+            const user = userEvent.setup();
+            render(
+                <ComposeProvider>
+                    <Opener mailboxUid="mb1" />
+                    <Opener mailboxUid="mb2" />
+                </ComposeProvider>,
+            );
+
+            await user.click(screen.getByRole("button", { name: "Open mb1" }));
+            await user.click(screen.getByRole("button", { name: "Open mb2" }));
+            await screen.findAllByRole("dialog", { name: "New Message" });
+
+            const [minimizeVisible] = screen.getAllByRole("button", { name: "Minimize" });
+            await user.click(minimizeVisible);
+
+            // The newly-minimized session's chip, plus the earlier session now shown full-screen.
+            expect(await screen.findAllByRole("dialog", { name: "New Message" })).toHaveLength(2);
+            expect(screen.getAllByTestId("html-editor")).toHaveLength(1);
+        });
     });
 
     it("useCompose()'s default (no enclosing ComposeProvider) is a harmless no-op, not a crash", async () => {

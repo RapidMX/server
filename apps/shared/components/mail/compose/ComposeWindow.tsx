@@ -23,6 +23,7 @@ import {
     sendMessage,
     uploadAttachment,
 } from "../../../lib/mailApi.js";
+import useIsMobile from "../../../lib/useIsMobile.js";
 import type { ComposeSession } from "./ComposeContext.js";
 import RichTextEditor from "./RichTextEditor.js";
 import Alert from "../../feedback/Alert.js";
@@ -83,9 +84,15 @@ function HeaderButton({ label, onClick, icon: Icon }: { label: string; onClick: 
  * own draft lifecycle end to end (unlike the old page, which read the Drafts folder from `MailShell`'s
  * context — this window can be opened from apps that never mount `MailShell` at all, e.g. Contacts'
  * "Email" action, so it resolves its own Drafts folder from just a `mailboxUid`).
+ *
+ * Below the `md` breakpoint, a non-minimized session instead renders as a full-screen sheet (there's no
+ * room for a floating window, and the click-drag resize handles below become meaningless full-screen) —
+ * see `ComposeContext.tsx`'s own doc comment for how that interacts with several sessions being open at
+ * once.
  */
 export default function ComposeWindow({ session, onClose, onToggleMinimize }: ComposeWindowProps) {
     const { id, mailboxUid, initialTo, minimized } = session;
+    const isMobile = useIsMobile();
 
     const windowRef = useRef<HTMLDivElement>(null);
     const [draftsFolderUid, setDraftsFolderUid] = useState<string | undefined>();
@@ -262,28 +269,34 @@ export default function ComposeWindow({ session, onClose, onToggleMinimize }: Co
             ref={windowRef}
             role="dialog"
             aria-labelledby={titleId}
-            style={manualSize ? { width: manualSize.width, height: manualSize.height } : undefined}
+            style={!isMobile && manualSize ? { width: manualSize.width, height: manualSize.height } : undefined}
             className={[
-                "relative shrink-0 flex flex-col bg-surface border border-border border-b-0 rounded-t-md shadow-modal overflow-hidden",
-                manualSize ? "" : expanded ? "w-[720px] h-[85vh]" : "w-[480px] h-[520px]",
+                "relative shrink-0 flex flex-col bg-surface border border-border shadow-modal overflow-hidden",
+                isMobile
+                    ? "fixed inset-0 w-full h-full rounded-none border-0"
+                    : ["border-b-0 rounded-t-md", manualSize ? "" : expanded ? "w-[720px] h-[85vh]" : "w-[480px] h-[520px]"].join(" "),
             ].join(" ")}
         >
-            <div
-                onPointerDown={handleResizeStart("top")}
-                aria-hidden="true"
-                className="absolute top-0 left-0 right-0 h-1.5 cursor-ns-resize z-20"
-            />
-            <div
-                onPointerDown={handleResizeStart("left")}
-                aria-hidden="true"
-                className="absolute top-0 left-0 bottom-0 w-1.5 cursor-ew-resize z-20"
-            />
-            <div
-                onPointerDown={handleResizeStart("corner")}
-                role="separator"
-                aria-label="Resize"
-                className="absolute top-0 left-0 w-3 h-3 cursor-nwse-resize z-30"
-            />
+            {!isMobile && (
+                <>
+                    <div
+                        onPointerDown={handleResizeStart("top")}
+                        aria-hidden="true"
+                        className="absolute top-0 left-0 right-0 h-1.5 cursor-ns-resize z-20"
+                    />
+                    <div
+                        onPointerDown={handleResizeStart("left")}
+                        aria-hidden="true"
+                        className="absolute top-0 left-0 bottom-0 w-1.5 cursor-ew-resize z-20"
+                    />
+                    <div
+                        onPointerDown={handleResizeStart("corner")}
+                        role="separator"
+                        aria-label="Resize"
+                        className="absolute top-0 left-0 w-3 h-3 cursor-nwse-resize z-30"
+                    />
+                </>
+            )}
 
             <div
                 className="h-10 shrink-0 flex items-center justify-between gap-2 px-3 bg-primary-darker text-white cursor-pointer"
@@ -294,11 +307,13 @@ export default function ComposeWindow({ session, onClose, onToggleMinimize }: Co
                 </span>
                 <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
                     <HeaderButton label="Minimize" onClick={onToggleMinimize} icon={HiOutlineMinus} />
-                    <HeaderButton
-                        label={expanded ? "Collapse" : "Expand"}
-                        onClick={toggleExpanded}
-                        icon={expanded ? HiOutlineArrowsPointingIn : HiOutlineArrowsPointingOut}
-                    />
+                    {!isMobile && (
+                        <HeaderButton
+                            label={expanded ? "Collapse" : "Expand"}
+                            onClick={toggleExpanded}
+                            icon={expanded ? HiOutlineArrowsPointingIn : HiOutlineArrowsPointingOut}
+                        />
+                    )}
                     <HeaderButton label="Close" onClick={onClose} icon={HiOutlineXMark} />
                 </div>
             </div>

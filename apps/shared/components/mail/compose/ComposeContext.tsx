@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { PropsWithChildren, createContext, useContext, useMemo, useState } from "react";
+import useIsMobile from "../../../lib/useIsMobile.js";
 import ComposeWindow from "./ComposeWindow.js";
 
 export interface ComposeSession {
@@ -39,6 +40,7 @@ export function useCompose(): ComposeContextValue {
  */
 export default function ComposeProvider({ children }: PropsWithChildren) {
     const [sessions, setSessions] = useState<ComposeSession[]>([]);
+    const isMobile = useIsMobile();
 
     function openCompose({ mailboxUid, to }: OpenComposeInput) {
         setSessions((prev) => [...prev, { id: crypto.randomUUID(), mailboxUid, initialTo: to, minimized: false }]);
@@ -54,12 +56,21 @@ export default function ComposeProvider({ children }: PropsWithChildren) {
 
     const value = useMemo<ComposeContextValue>(() => ({ openCompose }), []);
 
+    // On mobile, a non-minimized `ComposeWindow` renders full-screen (see that component's own doc
+    // comment) — Gmail-style stacking of several full-screen overlays at once makes no sense there, so
+    // at most one non-minimized session is ever rendered: the most recently opened one. Minimized
+    // sessions are small chips regardless of device, so every one of those still renders — an earlier
+    // session becomes visible again (as its own chip, or full-screen if it's the new most-recent
+    // non-minimized one) once whatever's currently "on top" is closed or minimized.
+    const lastNonMinimizedId = isMobile ? [...sessions].reverse().find((s) => !s.minimized)?.id : undefined;
+    const visibleSessions = isMobile ? sessions.filter((s) => s.minimized || s.id === lastNonMinimizedId) : sessions;
+
     return (
         <ComposeContext.Provider value={value}>
             {children}
-            {sessions.length > 0 && (
+            {visibleSessions.length > 0 && (
                 <div className="fixed bottom-0 right-6 flex items-end gap-3 z-50">
-                    {sessions.map((session) => (
+                    {visibleSessions.map((session) => (
                         <ComposeWindow
                             key={session.id}
                             session={session}
