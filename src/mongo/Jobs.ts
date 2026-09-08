@@ -7,6 +7,7 @@
 export {
     AttachmentExtractionJobMongo,
     CalendarReminderJobMongo,
+    DomainVerificationJobMongo,
     EasDeviceStateCleanupJobMongo,
     ExternalShareExpirationJobMongo,
     MailboxQuotaRecalcJobMongo,

@@ -7,6 +7,7 @@
 export {
     AttachmentExtractionJobSQL,
     CalendarReminderJobSQL,
+    DomainVerificationJobSQL,
     EasDeviceStateCleanupJobSQL,
     ExternalShareExpirationJobSQL,
     MailboxQuotaRecalcJobSQL,

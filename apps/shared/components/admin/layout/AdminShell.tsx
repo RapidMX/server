@@ -4,14 +4,14 @@
 ///////////////////////////////////////////////////////////////////////////////
 import "../../../styles/app.css";
 import React, { PropsWithChildren, ReactNode, useEffect, useState } from "react";
-import { HiOutlineInboxStack, HiOutlineQueueList, HiOutlineShieldExclamation } from "react-icons/hi2";
+import { HiOutlineGlobeAlt, HiOutlineInboxStack, HiOutlineQueueList, HiOutlineShieldExclamation } from "react-icons/hi2";
 import { apiFetch, ApiRequestError } from "../../../lib/api.js";
 import { useRedirectIfUnauthenticated } from "../../../lib/session.js";
 import Alert from "../../feedback/Alert.js";
 import BottomTabBar, { NavItem } from "../../layout/BottomTabBar.js";
 import UserMenu from "../../layout/UserMenu.js";
 
-export type AdminSection = "mailboxes" | "quarantine" | "ingestQueue";
+export type AdminSection = "mailboxes" | "quarantine" | "ingestQueue" | "domains";
 
 export interface AdminShellProps {
     /** Which icon in the rail is highlighted as the current section. */
@@ -34,6 +34,7 @@ const NAV_ITEMS: NavItem[] = [
     { id: "mailboxes", href: "/admin", label: "Mailboxes", icon: HiOutlineInboxStack },
     { id: "quarantine", href: "/admin/quarantine", label: "Quarantine", icon: HiOutlineShieldExclamation },
     { id: "ingestQueue", href: "/admin/ingest-queue", label: "Ingest Queue", icon: HiOutlineQueueList },
+    { id: "domains", href: "/admin/domains", label: "Domains", icon: HiOutlineGlobeAlt },
 ];
 
 /**

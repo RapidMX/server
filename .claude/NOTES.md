@@ -1655,3 +1655,147 @@ approach is now fully superseded, not left as a fallback.
   entry — see whether JP asked for this one specifically before assuming it's covered by the earlier
   blanket mobile-responsiveness authorization (that authorization was scoped to the 10-phase plan
   already completed above, not automatically to new, separately-requested work like this).
+
+### 2026-09-08 — Wiring `@rapidmx/restapi`'s new features into `server`: Phase 0 (patch refresh) + Phase 1 (Domains admin)
+
+Start of a large, multi-phase effort (15 phases, plan in `merry-questing-badger.md`) to wire 9 major
+`@rapidmx/restapi` features — added across 11+ commits since its last published tag `v0.2.0` — into
+this repo's webmail client and admin console. This entry covers Phase 0 and Phase 1 only; later
+phases get their own entries as they land.
+
+**Phase 0 uncovered a real, pre-existing correctness bug in `@rapidrest/service-core`, not just a
+restapi drift issue.** While confirming restapi's own test suite was green before patching it in,
+`test/routes/sql/MailboxAutoProvision.test.ts`'s "Creates the mailbox (with its well-known folders)"
+test failed deterministically at full-suite scale (passed in isolation, on an empty DB). Traced it to
+`RepoUtils.create()`'s creator-CRUD-grant logic: `let found = !!aclUtils.getRecord(acl, user)` walked
+the *entire inherited parent ACL chain*, not just the record's own `records` array. `MailboxSQL`'s
+class-level `@Protect` deliberately carries an explicit deny-all `.*` wildcard record (to keep a stray
+`CREATE` grant there from leaking into per-mailbox permission checks — see its own doc comment) — once
+that class-level ACL row exists in the DB (true after the very first mailbox-touching test, or in a
+real deployment after the server's been running a while), `getRecord`'s parent-chain fallback matches
+that wildcard (a real record, just with empty `actions`) and short-circuits `found = true`, **silently
+skipping the grant of any ACL access to a newly self-service-provisioned mailbox's own owner.** A real
+production bug for the very self-service auto-provisioning flow already live in this repo, not
+something introduced by this session — the `@Protect` decorator hasn't changed since `MailboxSQL`'s
+initial commit. Confirmed via a temporary debug trace (`console.log` in the compiled `RepoUtils.js`,
+reverted after) showing `found=true` against a completely different (stale) user uid via the inherited
+wildcard, then via two independent reproductions (a run from a freshly-deleted local SQLite fixture,
+and a from-scratch full-suite run) both failing identically. Surfaced to JP rather than silently
+patched around, per the "ask before deciding how to proceed" default for this new plan (distinct from
+the mobile-responsiveness plan's blanket commit authorization). **JP fixed it directly in
+`rapidrest/service-core`** (commit `8f3de5d`, "Changed `ACLUtils.getRecord` to allow controllable
+search depth and specificity"): `getRecord()` gained `{ maxDepth, specificity }` options, and
+`RepoUtils.create()`'s creator-grant check now passes `{ maxDepth: 0, specificity: "exact" }` — search
+only the record's own ACL, only an exact uid match, never the inherited chain. Confirmed fixed:
+restapi's full suite went from 1514/1515 to 1515/1515 once patched against it.
+
+- **Two-hop local patch, not one** — a gotcha worth remembering for next time: swapping restapi's
+  `dist/` via `yarn patch` was *not* enough on its own. The dist swap only replaces the *code*, not
+  the wrapped package's own `package.json` dependency ranges — restapi's packaged `package.json` still
+  declares its original published `^1.5.0`-ish range against `@rapidrest/service-core`. Since restapi
+  has no *nested* `node_modules/@rapidrest/service-core` inside `server`'s tree, Node resolves it to
+  the single hoisted top-level copy — which is `server`'s own separate direct dependency, pinned at
+  `^1.4.0`, **unpatched**. So the service-core fix had to be patched *twice*: once bundled inside
+  restapi's own `dist/` (irrelevant here since restapi doesn't ship its own nested copy), and once as
+  `server`'s own direct `@rapidrest/service-core` dependency (`.yarn/patches/@rapidrest-service-core-
+  npm-1.4.0-*.patch`) — that second patch is the one that actually takes effect at runtime for
+  *anything* requiring `@rapidrest/service-core`, restapi's bundled route/job classes included, since
+  they all resolve through the same hoisted copy. Verified by grepping the resolved
+  `node_modules/@rapidrest/service-core/dist/lib/models/RepoUtils.js` for the new `maxDepth: 0` call
+  directly, not just trusting that `yarn install` completed without error.
+- Confirmed (again) that the `--preserve-symlinks` warning `yarn install` prints is unrelated noise
+  from `@rapidmx/activesync`/`@rapidmx/autodiscover`/`@rapidmx/mapi`'s own deliberate `portal:`
+  dependencies (pre-existing, declared directly in `package.json`) — not a sign that `@rapidmx/restapi`
+  or `@rapidrest/service-core` reverted to portal/link resolution (both still resolve via `patch:`,
+  confirmed via `yarn install`'s own resolution-step output each time).
+- **Live-verified against `yarn dev` before building Phase 1** (per the plan's own Phase 0 checklist):
+  `GET /api/mail/mailboxes/domains` still exists at the same path/shape (flat `string[]`) but now
+  reads live from the new `Domain` entity via `getVerifiedDomainNames()` rather than static config —
+  confirmed by seeing it return `[]` on a fresh dev DB despite the dev auto-provisioning config having
+  a domain name configured, since no `Domain` row had been created/verified yet.
+  `GET /api/mail/messages/conversations`, `POST /api/mail/messages/:id/recall`, and
+  `POST /api/mail/calendar-events/:id/respond` are all real, mounted routes (auto-authed 400/404s
+  against bogus params/ids, not 404-route-not-found) — safe to build Phases 6–8 against as planned.
+  Deferred live-checking the scheduled-send Outbox-vs-Drafts behavior to Phase 13, where it's actually
+  needed.
+
+**Phase 1 — Domains management (admin), establishing the admin-CRUD pattern this plan reuses for
+Phases 2–4:**
+
+- `apps/shared/lib/domainsApi.ts` (new) — `Domain` type + full CRUD + `verifyDomain(uid)`
+  (`POST /:id/verify`) + `getDnsSetup(uid)` (`GET /:id/dns-setup`, a live, read-only, non-mutating
+  DNS-record checklist: ownership TXT/MX/SPF/DKIM/DMARC). Every exported function has its own direct
+  unit test in `test/apps/_lib/domainsApi.test.ts` (mirroring `mailApi.test.ts`'s convention of
+  testing every wrapper function directly, not only indirectly through page tests) — `updateDomain`/
+  `deleteDomain` have no UI caller yet in this phase but are fully tested anyway, matching that
+  existing precedent (`mailApi.ts` does the same for functions not every page uses).
+- **New server-side DI wiring, not just a route file**: `Domain`'s DNS ownership/DKIM/DMARC checks
+  route through `@Inject("DnsResolver")` (`BaseDomainRoute.ts`/`DomainVerificationJob.ts` in restapi),
+  a named token this repo had never registered before (unlike `BlobStore`/`SearchProvider`/
+  `SpamScanProvider`/`AvScanProvider`/`MailTransport`, all already wired in `src/server.ts`). Added
+  `objectFactory.register(NodeDnsResolver, "DnsResolver")` there, **and** mirrored it into
+  `test/Server.mongo.test.ts`/`test/Server.sql.test.ts` (which build their own `Server`/
+  `ObjectFactory` rather than importing `src/server.ts`, so they need the same registration
+  independently — this is exactly the existing "mirrors the DI provider registration in
+  `src/server.*.ts`" comment already sitting above those blocks, now covering one more token). Missing
+  this the first time surfaced immediately and clearly: `Error: No class found with name: DnsResolver`
+  failing `Server.mongo.test.ts`/`Server.sql.test.ts` at real server startup.
+- `src/mongo/routes/DomainRoute.ts` + `src/sql/routes/DomainRoute.ts` (new) — the same one-line
+  `@ApiRoute("mail/domains") export class DomainRoute extends DomainRouteMongo {}` wrapper pattern
+  every other entity route uses; no dedicated test needed (matches `MailboxRoute.ts`/`FolderRoute.ts`
+  precedent — `src/**` sits at this repo's relaxed 0% coverage floor, exercised only via
+  `Server.*.test.ts`'s real startup, which now also proves every new route registers without error).
+- `src/mongo/Jobs.ts` + `src/sql/Jobs.ts` — added `DomainVerificationJobMongo`/`DomainVerificationJobSQL`
+  to the re-export list so the `ClassLoader` picks up the periodic background verification job; its
+  schedule/batch-size defaults come from its own `@Config(...)` inline defaults, no new config needed.
+- `apps/admin/domains/{index,new,detail}.tsx` (new) — list/create/detail three-page shape matching
+  `apps/admin/mailboxes/*`. Detail page's one new UI idiom: a copy-able TXT-record block (`navigator.
+  clipboard.writeText`, a transient "Copied" state reverting after 2s) plus a live DNS-setup checklist
+  table (reuses `getDnsSetup()` directly rather than hand-building the TXT value client-side, so the
+  ownership row's `recommendedValue` is the single source of truth — the domain's own
+  `verificationToken` is only a client-side fallback if that entry is ever absent). **Found and fixed
+  one real dead-code branch while writing tests, matching this file's established convention of fixing
+  rather than papering over unreachable branches**: the detail page's outer `if (error || !domain)`
+  early-return guard means a *later* action failure (e.g. "Verify now") that sets the same `error`
+  state also collapses the whole page back to that bare early-return alert — exactly like
+  `MailboxDetailPage`'s existing `handleAccessMailbox` failure behavior — so a *second*, inline
+  `{error && <Alert>{error}</Alert>}` block inside the full-page render was genuinely unreachable
+  dead code; removed rather than chasing a contrived test for it. `handleVerify`'s own
+  `if (!domain) return;` guard was the same already-seen pattern (only ever invoked from a button that
+  itself only renders once `domain` is loaded) — replaced with a `domain!` non-null assertion plus
+  comment, mirroring `QuarantineContent.handleRelease`'s identical precedent, rather than leaving a
+  dead branch coverage would flag.
+- `AdminShell.tsx`: `AdminSection` gains `"domains"`, `NAV_ITEMS` gains a 4th entry
+  (`HiOutlineGlobeAlt`, `/admin/domains`) — the icon rail is intentionally kept flat/additive per the
+  plan, not grouped/reorganized preemptively.
+- Testing gotcha worth remembering for later phases: `@testing-library/user-event`'s `setup()` installs
+  its *own* `navigator.clipboard` stub (for `paste`/`copy` interactions) — call any test-local
+  `navigator.clipboard` mock *after* `userEvent.setup()`, not before, or `setup()` silently clobbers
+  it. Also: `Object.assign(navigator, {clipboard: ...})` throws (`navigator.clipboard` is getter-only
+  in jsdom) — use `Object.defineProperty(navigator, "clipboard", {value, configurable: true})` instead.
+  A `setTimeout`-driven UI reset (the "Copied" → "Copy" revert) needed `vi.useFakeTimers({
+  shouldAdvanceTime: true })` (not bare `useFakeTimers()`, which deadlocks `@testing-library/dom`'s own
+  `findBy*` polling) plus `userEvent.setup({ advanceTimers: vi.advanceTimersByTime })`, and the actual
+  `vi.advanceTimersByTimeAsync(...)` call needed wrapping in `@testing-library/react`'s `act()` to
+  avoid an "update not wrapped in act()" warning — no existing precedent for this combination
+  elsewhere in this repo, documented here for the next phase that needs a timer-driven UI reset
+  (Phase 13's scheduled-send cancel UX is a likely candidate).
+- Verification: `yarn tsc --noEmit`, client `tsc -p tsconfig.client.json --noEmit`, `yarn lint` all
+  clean. Full `yarn test`: 866/866 passing, coverage gate holds with no new carve-outs needed.
+  `yarn dev` + `curl`: `/admin/domains`, `/admin/domains/new`, `/admin/domains/detail?uid=...` all
+  return `200`; the full `Domain` CRUD + `verify` + `dns-setup` API surface exercised directly via
+  `curl` against a real (dev in-memory Mongo) backend, including a genuine live DNS lookup against
+  `example.net`'s real SPF/DMARC records. **Could not confirm the rendered page markup via `curl`**
+  — same standing `AdminShell` canary-gates-behind-client-hydration limitation noted in the admin-nav-
+  rework entry above; relied on the component test suite (33/33 domains-specific tests) instead. **No
+  interactive browser click-through was done** — same standing limitation as every other entry in this
+  file (no browser-automation tool available here) — JP should verify visually before relying on this,
+  especially the copy-to-clipboard and DNS-checklist-table UX, which have no automated visual check.
+  One gotcha specific to this session: newly-added `apps/admin/**` entry pages don't show up in the
+  Vite dev manifest until the dev server is *restarted* — the entry-glob discovery apparently only
+  scans once at startup, not on new-file creation (editing an *existing* entry file hot-reloads fine).
+  A `500` with "Manifest entry ... not found" on a route that returns `200` after a restart is this,
+  not a real bug — worth remembering before spending time debugging it again.
+- Not yet committed — holding for JP's review/commit-authorization per this plan's "ask before
+  committing" default (distinct from the mobile-responsiveness plan's blanket authorization, which
+  doesn't carry over to this new plan).

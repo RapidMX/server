@@ -65,7 +65,7 @@ describe("AdminShell", () => {
         expect(await screen.findByText("Could not verify administrator access.")).toBeInTheDocument();
     });
 
-    it("renders the icon rail with all three sections, highlighting the active one", async () => {
+    it("renders the icon rail with all four sections, highlighting the active one", async () => {
         mockFetch((url) => {
             if (url === "/api/admin/release-notes") return jsonResponse(200, {});
             throw new Error(`unexpected ${url}`);
@@ -81,10 +81,12 @@ describe("AdminShell", () => {
         const mailboxes = rail.getByRole("link", { name: "Mailboxes" });
         const quarantine = rail.getByRole("link", { name: "Quarantine" });
         const ingestQueue = rail.getByRole("link", { name: "Ingest Queue" });
+        const domains = rail.getByRole("link", { name: "Domains" });
 
         expect(mailboxes).toHaveAttribute("href", "/admin");
         expect(quarantine).toHaveAttribute("href", "/admin/quarantine");
         expect(ingestQueue).toHaveAttribute("href", "/admin/ingest-queue");
+        expect(domains).toHaveAttribute("href", "/admin/domains");
 
         expect(quarantine).toHaveAttribute("aria-current", "page");
         expect(quarantine.className).toContain("bg-primary/10");

@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 import { dirname } from "path";
 import { JWTUtils, EventUtils, Logger } from "@rapidrest/core";
 import { ObjectFactory, Server } from "@rapidrest/service-core";
-import { LocalFsBlobStore, PostfixSendmailTransport } from "@rapidmx/restapi";
+import { LocalFsBlobStore, NodeDnsResolver, PostfixSendmailTransport } from "@rapidmx/restapi";
 import { MongoTextSearchProvider } from "@rapidmx/restapi/search";
 import { ClamAvScanProvider, RspamdSpamScanProvider } from "@rapidmx/restapi/scan";
 import {
@@ -41,6 +41,7 @@ objectFactory.register(MongoTextSearchProvider, "SearchProvider");
 objectFactory.register(RspamdSpamScanProvider, "SpamScanProvider");
 objectFactory.register(ClamAvScanProvider, "AvScanProvider");
 objectFactory.register(PostfixSendmailTransport, "MailTransport");
+objectFactory.register(NodeDnsResolver, "DnsResolver");
 
 let server: any = undefined;
 

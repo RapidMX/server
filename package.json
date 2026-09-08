@@ -41,7 +41,7 @@
     "@rapidmx/restapi": "patch:@rapidmx/restapi@npm%3A0.2.0#~/.yarn/patches/@rapidmx-restapi-npm-0.2.0-2144d5a53f.patch",
     "@rapidrest/core": "^5.1.0",
     "@rapidrest/react": "^1.1.0",
-    "@rapidrest/service-core": "^1.4.0",
+    "@rapidrest/service-core": "patch:@rapidrest/service-core@npm%3A1.4.0#~/.yarn/patches/@rapidrest-service-core-npm-1.4.0-e716f9ee78.patch",
     "@tiptap/core": "^3.31.3",
     "@tiptap/extension-highlight": "^3.31.3",
     "@tiptap/extension-image": "^3.31.3",
