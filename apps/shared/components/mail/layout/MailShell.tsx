@@ -182,7 +182,11 @@ export default function MailShell({
             </div>
         );
     } else if (userUid && status === "ready") {
-        const sidebarContent = (
+        // A function, not a plain JSX constant — it's rendered twice (desktop `<aside>` + mobile
+        // `Drawer`), possibly *simultaneously* mounted (the aside is only CSS-hidden below `md`, not
+        // unmounted), so the mailbox-switcher `<select>`'s `id`/its `<label>`'s `htmlFor` need a distinct
+        // value per instance. Two elements sharing one id breaks label association (and is invalid HTML).
+        const sidebarContent = (idPrefix: string) => (
             <>
                 <div className="p-3">
                     <ComposeButton mailboxUid={mailboxUid} />
@@ -191,12 +195,12 @@ export default function MailShell({
                     <div className="px-3 pb-2">
                         <label
                             className="block text-xs font-bold uppercase tracking-wide text-text-muted mb-1"
-                            htmlFor="mailbox-switcher"
+                            htmlFor={`${idPrefix}-mailbox-switcher`}
                         >
                             Mailbox
                         </label>
                         <select
-                            id="mailbox-switcher"
+                            id={`${idPrefix}-mailbox-switcher`}
                             className="w-full text-sm border border-border rounded-sm py-1.5 px-2 bg-surface"
                             value={mailboxUid}
                             onChange={(e) => {
@@ -247,9 +251,11 @@ export default function MailShell({
 
         inner = (
             <>
-                <aside className="hidden md:flex w-64 shrink-0 bg-surface border-r border-border flex-col">{sidebarContent}</aside>
+                <aside className="hidden md:flex w-64 shrink-0 bg-surface border-r border-border flex-col">
+                    {sidebarContent("desktop")}
+                </aside>
                 <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="Folders">
-                    <div className="flex flex-col">{sidebarContent}</div>
+                    <div className="flex flex-col">{sidebarContent("mobile")}</div>
                 </Drawer>
                 <main className="flex-1 min-w-0 overflow-y-auto">
                     <button

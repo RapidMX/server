@@ -3,7 +3,7 @@
 // Copyright (C) 2026 Jean-Philippe Steinmetz. All rights reserved.
 ///////////////////////////////////////////////////////////////////////////////
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { jsonResponse, mockFetch, mockLocation } from "../testUtils.js";
@@ -175,6 +175,40 @@ describe("ContactsShell", () => {
 
         const select = await screen.findByLabelText("Mailbox");
         expect(select).toHaveValue("mb-a");
+    });
+
+    it("does not show a mobile menu button when there's only one mailbox and no error (nothing to open)", async () => {
+        mockMailboxesAndFolders([mailboxA], [contactsFolder]);
+        render(<ContactsShell userUid="u1">content</ContactsShell>);
+        await screen.findByText("content");
+        expect(screen.queryByRole("button", { name: "Open mailbox switcher" })).not.toBeInTheDocument();
+    });
+
+    it("opens and closes the mailbox switcher drawer via the mobile menu button", async () => {
+        mockMailboxesAndFolders([mailboxA, mailboxB], [contactsFolder]);
+        const user = userEvent.setup();
+        render(<ContactsShell userUid="u1">content</ContactsShell>);
+        await screen.findByText("content");
+
+        expect(screen.queryByRole("dialog", { name: "Mailbox" })).not.toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: "Open mailbox switcher" }));
+        const drawer = screen.getByRole("dialog", { name: "Mailbox" });
+        expect(within(drawer).getByRole("combobox", { name: "Mailbox" })).toBeInTheDocument();
+
+        await user.click(within(drawer).getByRole("button", { name: "Close" }));
+        expect(screen.queryByRole("dialog", { name: "Mailbox" })).not.toBeInTheDocument();
+    });
+
+    it("shows the mobile menu button for a folder-loading error even with only one mailbox", async () => {
+        mockFetch((url) => {
+            if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailboxA]);
+            if (url.startsWith("/api/mail/folders")) return jsonResponse(500, { message: "folder boom" });
+            throw new Error(`unexpected ${url}`);
+        });
+        render(<ContactsShell userUid="u1">content</ContactsShell>);
+        await screen.findByText("content");
+        expect(screen.getByRole("button", { name: "Open mailbox switcher" })).toBeInTheDocument();
     });
 
     it("provides the resolved mailbox/folder/mailboxes to children via useContactsShell()", async () => {
