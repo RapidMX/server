@@ -8,6 +8,7 @@ import {
     assembleDraft,
     attachmentContentUrl,
     createDraft,
+    createFolder,
     createMailbox,
     deleteMailbox,
     getMailbox,
@@ -26,6 +27,7 @@ import {
     sendMessage,
     setMessageRead,
     stopImpersonating,
+    updateFolder,
     updateMailbox,
     uploadAttachment,
 } from "../../../apps/shared/lib/mailApi.js";
@@ -264,6 +266,35 @@ describe("listFolders", () => {
         const result = await listFolders("mb1");
         expect(fetchMock).toHaveBeenCalledWith("/api/mail/folders?limit=200&page=0&mailboxUid=mb1", expect.anything());
         expect(result).toEqual([folder]);
+    });
+});
+
+describe("createFolder", () => {
+    it("posts with zeroed counts filled in, and the given fields", async () => {
+        const created = { ...folder, uid: "f-new", name: "Birthdays", type: "calendar" as const, color: "#2563eb" };
+        const fetchMock = mockFetch(() => jsonResponse(200, created));
+        const result = await createFolder({ mailboxUid: "mb1", name: "Birthdays", type: "calendar", color: "#2563eb" });
+        expect(fetchMock).toHaveBeenCalledWith(
+            "/api/mail/folders",
+            expect.objectContaining({
+                method: "POST",
+                body: JSON.stringify({ unreadCount: 0, totalCount: 0, mailboxUid: "mb1", name: "Birthdays", type: "calendar", color: "#2563eb" }),
+            }),
+        );
+        expect(result).toEqual(created);
+    });
+});
+
+describe("updateFolder", () => {
+    it("puts the given fields to the folder's uid", async () => {
+        const updated = { ...folder, name: "Renamed", color: "#dc2626" };
+        const fetchMock = mockFetch(() => jsonResponse(200, updated));
+        const result = await updateFolder({ uid: "f1", version: 0, name: "Renamed", color: "#dc2626" });
+        expect(fetchMock).toHaveBeenCalledWith(
+            "/api/mail/folders/f1",
+            expect.objectContaining({ method: "PUT", body: JSON.stringify({ uid: "f1", version: 0, name: "Renamed", color: "#dc2626" }) }),
+        );
+        expect(result).toEqual(updated);
     });
 });
 

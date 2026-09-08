@@ -51,7 +51,7 @@ function TestDndContext({ children }: { children: React.ReactNode }) {
 function renderGrid(props: Partial<React.ComponentProps<typeof TimeGridView>> = {}) {
     return render(
         <TestDndContext>
-            <TimeGridView days={[DAY]} occurrences={[]} onSelectEvent={vi.fn()} onSelectSlot={vi.fn()} {...props} />
+            <TimeGridView days={[DAY]} occurrences={[]} folderColors={{ f1: "#2563eb" }} onSelectEvent={vi.fn()} onSelectSlot={vi.fn()} {...props} />
         </TestDndContext>,
     );
 }
@@ -102,8 +102,9 @@ describe("TimeGridView", () => {
         });
         const busyBlock = screen.getByText("Busy Thing").closest("div[style]") as HTMLElement;
         const freeBlock = screen.getByText("Free Thing").closest("div[style]") as HTMLElement;
-        expect(busyBlock.className).toContain("bg-primary/15");
+        expect(busyBlock.style.backgroundColor).toBe("rgb(37, 99, 235)");
         expect(freeBlock.className).toContain("bg-surface-alt");
+        expect(freeBlock.style.backgroundColor).toBe("");
     });
 
     it("clicking an empty time slot calls onSelectSlot with a 30-minute default block", async () => {

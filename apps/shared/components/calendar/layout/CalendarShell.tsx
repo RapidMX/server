@@ -14,12 +14,18 @@ export type CalendarShellProps = Omit<AppShellProps, "active">;
 export interface CalendarShellContextValue {
     /** The mailbox currently selected (`?mailboxUid=`, or the caller's first accessible mailbox). */
     mailboxUid?: string;
-    /** The selected mailbox's single `calendar`-type folder. */
+    /** The selected mailbox's first `calendar`-type folder — kept for callers that only care about a
+     * single calendar (e.g. as the default target for "+ New event"). */
     folderUid?: string;
+    /** Every `calendar`-type folder for the selected mailbox — usually just one, but a mailbox can have
+     * several (see `CalendarListSidebar`). */
+    calendarFolders: Folder[];
     mailboxes: Mailbox[];
+    /** Re-fetches this mailbox's folders (e.g. after creating a new calendar) without a full mailbox reload. */
+    reloadFolders: () => void;
 }
 
-const CalendarShellContext = createContext<CalendarShellContextValue>({ mailboxes: [] });
+const CalendarShellContext = createContext<CalendarShellContextValue>({ calendarFolders: [], mailboxes: [], reloadFolders: () => undefined });
 
 /** Reads the mailbox/folder the Calendar is currently showing, as resolved by the enclosing `CalendarShell`. */
 export function useCalendarShell(): CalendarShellContextValue {
@@ -75,6 +81,8 @@ export default function CalendarShell({
         (requestedMailboxUid && mailboxes.some((mb) => mb.uid === requestedMailboxUid) ? requestedMailboxUid : undefined) ??
         mailboxes[0]?.uid;
 
+    const [folderRefreshToken, setFolderRefreshToken] = useState(0);
+
     useEffect(() => {
         if (!mailboxUid) {
             setFolders([]);
@@ -84,13 +92,14 @@ export default function CalendarShell({
         listFolders(mailboxUid)
             .then(setFolders)
             .catch((err) => setFolderError(err instanceof ApiRequestError ? err.message : "Could not load this mailbox's calendar folder."));
-    }, [mailboxUid]);
+    }, [mailboxUid, folderRefreshToken]);
 
-    const folderUid: string | undefined = folders.find((f) => f.type === "calendar")?.uid;
+    const calendarFolders: Folder[] = useMemo(() => folders.filter((f) => f.type === "calendar"), [folders]);
+    const folderUid: string | undefined = calendarFolders[0]?.uid;
 
     const contextValue = useMemo<CalendarShellContextValue>(
-        () => ({ mailboxUid, folderUid, mailboxes }),
-        [mailboxUid, folderUid, mailboxes],
+        () => ({ mailboxUid, folderUid, calendarFolders, mailboxes, reloadFolders: () => setFolderRefreshToken((t) => t + 1) }),
+        [mailboxUid, folderUid, calendarFolders, mailboxes],
     );
 
     // A full-screen takeover, not nested inside the rest of the app's chrome — there's nothing else

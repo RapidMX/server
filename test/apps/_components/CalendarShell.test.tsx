@@ -170,4 +170,21 @@ describe("CalendarShell", () => {
 
         expect(await screen.findByText("mb-a/f-cal/1")).toBeInTheDocument();
     });
+
+    it("useCalendarShell()'s default (no enclosing CalendarShell) is a harmless no-op, not a crash", async () => {
+        function Probe() {
+            const { calendarFolders, mailboxes, reloadFolders } = useCalendarShell();
+            return (
+                <button type="button" onClick={reloadFolders}>
+                    {`${calendarFolders.length}/${mailboxes.length}`}
+                </button>
+            );
+        }
+        const user = userEvent.setup();
+        render(<Probe />);
+
+        expect(screen.getByText("0/0")).toBeInTheDocument();
+        await user.click(screen.getByText("0/0"));
+        expect(screen.getByText("0/0")).toBeInTheDocument();
+    });
 });

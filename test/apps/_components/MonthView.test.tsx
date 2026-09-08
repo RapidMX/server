@@ -66,6 +66,7 @@ function renderMonth(props: Partial<React.ComponentProps<typeof MonthView>> = {}
             <MonthView
                 viewDate={VIEW_DATE}
                 occurrences={[]}
+                folderColors={{ f1: "#2563eb" }}
                 onSelectDay={vi.fn()}
                 onSelectEvent={vi.fn()}
                 {...props}
@@ -107,13 +108,15 @@ describe("MonthView", () => {
 
     it("styles a 'free' busy-status chip differently from a 'busy' one", () => {
         renderMonth({
+            folderColors: { f1: "#2563eb" },
             occurrences: [
                 occurrence({ occurrenceKey: "e1", uid: "e1", title: "Busy Thing", busyStatus: "busy" }),
                 occurrence({ occurrenceKey: "e2", uid: "e2", title: "Free Thing", busyStatus: "free" }),
             ],
         });
-        expect(screen.getByRole("button", { name: /Busy Thing/ }).className).toContain("bg-primary/15");
+        expect(screen.getByRole("button", { name: /Busy Thing/ }).style.backgroundColor).toBe("rgb(37, 99, 235)");
         expect(screen.getByRole("button", { name: /Free Thing/ }).className).toContain("bg-surface-alt");
+        expect(screen.getByRole("button", { name: /Free Thing/ }).style.backgroundColor).toBe("");
     });
 
     it("calls onSelectEvent when an event chip is clicked", async () => {

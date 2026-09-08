@@ -59,7 +59,7 @@ describe("MonthView drag/today visual states", () => {
         mockUseDroppable.mockReturnValue({ setNodeRef: vi.fn(), isOver: true });
         mockUseDraggable.mockReturnValue({ setNodeRef: vi.fn(), listeners: {}, attributes: {}, transform: null, isDragging: false });
 
-        render(<MonthView viewDate={new Date("2026-06-15T00:00:00.000Z")} occurrences={[]} onSelectDay={vi.fn()} onSelectEvent={vi.fn()} />);
+        render(<MonthView viewDate={new Date("2026-06-15T00:00:00.000Z")} occurrences={[]} folderColors={{}} onSelectDay={vi.fn()} onSelectEvent={vi.fn()} />);
 
         const grid = screen.getByRole("grid", { name: "Month" });
         expect(grid.querySelector(".bg-primary\\/5")).not.toBeNull();
@@ -79,6 +79,7 @@ describe("MonthView drag/today visual states", () => {
             <MonthView
                 viewDate={new Date("2026-06-15T00:00:00.000Z")}
                 occurrences={[occurrence]}
+                folderColors={{ f1: "#2563eb" }}
                 onSelectDay={vi.fn()}
                 onSelectEvent={vi.fn()}
             />,
@@ -95,7 +96,7 @@ describe("MonthView drag/today visual states", () => {
         vi.useFakeTimers({ shouldAdvanceTime: true });
         vi.setSystemTime(new Date("2026-06-15T12:00:00.000Z"));
 
-        render(<MonthView viewDate={new Date("2026-06-15T00:00:00.000Z")} occurrences={[]} onSelectDay={vi.fn()} onSelectEvent={vi.fn()} />);
+        render(<MonthView viewDate={new Date("2026-06-15T00:00:00.000Z")} occurrences={[]} folderColors={{}} onSelectDay={vi.fn()} onSelectEvent={vi.fn()} />);
 
         expect(screen.getByText("15").className).toContain("bg-primary text-white");
     });

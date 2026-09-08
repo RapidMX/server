@@ -42,7 +42,14 @@ export interface EventModalProps {
     open: boolean;
     onClose: () => void;
     mailboxUid: string;
+    /** The calendar folder a new event is created into (ignored when editing — an existing event keeps
+     * its own `folderUid`). When `calendars` names more than one option, a "Calendar" selector lets the
+     * user override this default before saving. */
     folderUid: string;
+    /** Every calendar the caller could create this event into. Omitted, or a single entry, means "only
+     * one calendar exists" — no selector is shown and `folderUid` is used as-is, matching this
+     * component's original single-calendar behavior exactly. */
+    calendars?: { uid: string; name: string }[];
     organizerAddress: string;
     /** `null` when creating a new event. */
     occurrence: CalendarOccurrence | null;
@@ -65,6 +72,7 @@ export default function EventModal({
     onClose,
     mailboxUid,
     folderUid,
+    calendars,
     organizerAddress,
     occurrence,
     initialStart,
@@ -72,6 +80,7 @@ export default function EventModal({
     onSaved,
     onDeleted,
 }: EventModalProps) {
+    const [targetFolderUid, setTargetFolderUid] = useState(folderUid);
     const [title, setTitle] = useState(occurrence?.title ?? "");
     const [location, setLocation] = useState(occurrence?.location ?? "");
     const [start, setStart] = useState(toDatetimeLocal(occurrence?.startDate ?? initialStart?.toISOString() ?? new Date().toISOString()));
@@ -126,7 +135,7 @@ export default function EventModal({
         setSaving(true);
         try {
             if (!occurrence) {
-                await createCalendarEvent({ mailboxUid, folderUid, ...fields } as CalendarEventInput);
+                await createCalendarEvent({ mailboxUid, folderUid: targetFolderUid, ...fields } as CalendarEventInput);
             } else if (occurrence.isRecurringOccurrence && editScope === "occurrence") {
                 await detachOccurrence(occurrence, fields);
             } else if (occurrence.isRecurringOccurrence) {
@@ -164,6 +173,23 @@ export default function EventModal({
         <Modal open={open} onClose={onClose} title={occurrence ? "Edit event" : "New event"}>
             <form onSubmit={handleSubmit} className="flex flex-col gap-1">
                 {error && <Alert>{error}</Alert>}
+
+                {!occurrence && calendars && calendars.length > 1 && (
+                    <FormField label="Calendar" htmlFor="event-calendar">
+                        <select
+                            id="event-calendar"
+                            className={INPUT_CLASS}
+                            value={targetFolderUid}
+                            onChange={(e) => setTargetFolderUid(e.target.value)}
+                        >
+                            {calendars.map((cal) => (
+                                <option key={cal.uid} value={cal.uid}>
+                                    {cal.name}
+                                </option>
+                            ))}
+                        </select>
+                    </FormField>
+                )}
 
                 <FormField label="Title" htmlFor="event-title">
                     <input id="event-title" type="text" className={INPUT_CLASS} value={title} onChange={(e) => setTitle(e.target.value)} />

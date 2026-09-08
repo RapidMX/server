@@ -612,6 +612,75 @@ describe("EventModal", () => {
         expect(body.reminderMinutesBeforeStart).toBe(15);
     });
 
+    it("shows no calendar selector when only one calendar is available (or `calendars` is omitted)", () => {
+        render(
+            <EventModal
+                open
+                onClose={vi.fn()}
+                mailboxUid="mb1"
+                folderUid="f1"
+                calendars={[{ uid: "f1", name: "Calendar" }]}
+                organizerAddress="jane@example.com"
+                occurrence={null}
+                onSaved={vi.fn()}
+                onDeleted={vi.fn()}
+            />,
+        );
+        expect(screen.queryByLabelText("Calendar")).not.toBeInTheDocument();
+    });
+
+    it("shows no calendar selector when editing an existing occurrence, even with multiple calendars", () => {
+        render(
+            <EventModal
+                open
+                onClose={vi.fn()}
+                mailboxUid="mb1"
+                folderUid="f1"
+                calendars={[
+                    { uid: "f1", name: "Work" },
+                    { uid: "f2", name: "Personal" },
+                ]}
+                organizerAddress="jane@example.com"
+                occurrence={occurrence()}
+                onSaved={vi.fn()}
+                onDeleted={vi.fn()}
+            />,
+        );
+        expect(screen.queryByLabelText("Calendar")).not.toBeInTheDocument();
+    });
+
+    it("creates a new event in whichever calendar is chosen from the selector, defaulting to `folderUid`", async () => {
+        const fetchMock = mockFetch((url, init) =>
+            url === "/api/mail/calendar-events" && init?.method === "POST" ? jsonResponse(200, occurrence()) : undefined,
+        );
+        const user = userEvent.setup();
+        render(
+            <EventModal
+                open
+                onClose={vi.fn()}
+                mailboxUid="mb1"
+                folderUid="f1"
+                calendars={[
+                    { uid: "f1", name: "Work" },
+                    { uid: "f2", name: "Personal" },
+                ]}
+                organizerAddress="jane@example.com"
+                occurrence={null}
+                onSaved={vi.fn()}
+                onDeleted={vi.fn()}
+            />,
+        );
+
+        expect(screen.getByLabelText("Calendar")).toHaveValue("f1");
+        await user.selectOptions(screen.getByLabelText("Calendar"), "f2");
+        await user.type(screen.getByLabelText("Title"), "Planning");
+        await user.click(screen.getByRole("button", { name: "Save" }));
+
+        await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+        const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+        expect(body.folderUid).toBe("f2");
+    });
+
     it("calls onClose when Cancel is clicked", async () => {
         const onClose = vi.fn();
         const user = userEvent.setup();

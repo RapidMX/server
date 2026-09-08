@@ -55,7 +55,7 @@ describe("TimeGridView drag/today visual states", () => {
         mockUseDroppable.mockReturnValue({ setNodeRef: vi.fn(), isOver: true });
         mockUseDraggable.mockReturnValue(NO_DRAG);
 
-        render(<TimeGridView days={[new Date("2026-06-10T00:00:00.000Z")]} occurrences={[]} onSelectEvent={vi.fn()} onSelectSlot={vi.fn()} />);
+        render(<TimeGridView days={[new Date("2026-06-10T00:00:00.000Z")]} occurrences={[]} folderColors={{}} onSelectEvent={vi.fn()} onSelectSlot={vi.fn()} />);
 
         expect(screen.getAllByLabelText(/New event at/)[0].className).toContain("bg-primary/10");
     });
@@ -74,6 +74,7 @@ describe("TimeGridView drag/today visual states", () => {
             <TimeGridView
                 days={[new Date("2026-06-10T00:00:00.000Z")]}
                 occurrences={[occurrence]}
+                folderColors={{ f1: "#2563eb" }}
                 onSelectEvent={vi.fn()}
                 onSelectSlot={vi.fn()}
             />,
@@ -91,7 +92,7 @@ describe("TimeGridView drag/today visual states", () => {
         vi.useFakeTimers({ shouldAdvanceTime: true });
         vi.setSystemTime(new Date("2026-06-10T12:00:00.000Z"));
 
-        render(<TimeGridView days={[new Date("2026-06-10T00:00:00.000Z")]} occurrences={[]} onSelectEvent={vi.fn()} onSelectSlot={vi.fn()} />);
+        render(<TimeGridView days={[new Date("2026-06-10T00:00:00.000Z")]} occurrences={[]} folderColors={{}} onSelectEvent={vi.fn()} onSelectSlot={vi.fn()} />);
 
         expect(screen.getAllByLabelText(/New event at/)[0].closest(".relative")!.className).toContain("bg-primary/5");
     });

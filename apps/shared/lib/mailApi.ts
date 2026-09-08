@@ -224,11 +224,47 @@ export interface Folder {
     parentFolderUid?: string;
     unreadCount: number;
     totalCount: number;
+    /** Display color for a `calendar`-type folder (a hex string or palette key) — unused by every other
+     * folder type. Absent on a mailbox's original auto-provisioned calendar; see `calendarColors.ts`'s
+     * `colorForFolder` for the fallback every caller should use instead of reading this field directly. */
+    color?: string;
 }
 
 /** Lists a mailbox's folders — visible to its owner, any delegate the mailbox is shared with, or (trusted) anyone. */
 export function listFolders(mailboxUid: string): Promise<Folder[]> {
     return apiFetch(`/mail/folders?${buildQuery({ limit: 200 }, { mailboxUid })}`);
+}
+
+export interface CreateFolderInput {
+    mailboxUid: string;
+    name: string;
+    type: FolderType;
+    parentFolderUid?: string;
+    color?: string;
+}
+
+/** Creates a new folder — e.g. an additional `calendar`-type folder for multi-calendar support. Nothing
+ * about folder creation is type-restricted server-side (see the Phase 4 plan's own note on
+ * `BaseFolderRoute.create()`), so this is just a thin wrapper, not a new backend capability. */
+export function createFolder(input: CreateFolderInput): Promise<Folder> {
+    return apiFetch("/mail/folders", {
+        method: "POST",
+        body: JSON.stringify({ unreadCount: 0, totalCount: 0, ...input }),
+    });
+}
+
+export interface UpdateFolderInput {
+    uid: string;
+    version: number;
+    name?: string;
+    color?: string;
+}
+
+export function updateFolder(input: UpdateFolderInput): Promise<Folder> {
+    return apiFetch(`/mail/folders/${encodeURIComponent(input.uid)}`, {
+        method: "PUT",
+        body: JSON.stringify(input),
+    });
 }
 
 export type RecipientType = "to" | "cc" | "bcc";

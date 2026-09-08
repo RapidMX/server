@@ -15,13 +15,15 @@ export interface MonthViewProps {
     viewDate: Date;
     /** Already expanded for the visible grid range — see `recurrence.ts`'s `expandAllOccurrences`. */
     occurrences: CalendarOccurrence[];
+    /** Each occurrence's own calendar color, keyed by `folderUid` — see `calendarColors.ts`. */
+    folderColors: Record<string, string>;
     onSelectDay: (date: Date) => void;
     onSelectEvent: (occurrence: CalendarOccurrence) => void;
 }
 
 /** A real 6-week month grid (Mon-start), matching Outlook/Gmail's month view. Multi-day/all-day
  * events are shown only on their start day — a deliberate v1 simplification, not a bug. */
-export default function MonthView({ viewDate, occurrences, onSelectDay, onSelectEvent }: MonthViewProps) {
+export default function MonthView({ viewDate, occurrences, folderColors, onSelectDay, onSelectEvent }: MonthViewProps) {
     const gridStart = startOfWeek(startOfMonth(viewDate), { weekStartsOn: 1 });
     const gridEnd = endOfWeek(endOfMonth(viewDate), { weekStartsOn: 1 });
     const days = eachDayOfInterval({ start: gridStart, end: gridEnd });
@@ -34,6 +36,7 @@ export default function MonthView({ viewDate, occurrences, onSelectDay, onSelect
                     day={day}
                     inCurrentMonth={isSameMonth(day, viewDate)}
                     occurrences={occurrences.filter((occ) => isSameDay(new Date(occ.startDate), day))}
+                    folderColors={folderColors}
                     onSelectDay={onSelectDay}
                     onSelectEvent={onSelectEvent}
                 />
@@ -46,11 +49,12 @@ interface DayCellProps {
     day: Date;
     inCurrentMonth: boolean;
     occurrences: CalendarOccurrence[];
+    folderColors: Record<string, string>;
     onSelectDay: (date: Date) => void;
     onSelectEvent: (occurrence: CalendarOccurrence) => void;
 }
 
-function DayCell({ day, inCurrentMonth, occurrences, onSelectDay, onSelectEvent }: DayCellProps) {
+function DayCell({ day, inCurrentMonth, occurrences, folderColors, onSelectDay, onSelectEvent }: DayCellProps) {
     const { setNodeRef, isOver } = useDroppable({ id: dayDropId(day) });
     const visible = occurrences.slice(0, MAX_CHIPS_PER_DAY);
     const overflowCount = occurrences.length - visible.length;
@@ -76,7 +80,12 @@ function DayCell({ day, inCurrentMonth, occurrences, onSelectDay, onSelectEvent 
             </button>
             <div className="flex-1 flex flex-col gap-0.5 min-h-0 overflow-hidden">
                 {visible.map((occurrence) => (
-                    <EventChip key={occurrence.occurrenceKey} occurrence={occurrence} onSelect={onSelectEvent} />
+                    <EventChip
+                        key={occurrence.occurrenceKey}
+                        occurrence={occurrence}
+                        color={folderColors[occurrence.folderUid]}
+                        onSelect={onSelectEvent}
+                    />
                 ))}
                 {overflowCount > 0 && (
                     <button
@@ -92,18 +101,32 @@ function DayCell({ day, inCurrentMonth, occurrences, onSelectDay, onSelectEvent 
     );
 }
 
-function EventChip({ occurrence, onSelect }: { occurrence: CalendarOccurrence; onSelect: (occurrence: CalendarOccurrence) => void }) {
+function EventChip({
+    occurrence,
+    color,
+    onSelect,
+}: {
+    occurrence: CalendarOccurrence;
+    /** This occurrence's calendar color — see `calendarColors.ts`. Only applied for a "busy" chip; a
+     * "free" one keeps Outlook's own muted/outline treatment regardless of which calendar it's on. */
+    color: string;
+    onSelect: (occurrence: CalendarOccurrence) => void;
+}) {
     const { setNodeRef, listeners, attributes, transform, isDragging } = useDraggable({ id: eventDragId(occurrence) });
+    const isFree = occurrence.busyStatus === "free";
 
     return (
         <button
             ref={setNodeRef}
             type="button"
             onClick={() => onSelect(occurrence)}
-            style={transform ? { transform: `translate(${transform.x}px, ${transform.y}px)`, zIndex: 10 } : undefined}
+            style={{
+                ...(transform ? { transform: `translate(${transform.x}px, ${transform.y}px)`, zIndex: 10 } : undefined),
+                ...(isFree ? undefined : { backgroundColor: color, color: "#fff" }),
+            }}
             className={[
                 "text-xs text-left truncate rounded-sm px-1.5 py-0.5 shrink-0",
-                occurrence.busyStatus === "free" ? "bg-surface-alt text-text-muted" : "bg-primary/15 text-primary-dark",
+                isFree ? "bg-surface-alt text-text-muted" : "",
                 isDragging ? "opacity-50" : "",
             ].join(" ")}
             {...listeners}

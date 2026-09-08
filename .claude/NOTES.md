@@ -1102,3 +1102,82 @@ toolbar, vCard import/export
 - **Not yet committed** — same standing rule as every prior entry in this file.
 - **Next**: Phase 4 (Calendar — mini date-picker, Work Week/Split views, multi-calendar-per-mailbox
   with `Folder.color`).
+
+## 2026-09-07 — Outlook-parity redesign, Phase 4 (Calendar) — final phase
+
+- `apps/shared/lib/mailApi.ts`: added `Folder.color?: string`, plus `createFolder()`/`updateFolder()`
+  wrappers (`POST`/`PUT /mail/folders`) — confirmed via the plan's own Phase-0-era finding that
+  `BaseFolderRoute.create()` has no type restriction, so a second `calendar`-type folder needed no
+  new backend route, just these two thin client wrappers.
+- New `apps/shared/lib/calendarColors.ts`: a fixed 8-color palette plus `colorForFolder()`, falling
+  back to the palette's first color for any folder with no `color` set — so every pre-existing
+  single-calendar mailbox keeps looking exactly as it did before this phase.
+- New `MiniDatePicker.tsx` (a compact month grid, independent-paging via its own arrows but resyncing
+  to the main view's date when that changes elsewhere) and `CalendarListSidebar.tsx` (checkbox list of
+  every calendar with a color swatch, "+ Add calendar" creating a real folder) — both new components
+  in the Calendar page's first-ever left sidebar (previously toolbar-only).
+- `CalendarShell.tsx`'s context grew `calendarFolders: Folder[]` (every `calendar`-type folder, not
+  just one) and `reloadFolders()`, while keeping `folderUid` (now `calendarFolders[0]?.uid`) for
+  backward compatibility — every one of the 12 pre-existing `CalendarShell.test.tsx` tests kept
+  passing completely unchanged.
+- `MonthView.tsx`/`TimeGridView.tsx`: replaced the old binary busy/free color scheme with a real
+  per-calendar color (a "busy" chip/block gets a solid background in its calendar's color; "free"
+  keeps the original muted/outline treatment regardless of calendar) via a new required
+  `folderColors: Record<string, string>` prop. `TimeGridView` also gained a day-header row (weekday +
+  date) that had been entirely missing before this phase — a real, visible gap fixed along the way,
+  not scope creep, since Split view's column headers needed the same treatment for consistency.
+- New `SplitDayView.tsx` — Outlook's "Split" view (one column per checked calendar, same day, side by
+  side). **Deliberately not a generalization of `TimeGridView`**: it shares that component's visual
+  language but is click-only, no drag-to-move/resize. Reasoning: dragging an event between calendar
+  columns would mean reassigning its `folderUid` mid-drag, which `moveOccurrence`/`resolveDragAction`
+  don't support and would have meant redesigning `calendarDragIds.ts`'s slot-id encoding scheme
+  (currently ambiguous across same-day, same-time, different-calendar columns) — a real feature, not
+  a quick add. Scoped out explicitly, matching this session's "practical" convention from Phase 1's
+  ribbon decision, rather than either silently shipping broken drag targets or over-engineering a
+  cross-calendar reassignment feature nobody asked for.
+- `EventModal.tsx`: added an *optional* `calendars` prop — when it names more than one calendar, a
+  "Calendar" `<select>` appears (new-event only; editing always keeps the occurrence's own folder).
+  Omitted or single-entry `calendars` renders nothing, so this shipped with **zero changes** to any
+  of the 23 pre-existing `EventModal.test.tsx` tests.
+- `apps/www/calendar/index.tsx` rewritten: added the new left sidebar; `VIEW_TYPES` grew
+  `workWeek`/`split` (view buttons now use an explicit label map — "Work Week", not CSS-capitalized
+  "workWeek" — so `index.test.tsx`'s button-name queries changed from lowercase to capitalized);
+  `checkedFolderUids` (nullable-until-touched `Set<string>`, defaulting to "every calendar" so no
+  seeding effect is needed); `reload()` fans out `Promise.allSettled` across every checked calendar's
+  `listCalendarEvents`, tolerating partial failure (one calendar's own error message surfaces
+  unchanged in the common single-calendar case; a genuine multi-calendar partial failure gets a
+  combined "Could not load events for: X, Y." message, with the calendars that *did* load still
+  rendering).
+- **Real, foreseeable UI collision fixed via test failures**: adding `MiniDatePicker` (also rendering
+  a "June 2026"-style label) broke every existing `getByText("June 2026")` title assertion with a
+  "multiple elements found" error the moment it was added — fixed by switching every such assertion
+  to `getByRole("heading", ...)` (the main title is an `<h1>`; the mini picker's label is a plain
+  `<span>`), and separately scoping day-number queries (`within(monthGrid)`) since both the month grid
+  and the mini picker render the same day numbers.
+- **One real function-coverage gap found via the full-suite gate, not caught by any per-file run**:
+  `CalendarShellContext`'s default value (used only if `useCalendarShell()` is ever called outside a
+  `CalendarShell`, which no real code path does) needed a `reloadFolders` no-op to satisfy the type —
+  but that arrow function was never *invoked* by any test, denting `apps/**`'s function-coverage
+  percentage by a fraction invisible in line/branch coverage. Fixed with a genuine test (a `Probe`
+  component calling `useCalendarShell()` with no enclosing `CalendarShell`) rather than a coverage
+  suppression, since it's honestly testable — the earlier per-file coverage runs during this phase
+  happened to omit `CalendarShell.test.tsx` from a couple of batches, which is why this specific gap
+  only surfaced at the final full-suite run.
+- Test files: `MiniDatePicker.test.tsx`, `CalendarListSidebar.test.tsx`, `SplitDayView.test.tsx` (all
+  new), `mailApi.test.ts` extended (`createFolder`/`updateFolder`), `EventModal.test.tsx` extended
+  (calendar-selector branch), `CalendarShell.test.tsx` extended (`calendarFolders`/default-context
+  probe), `MonthView.test.tsx`/`MonthView.dragState.test.tsx`/`TimeGridView.test.tsx`/
+  `TimeGridView.dragState.test.tsx` updated for the new `folderColors` prop and color-based styling
+  assertions, `calendar/index.test.tsx` extended with 5 new integration tests (sidebar toggle on/off,
+  add-calendar, multi-calendar partial-failure error, mini-picker day-click, Split-view slot-click
+  targeting the right calendar).
+- Verification: `yarn tsc --noEmit`, client `tsc -p tsconfig.client.json --noEmit`, `yarn lint`
+  (caught one real `no-floating-promises` on the new `Promise.allSettled` fan-out, fixed with `void`),
+  full `yarn test` (676/676, `apps/**` back to 100% after the `CalendarShellContext` fix above) all
+  clean. Real `yarn dev` + `curl` smoke test: created a mailbox, a second `calendar`-type `Folder`
+  with a `color`, an event in each of the two calendars, and confirmed `updateFolder` (rename +
+  recolor) round-trips correctly — all against the real backend, not mocked.
+- **This was the final phase of the Outlook-parity redesign plan.** All five phases (0: backend
+  fields/entities; 1: Compose rich-text editor; 2: Contacts; 3: Tasks; 4: Calendar) are now complete,
+  each independently verified and committed per the user's standing "commit each phase separately,
+  when finished" authorization for this plan.
