@@ -9,6 +9,7 @@ import { HiOutlineCalendarDays, HiOutlineClipboardDocumentList, HiOutlineEnvelop
 import { useRedirectIfUnauthenticated } from "../../lib/session.js";
 import { stopImpersonating } from "../../lib/mailApi.js";
 import ComposeProvider from "../mail/compose/ComposeContext.js";
+import BottomTabBar from "./BottomTabBar.js";
 import UserMenu from "./UserMenu.js";
 
 export type AppShellApp = "mail" | "calendar" | "contacts" | "tasks";
@@ -32,14 +33,14 @@ export interface AppShellProps {
     trusted?: boolean;
 }
 
-interface AppDef {
+export interface AppDef {
     id: AppShellApp;
     href: string;
     label: string;
     icon: IconType;
 }
 
-const APPS: AppDef[] = [
+export const APPS: AppDef[] = [
     { id: "mail", href: "/", label: "Mail", icon: HiOutlineEnvelope },
     { id: "calendar", href: "/calendar", label: "Calendar", icon: HiOutlineCalendarDays },
     { id: "contacts", href: "/contacts", label: "Contacts", icon: HiOutlineUsers },
@@ -110,7 +111,7 @@ export default function AppShell({
                 <div className="flex-1 flex min-h-0">
                     <nav
                         aria-label="Apps"
-                        className="w-16 shrink-0 bg-surface border-r border-border flex flex-col items-center py-3 gap-1"
+                        className="hidden md:flex w-16 shrink-0 bg-surface border-r border-border flex-col items-center py-3 gap-1"
                     >
                         <img src="/images/logo.svg" width="96" height="96" alt="" className="mb-3" />
                         {APPS.map(({ id, href, label, icon: Icon }) => (
@@ -131,12 +132,13 @@ export default function AppShell({
                             </a>
                         ))}
                     </nav>
+                    <BottomTabBar apps={APPS} active={active} />
                     <div className="flex-1 flex flex-col min-w-0">
                         <header className="h-16 shrink-0 bg-surface border-b border-border flex items-center justify-between gap-4 px-6">
                             <span className="font-display font-bold text-lg uppercase tracking-wide">{activeApp?.label}</span>
                             <UserMenu userUid={userUid} authServerUrl={authServerUrl} onSignOut={handleSignOut} showAdminLink={trusted} />
                         </header>
-                        <div className="flex-1 flex min-h-0">{children}</div>
+                        <div className="flex-1 flex min-h-0 pb-14 md:pb-0">{children}</div>
                     </div>
                 </div>
             </div>

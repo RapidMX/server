@@ -31,6 +31,41 @@ export function mockFetch(
 }
 
 /**
+ * Stubs `window.matchMedia` so tests can force `useIsMobile()`'s mobile/desktop branch on demand,
+ * overriding `test/apps/setup.ts`'s default "never matches" stub. Returns a controller whose
+ * `setMatches()` both updates what a fresh `matchMedia()` call reports AND fires a `change` event on
+ * every already-created `MediaQueryList` (mirroring a real browser resizing across the breakpoint),
+ * so `useIsMobile()`'s `addEventListener("change", ...)` listener path is exercisable too. Call
+ * `vi.unstubAllGlobals()` in an `afterEach` to restore the default stub between tests in the same file.
+ */
+export function mockMatchMedia(initialMatches = false): { setMatches: (matches: boolean) => void } {
+    let matches = initialMatches;
+    const listeners = new Set<(e: MediaQueryListEvent) => void>();
+    const mql = {
+        get matches() {
+            return matches;
+        },
+        media: "",
+        onchange: null,
+        addEventListener: (_type: string, listener: (e: MediaQueryListEvent) => void) => listeners.add(listener),
+        removeEventListener: (_type: string, listener: (e: MediaQueryListEvent) => void) => listeners.delete(listener),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(() => false),
+    };
+    vi.stubGlobal(
+        "matchMedia",
+        vi.fn(() => mql),
+    );
+    return {
+        setMatches(next: boolean) {
+            matches = next;
+            listeners.forEach((listener) => listener({ matches: next } as MediaQueryListEvent));
+        },
+    };
+}
+
+/**
  * Replaces `window.location` with a plain, fully-writable stub so `window.location.href = "..."`,
  * `window.location.replace(...)`, and `window.location.reload()` can be asserted on directly — jsdom's
  * real `Location` either throws "Not implemented: navigation" or actually attempts to navigate when touched.

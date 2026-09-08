@@ -3,7 +3,7 @@
 // Copyright (C) 2026 Jean-Philippe Steinmetz. All rights reserved.
 ///////////////////////////////////////////////////////////////////////////////
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { jsonResponse, mockFetch, mockLocation } from "../testUtils.js";
@@ -30,10 +30,11 @@ describe("AppShell", () => {
     it("renders the icon rail with all four apps, highlighting the active one", () => {
         render(<AppShell active="calendar" userUid="u1">content</AppShell>);
 
-        const mail = screen.getByRole("link", { name: "Mail" });
-        const calendar = screen.getByRole("link", { name: "Calendar" });
-        const contacts = screen.getByRole("link", { name: "Contacts" });
-        const tasks = screen.getByRole("link", { name: "Tasks" });
+        const rail = within(screen.getByRole("navigation", { name: "Apps" }));
+        const mail = rail.getByRole("link", { name: "Mail" });
+        const calendar = rail.getByRole("link", { name: "Calendar" });
+        const contacts = rail.getByRole("link", { name: "Contacts" });
+        const tasks = rail.getByRole("link", { name: "Tasks" });
 
         expect(mail).toHaveAttribute("href", "/");
         expect(calendar).toHaveAttribute("href", "/calendar");
@@ -44,6 +45,19 @@ describe("AppShell", () => {
         expect(calendar.className).toContain("bg-primary/10");
         expect(mail).not.toHaveAttribute("aria-current");
         expect(mail.className).not.toContain("bg-primary/10");
+    });
+
+    it("is hidden below md, visible at md and above", () => {
+        render(<AppShell active="mail" userUid="u1">content</AppShell>);
+        expect(screen.getByRole("navigation", { name: "Apps" })).toHaveClass("hidden", "md:flex");
+    });
+
+    it("renders the mobile bottom tab bar with the same apps, highlighting the active one", () => {
+        render(<AppShell active="tasks" userUid="u1">content</AppShell>);
+
+        const tabBar = within(screen.getByRole("navigation", { name: "Mobile navigation" }));
+        expect(tabBar.getByRole("link", { name: "Tasks" })).toHaveAttribute("aria-current", "page");
+        expect(tabBar.getByRole("link", { name: "Mail" })).not.toHaveAttribute("aria-current");
     });
 
     it("shows the header with the active app's label and renders children", () => {
