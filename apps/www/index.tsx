@@ -4,15 +4,11 @@
 ///////////////////////////////////////////////////////////////////////////////
 import React, { useEffect, useState } from "react";
 import { ApiRequestError } from "../shared/lib/api.js";
-import {
-    Attachment,
-    Message,
-    attachmentContentUrl,
-    listAttachments,
-    listMessages,
-    setMessageRead,
-} from "../shared/lib/mailApi.js";
+import { Message, listMessages } from "../shared/lib/mailApi.js";
+import { useMarkMessageRead, useMessageAttachments } from "../shared/lib/mailDetailHooks.js";
+import useIsMobile from "../shared/lib/useIsMobile.js";
 import MailShell, { MailShellProps, useMailShell } from "../shared/components/mail/layout/MailShell.js";
+import MessageDetailPane from "../shared/components/mail/MessageDetailPane.js";
 import Alert from "../shared/components/feedback/Alert.js";
 
 export default function InboxPage(props: MailShellProps) {
@@ -23,19 +19,13 @@ export default function InboxPage(props: MailShellProps) {
     );
 }
 
-function formatBytes(bytes: number): string {
-    if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(1)} MB`;
-    if (bytes >= 1_000) return `${(bytes / 1_000).toFixed(1)} KB`;
-    return `${bytes} B`;
-}
-
 function InboxContent() {
     const { folderUid } = useMailShell();
+    const isMobile = useIsMobile();
     const [messages, setMessages] = useState<Message[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedUid, setSelectedUid] = useState<string | null>(null);
-    const [attachments, setAttachments] = useState<Attachment[]>([]);
 
     useEffect(() => {
         setSelectedUid(null);
@@ -53,28 +43,15 @@ function InboxContent() {
     }, [folderUid]);
 
     const selected = messages.find((m) => m.uid === selectedUid) ?? null;
+    const attachments = useMessageAttachments(selected);
+    useMarkMessageRead(selected, (updated) => setMessages((prev) => prev.map((m) => (m.uid === updated.uid ? updated : m))));
 
-    useEffect(() => {
-        if (!selected || !selected.hasAttachments) {
-            setAttachments([]);
+    function handleSelect(message: Message) {
+        if (isMobile) {
+            window.location.href = `/messages/detail?uid=${encodeURIComponent(message.uid)}`;
             return;
         }
-        listAttachments(selected.folderUid, selected.uid)
-            .then(setAttachments)
-            .catch(() => setAttachments([]));
-    }, [selected]);
-
-    async function handleSelect(message: Message) {
         setSelectedUid(message.uid);
-        if (message.flags.read) {
-            return;
-        }
-        try {
-            const updated = await setMessageRead(message, true);
-            setMessages((prev) => prev.map((m) => (m.uid === updated.uid ? updated : m)));
-        } catch {
-            // Best-effort — a failed read-state update shouldn't block viewing the message.
-        }
     }
 
     if (!folderUid) {
@@ -88,7 +65,7 @@ function InboxContent() {
 
     return (
         <div className="flex h-full min-h-0">
-            <div className="w-96 shrink-0 border-r border-border overflow-y-auto">
+            <div className="w-full md:w-96 shrink-0 md:border-r border-border overflow-y-auto">
                 {error && (
                     <div className="p-4">
                         <Alert>{error}</Alert>
@@ -125,44 +102,8 @@ function InboxContent() {
                     </ul>
                 )}
             </div>
-            <div className="flex-1 min-w-0 flex flex-col">
-                {!selected ? (
-                    <p className="p-8 text-sm text-text-muted">Select a message to read it.</p>
-                ) : (
-                    <>
-                        <div className="border-b border-border p-4">
-                            <h1 className="text-lg font-bold tracking-tight">{selected.subject || "(no subject)"}</h1>
-                            <p className="text-sm text-text-muted mt-1">
-                                From {selected.from.displayName || selected.from.address} &middot;{" "}
-                                {new Date(selected.receivedDate).toLocaleString()}
-                            </p>
-                            <p className="text-sm text-text-muted">
-                                To {selected.recipients.map((r) => r.displayName || r.address).join(", ")}
-                            </p>
-                            {attachments.length > 0 && (
-                                <ul className="flex flex-wrap gap-2 mt-3">
-                                    {attachments.map((attachment) => (
-                                        <li key={attachment.uid}>
-                                            <a
-                                                href={attachmentContentUrl(attachment.uid)}
-                                                className="text-xs font-medium py-1 px-2.5 rounded-pill bg-surface-alt text-text-muted hover:text-primary-dark"
-                                            >
-                                                {attachment.filename} ({formatBytes(attachment.sizeBytes)})
-                                            </a>
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                        </div>
-                        <iframe
-                            key={selected.uid}
-                            title={selected.subject || "Message content"}
-                            src={`/api/mail/messages/${encodeURIComponent(selected.uid)}/content`}
-                            sandbox=""
-                            className="flex-1 w-full border-0"
-                        />
-                    </>
-                )}
+            <div className="hidden md:flex flex-1 min-w-0">
+                <MessageDetailPane message={selected} attachments={attachments} />
             </div>
         </div>
     );

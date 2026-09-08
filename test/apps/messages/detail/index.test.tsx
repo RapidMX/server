@@ -1,0 +1,148 @@
+// @vitest-environment jsdom
+///////////////////////////////////////////////////////////////////////////////
+// Copyright (C) 2026 Jean-Philippe Steinmetz. All rights reserved.
+///////////////////////////////////////////////////////////////////////////////
+import React from "react";
+import { render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { jsonResponse, mockFetch } from "../../testUtils.js";
+import MessageDetailPage from "../../../../apps/www/messages/detail/index.js";
+
+const mailbox = {
+    uid: "mb1",
+    version: 0,
+    dateCreated: "2026-01-01T00:00:00.000Z",
+    dateModified: "2026-01-01T00:00:00.000Z",
+    ownerUserUid: "u1",
+    primarySmtpAddress: "u1@example.com",
+    aliasAddresses: [],
+    displayName: "My Mail",
+    timezone: "UTC",
+    quotaBytes: 1_000_000_000,
+    usedBytes: 0,
+};
+const inboxFolder = {
+    uid: "f1",
+    version: 0,
+    dateCreated: "2026-01-01T00:00:00.000Z",
+    dateModified: "2026-01-01T00:00:00.000Z",
+    mailboxUid: "mb1",
+    name: "Inbox",
+    type: "inbox" as const,
+    unreadCount: 0,
+    totalCount: 1,
+};
+const message = {
+    uid: "m1",
+    version: 0,
+    dateCreated: "2026-01-01T00:00:00.000Z",
+    dateModified: "2026-01-01T00:00:00.000Z",
+    folderUid: "f1",
+    mailboxUid: "mb1",
+    messageId: "abc@example.com",
+    subject: "Hello there",
+    from: { address: "sender@example.com", displayName: "Sender One", type: "to" as const },
+    recipients: [{ address: "u1@example.com", displayName: "Me", type: "to" as const }],
+    sentDate: "2026-01-01T00:00:00.000Z",
+    receivedDate: "2026-01-01T00:00:00.000Z",
+    bodyPreview: "Hi there.",
+    flags: { read: false, flagged: false, answered: false, forwarded: false },
+    importance: "normal" as const,
+    hasAttachments: false,
+};
+
+function mockShell(extra?: (url: string, init?: RequestInit) => Response | undefined) {
+    return mockFetch((url, init) => {
+        const custom = extra?.(url, init);
+        if (custom) return custom;
+        if (url.startsWith("/api/mail/mailboxes/auto-provision")) return jsonResponse(404, { message: "not enabled" });
+        if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailbox]);
+        if (url.startsWith("/api/mail/folders")) return jsonResponse(200, [inboxFolder]);
+        throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
+    });
+}
+
+beforeEach(() => {
+    window.history.pushState(null, "", "/messages/detail?uid=m1");
+});
+
+afterEach(() => {
+    vi.unstubAllGlobals();
+    window.history.pushState(null, "", "/");
+});
+
+describe("MessageDetailPage", () => {
+    it("shows an alert when no uid is given", async () => {
+        window.history.pushState(null, "", "/messages/detail");
+        mockShell();
+        render(<MessageDetailPage userUid="u1" />);
+        expect(await screen.findByText("No message specified.")).toBeInTheDocument();
+    });
+
+    it("shows a loading state before the message resolves", async () => {
+        let resolveMessage: (() => void) | undefined;
+        mockShell((url) => {
+            if (url === "/api/mail/messages/m1") {
+                return new Promise((resolve) => {
+                    resolveMessage = () => resolve(jsonResponse(200, message));
+                });
+            }
+            return undefined;
+        });
+        render(<MessageDetailPage userUid="u1" />);
+
+        await waitFor(() => expect(resolveMessage).toBeDefined());
+        expect(screen.getByText("Loading…")).toBeInTheDocument();
+
+        resolveMessage!();
+        await screen.findByRole("heading", { name: "Hello there" });
+    });
+
+    it("renders the message with a back link to its mailbox/folder", async () => {
+        mockShell((url) => (url === "/api/mail/messages/m1" ? jsonResponse(200, message) : undefined));
+        render(<MessageDetailPage userUid="u1" />);
+
+        expect(await screen.findByRole("heading", { name: "Hello there" })).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: /Back to messages/ })).toHaveAttribute(
+            "href",
+            "/?mailboxUid=mb1&folderUid=f1",
+        );
+    });
+
+    it("marks the message read once loaded", async () => {
+        const fetchMock = mockShell((url, init) => {
+            if (url === "/api/mail/messages/m1" && (init?.method ?? "GET") === "GET") return jsonResponse(200, message);
+            if (url === "/api/mail/messages/m1" && init?.method === "PUT") {
+                return jsonResponse(200, { ...message, flags: { ...message.flags, read: true } });
+            }
+            return undefined;
+        });
+        render(<MessageDetailPage userUid="u1" />);
+
+        await screen.findByRole("heading", { name: "Hello there" });
+        await waitFor(() =>
+            expect(fetchMock).toHaveBeenCalledWith("/api/mail/messages/m1", expect.objectContaining({ method: "PUT" })),
+        );
+    });
+
+    it("shows an error message when the message fails to load", async () => {
+        mockShell((url) => (url === "/api/mail/messages/m1" ? jsonResponse(404, { message: "not found" }) : undefined));
+        render(<MessageDetailPage userUid="u1" />);
+        expect(await screen.findByText("not found")).toBeInTheDocument();
+    });
+
+    it("shows a generic error message when loading the message fails with a non-API error", async () => {
+        mockShell((url) => {
+            if (url === "/api/mail/messages/m1") throw new TypeError("network down");
+            return undefined;
+        });
+        render(<MessageDetailPage userUid="u1" />);
+        expect(await screen.findByText("Could not load this message.")).toBeInTheDocument();
+    });
+
+    it("falls back to 'Message not found.' when the load succeeds with no message and no error", async () => {
+        mockShell((url) => (url === "/api/mail/messages/m1" ? jsonResponse(200, null) : undefined));
+        render(<MessageDetailPage userUid="u1" />);
+        expect(await screen.findByText("Message not found.")).toBeInTheDocument();
+    });
+});

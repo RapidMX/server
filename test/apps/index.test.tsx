@@ -6,8 +6,18 @@ import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { jsonResponse, mockFetch } from "./testUtils.js";
+import { jsonResponse, mockFetch, mockLocation, mockMatchMedia } from "./testUtils.js";
 import InboxPage from "../../apps/www/index.js";
+
+// `MessageDetailPane`'s own exhaustive rendering (header fields, attachments, back link, iframe,
+// formatting) is tested in its own `MessageDetailPane.test.tsx` — mocked here to a thin stand-in so this
+// file only exercises `InboxPage`/`InboxContent`'s own concerns: the message list, loading/error/empty
+// states, and the desktop-vs-mobile selection branch.
+vi.mock("../../apps/shared/components/mail/MessageDetailPane.js", () => ({
+    default: ({ message }: { message: { uid: string } | null }) => (
+        <div data-testid="detail-pane">{message ? `message:${message.uid}` : "no-message"}</div>
+    ),
+}));
 
 const mailbox = {
     uid: "mb1",
@@ -137,166 +147,99 @@ describe("InboxPage", () => {
         expect(await screen.findByText("Could not load messages.")).toBeInTheDocument();
     });
 
-    it("lists messages and shows a placeholder until one is selected", async () => {
+    it("lists messages and shows the detail pane with no message selected", async () => {
         mockShellAndInbox([messageFixture()]);
         render(<InboxPage userUid="u1" />);
         expect(await screen.findByText("Hello there")).toBeInTheDocument();
-        expect(screen.getByText("Select a message to read it.")).toBeInTheDocument();
+        expect(screen.getByTestId("detail-pane")).toHaveTextContent("no-message");
     });
 
-    it("selects a message, marks it read, and shows its reading pane", async () => {
-        const msg = messageFixture();
-        const fetchMock = mockShellAndInbox([msg]);
-        const user = userEvent.setup();
-        render(<InboxPage userUid="u1" />);
-
-        await user.click(await screen.findByText("Hello there"));
-
-        expect(await screen.findByRole("heading", { name: "Hello there" })).toBeInTheDocument();
-        expect(screen.getByTitle("Hello there")).toHaveAttribute("src", "/api/mail/messages/m1/content");
-        await waitFor(() =>
-            expect(fetchMock).toHaveBeenCalledWith(
-                "/api/mail/messages/m1",
-                expect.objectContaining({ method: "PUT" }),
-            ),
-        );
-    });
-
-    it("does not re-mark an already-read message as read", async () => {
-        const msg = messageFixture({ flags: { read: true, flagged: false, answered: false, forwarded: false } });
-        const fetchMock = mockShellAndInbox([msg]);
-        const user = userEvent.setup();
-        render(<InboxPage userUid="u1" />);
-
-        await user.click(await screen.findByText("Hello there"));
-        await screen.findByRole("heading", { name: "Hello there" });
-
-        expect(fetchMock.mock.calls.some((call) => (call[1] as RequestInit)?.method === "PUT")).toBe(false);
-    });
-
-    it("swallows a failed mark-as-read update rather than blocking the reading pane", async () => {
-        const msg = messageFixture();
-        mockShellAndInbox([msg], (url, init) => {
-            if (url === "/api/mail/messages/m1" && (init?.method ?? "GET") === "PUT") {
-                return jsonResponse(500, { message: "boom" });
-            }
-            return undefined;
-        });
-        const user = userEvent.setup();
-        render(<InboxPage userUid="u1" />);
-
-        await user.click(await screen.findByText("Hello there"));
-
-        expect(await screen.findByRole("heading", { name: "Hello there" })).toBeInTheDocument();
-    });
-
-    it("lists and links to attachments for a message that has them", async () => {
-        const msg = messageFixture({ hasAttachments: true });
-        const attachment = {
-            uid: "a1",
-            version: 0,
-            dateCreated: "2026-01-01T00:00:00.000Z",
-            dateModified: "2026-01-01T00:00:00.000Z",
-            messageUid: "m1",
-            folderUid: "f1",
-            mailboxUid: "mb1",
-            filename: "report.pdf",
-            mimeType: "application/pdf",
-            sizeBytes: 2_500_000,
-            isInline: false,
-        };
-        mockShellAndInbox([msg], (url) => (url.startsWith("/api/mail/attachments") ? jsonResponse(200, [attachment]) : undefined));
-        const user = userEvent.setup();
-        render(<InboxPage userUid="u1" />);
-
-        await user.click(await screen.findByText("Hello there"));
-
-        const link = await screen.findByRole("link", { name: /report\.pdf/ });
-        expect(link).toHaveAttribute("href", "/api/mail/attachments/a1/content");
-        expect(link.textContent).toContain("2.5 MB");
-    });
-
-    it("silently shows no attachments when the attachment list fails to load", async () => {
-        const msg = messageFixture({ hasAttachments: true });
-        mockShellAndInbox([msg], (url) =>
-            url.startsWith("/api/mail/attachments") ? jsonResponse(500, { message: "boom" }) : undefined,
-        );
-        const user = userEvent.setup();
-        render(<InboxPage userUid="u1" />);
-
-        await user.click(await screen.findByText("Hello there"));
-
-        expect(await screen.findByRole("heading", { name: "Hello there" })).toBeInTheDocument();
-        expect(screen.queryByRole("link", { name: /pdf|txt/ })).not.toBeInTheDocument();
-    });
-
-    it("falls back to the raw address and '(no subject)' when displayName/subject are absent", async () => {
+    it("falls back to the raw address and '(no subject)' in the message list row", async () => {
         const msg = messageFixture({
             subject: "",
             from: { address: "sender@example.com", type: "to" as const },
-            recipients: [{ address: "u1@example.com", type: "to" as const }],
         });
         mockShellAndInbox([msg]);
-        const user = userEvent.setup();
         render(<InboxPage userUid="u1" />);
 
         expect(await screen.findByText("sender@example.com")).toBeInTheDocument();
-        expect(screen.getAllByText("(no subject)")[0]).toBeInTheDocument();
-
-        await user.click(screen.getByText("sender@example.com"));
-
-        expect(await screen.findByRole("heading", { name: "(no subject)" })).toBeInTheDocument();
-        expect(screen.getByText(/From sender@example\.com/)).toBeInTheDocument();
-        expect(screen.getByText("To u1@example.com")).toBeInTheDocument();
-        expect(screen.getByTitle("Message content")).toBeInTheDocument();
+        expect(screen.getByText("(no subject)")).toBeInTheDocument();
     });
 
-    it("formats attachment sizes across byte/KB/MB tiers", async () => {
-        const msg = messageFixture({ hasAttachments: true });
-        const attachments = [
-            { uid: "a1", version: 0, dateCreated: "", dateModified: "", messageUid: "m1", folderUid: "f1", mailboxUid: "mb1", filename: "tiny.txt", mimeType: "text/plain", sizeBytes: 500, isInline: false },
-            { uid: "a2", version: 0, dateCreated: "", dateModified: "", messageUid: "m1", folderUid: "f1", mailboxUid: "mb1", filename: "medium.txt", mimeType: "text/plain", sizeBytes: 2_500, isInline: false },
-            { uid: "a3", version: 0, dateCreated: "", dateModified: "", messageUid: "m1", folderUid: "f1", mailboxUid: "mb1", filename: "big.pdf", mimeType: "application/pdf", sizeBytes: 2_500_000, isInline: false },
-        ];
-        mockShellAndInbox([msg], (url) => (url.startsWith("/api/mail/attachments") ? jsonResponse(200, attachments) : undefined));
-        const user = userEvent.setup();
-        render(<InboxPage userUid="u1" />);
+    describe("on desktop", () => {
+        it("selects a message in place, marks it read, and passes it to the detail pane", async () => {
+            const msg = messageFixture();
+            const fetchMock = mockShellAndInbox([msg]);
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
 
-        await user.click(await screen.findByText("Hello there"));
+            await user.click(await screen.findByText("Hello there"));
 
-        expect(await screen.findByText(/tiny\.txt \(500 B\)/)).toBeInTheDocument();
-        expect(screen.getByText(/medium\.txt \(2\.5 KB\)/)).toBeInTheDocument();
-        expect(screen.getByText(/big\.pdf \(2\.5 MB\)/)).toBeInTheDocument();
+            expect(await screen.findByTestId("detail-pane")).toHaveTextContent("message:m1");
+            await waitFor(() =>
+                expect(fetchMock).toHaveBeenCalledWith("/api/mail/messages/m1", expect.objectContaining({ method: "PUT" })),
+            );
+        });
+
+        it("leaves other messages in the list untouched when marking one of several read", async () => {
+            const first = messageFixture({ uid: "m1", subject: "First" });
+            const second = messageFixture({ uid: "m2", subject: "Second" });
+            mockShellAndInbox([first, second]);
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+
+            await user.click(await screen.findByText("First"));
+
+            expect(await screen.findByTestId("detail-pane")).toHaveTextContent("message:m1");
+            // "Second" surviving in the list, unchanged, is what proves the read-marking update's
+            // `.map()` correctly left the non-matching message alone rather than only ever exercising
+            // the branch that replaces the one being marked read.
+            expect(screen.getByText("Second")).toBeInTheDocument();
+        });
+
+        it("does not re-mark an already-read message as read", async () => {
+            const msg = messageFixture({ flags: { read: true, flagged: false, answered: false, forwarded: false } });
+            const fetchMock = mockShellAndInbox([msg]);
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+
+            await user.click(await screen.findByText("Hello there"));
+            await screen.findByTestId("detail-pane");
+
+            expect(fetchMock.mock.calls.some((call) => (call[1] as RequestInit)?.method === "PUT")).toBe(false);
+        });
+
+        it("swallows a failed mark-as-read update rather than blocking selection", async () => {
+            const msg = messageFixture();
+            mockShellAndInbox([msg], (url, init) => {
+                if (url === "/api/mail/messages/m1" && (init?.method ?? "GET") === "PUT") {
+                    return jsonResponse(500, { message: "boom" });
+                }
+                return undefined;
+            });
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+
+            await user.click(await screen.findByText("Hello there"));
+
+            expect(await screen.findByTestId("detail-pane")).toHaveTextContent("message:m1");
+        });
     });
 
-    it("clears the attachment list when a message without attachments is reselected", async () => {
-        const withAttachment = messageFixture({ uid: "m1", hasAttachments: true, subject: "Has attachment" });
-        const withoutAttachment = messageFixture({ uid: "m2", subject: "No attachment" });
-        const attachment = {
-            uid: "a1",
-            version: 0,
-            dateCreated: "2026-01-01T00:00:00.000Z",
-            dateModified: "2026-01-01T00:00:00.000Z",
-            messageUid: "m1",
-            folderUid: "f1",
-            mailboxUid: "mb1",
-            filename: "notes.txt",
-            mimeType: "text/plain",
-            sizeBytes: 500,
-            isInline: false,
-        };
-        mockShellAndInbox(
-            [withAttachment, withoutAttachment],
-            (url) => (url.startsWith("/api/mail/attachments") ? jsonResponse(200, [attachment]) : undefined),
-        );
-        const user = userEvent.setup();
-        render(<InboxPage userUid="u1" />);
+    describe("on mobile", () => {
+        it("navigates to the message detail route instead of selecting in place", async () => {
+            mockMatchMedia(true);
+            const msg = messageFixture();
+            const fetchMock = mockShellAndInbox([msg]);
+            const location = mockLocation();
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
 
-        await user.click(await screen.findByText("Has attachment"));
-        await screen.findByRole("link", { name: /notes\.txt/ });
+            await user.click(await screen.findByText("Hello there"));
 
-        await user.click(await screen.findByText("No attachment"));
-        await screen.findByRole("heading", { name: "No attachment" });
-        expect(screen.queryByRole("link", { name: /notes\.txt/ })).not.toBeInTheDocument();
+            expect(location.href).toBe("/messages/detail?uid=m1");
+            expect(screen.getByTestId("detail-pane")).toHaveTextContent("no-message");
+            expect(fetchMock.mock.calls.some((call) => (call[1] as RequestInit)?.method === "PUT")).toBe(false);
+        });
     });
 });
