@@ -2014,4 +2014,49 @@ phase to introduce a genuinely new shared component rather than a per-scope admi
   browser click-through was done** — same standing limitation as every entry in this file; JP should
   verify visually before relying on this, especially `RuleBuilder`'s own condition-chip and
   action-registry UX, which has no automated visual check.
+- Committed (`eb0d2a7`) with JP's explicit go-ahead.
+
+### 2026-09-08 — Wiring `@rapidmx/restapi`'s new features into `server`: Phase 5 (Resource mailboxes, admin-side)
+
+Fifth slice of the same 15-phase plan (see the Phase 0–4 entries above for full context). No new
+routes or client API module this time — resource mailboxes are ordinary `Mailbox` CRUD with seven new
+fields, already admin-only for `isResource: true` via the existing trusted-role gate
+`BaseMailboxRoute.create()` applies to any ownerless mailbox.
+
+- `apps/shared/lib/mailApi.ts` extended: `Mailbox`/`CreateMailboxInput`/`UpdateMailboxInput` gain
+  `isResource?, resourceType?: "room" | "equipment", resourceCapacity?, autoAcceptBookings?,
+  allowConflicts?, bookingWindowDays?, maxDurationMinutes?`.
+- `apps/admin/mailboxes/new/index.tsx`: a "This is a resource mailbox" checkbox reveals a fieldset
+  (resource type, capacity, auto-accept, allow-conflicts, booking window, max duration) — same
+  conditional-fieldset idiom the file already used for the domain-constrained address picker. The three
+  optional numeric fields (capacity/booking window/max duration) are plain string state converted to
+  `Number(...) | undefined` on submit rather than controlled `number` state, so "blank" and "0" stay
+  distinguishable — a blank field must submit `undefined` ("no limit"/"not set"), not `0`.
+- `apps/shared/components/admin/mailboxes/ResourceSettingsCard.tsx` (new) — **a real judgment call,
+  not a literal reading of the plan**: the plan said this should "mirror `ShareAccessCard.tsx`'s
+  load/edit/PUT/reload shape," which fetches its own data independently via just a `mailboxUid` prop.
+  But unlike `ShareAccessCard`'s ACL (a genuinely separate resource behind its own endpoint), these
+  seven fields live directly on the same `Mailbox` object the parent detail page has *already* loaded —
+  an independent re-fetch would be pure waste. Followed `MemberListCard`'s (Phase 3) precedent instead,
+  which made this exact same call already: receives the already-loaded `mailbox` + an `onUpdate`
+  callback, pushes the `PUT` response back up rather than re-fetching. Only rendered by the detail page
+  when `mailbox.isResource` is already `true` — becoming a resource happens at creation time
+  (`mailboxes/new`), not retroactively from the detail page; `isResource` itself has no edit control
+  here, deliberately, to avoid scope creep on an ambiguous "should converting an existing mailbox to a
+  resource be supported" question the plan didn't actually ask. Own full test file,
+  `test/apps/admin/_components/ResourceSettingsCard.test.tsx`.
+- `apps/admin/mailboxes/detail/index.tsx`: adds a "Resource type" row to the existing info `<dl>` and
+  renders `<ResourceSettingsCard>` beneath `<ShareAccessCard>`, both gated on `mailbox.isResource`.
+- No new server-side route files, DI wiring, or `AdminShell` nav changes this phase — `Mailbox` CRUD
+  already existed and already handles these fields transparently (confirmed live: `POST`/`PUT` with the
+  new fields round-trip correctly against the real API with zero server-side changes).
+- Verification: `yarn tsc --noEmit`, client `tsc -p tsconfig.client.json --noEmit`, `yarn lint` all
+  clean. Full `yarn test`: 974/974 passing, coverage gate holds with no new carve-outs. `yarn dev` +
+  real `fetch()`/`curl` calls: created a real resource mailbox end-to-end (room, capacity 8,
+  auto-accept), confirmed its detail page `200`s, and confirmed a `ResourceSettingsCard`-shaped `PUT`
+  (capacity/booking-window/max-duration edits) round-trips and persists. **Could not confirm the
+  rendered page markup via `curl`** — same standing `AdminShell` client-hydration-gated limitation as
+  every prior admin-page entry. **No interactive browser click-through was done** — same standing
+  limitation as every entry in this file; JP should verify visually before relying on this, especially
+  the resource fieldset's show/hide toggle and the settings card's own save flow.
 - Not yet committed — holding for JP's review/commit-authorization, same default as every entry above.

@@ -167,4 +167,104 @@ describe("NewMailboxPage", () => {
         render(<NewMailboxPage userUid="admin-1" authServerUrl="https://auth.example.com" />);
         expect(await screen.findByRole("link", { name: "Cancel" })).toHaveAttribute("href", "/admin");
     });
+
+    it("hides the resource fieldset until 'This is a resource mailbox' is checked", async () => {
+        mockFetch(() => jsonResponse(200, {}));
+        const user = userEvent.setup();
+        render(<NewMailboxPage userUid="admin-1" authServerUrl="https://auth.example.com" />);
+        await screen.findByText("New mailbox");
+
+        expect(screen.queryByLabelText("Resource type")).not.toBeInTheDocument();
+        await user.click(screen.getByRole("checkbox", { name: /This is a resource mailbox/ }));
+        expect(screen.getByLabelText("Resource type")).toBeInTheDocument();
+        await user.click(screen.getByRole("checkbox", { name: /This is a resource mailbox/ }));
+        expect(screen.queryByLabelText("Resource type")).not.toBeInTheDocument();
+    });
+
+    it("creates a resource mailbox with its booking settings, using per-field defaults for blank optional numbers", async () => {
+        let requestBody: any;
+        mockFetch((url, init) => {
+            if (url === "/api/admin/release-notes") return jsonResponse(200, {});
+            if (url.startsWith("/api/mail/mailboxes/domains")) return jsonResponse(200, []);
+            if (url === "/api/mail/mailboxes" && init?.method === "POST") {
+                requestBody = JSON.parse(init.body as string);
+                return jsonResponse(200, { uid: "room1" });
+            }
+            throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
+        });
+        const location = mockLocation();
+        const user = userEvent.setup();
+        render(<NewMailboxPage userUid="admin-1" authServerUrl="https://auth.example.com" />);
+        await screen.findByText("New mailbox");
+
+        await user.type(screen.getByLabelText("Primary SMTP address"), "room1@example.com");
+        await user.type(screen.getByLabelText("Display name"), "Conference Room 1");
+        await user.click(screen.getByRole("checkbox", { name: /This is a resource mailbox/ }));
+        await user.selectOptions(screen.getByLabelText("Resource type"), "equipment");
+        await user.type(screen.getByLabelText("Capacity (optional)"), "4");
+        await user.click(screen.getByRole("checkbox", { name: "Automatically accept booking requests" }));
+        await user.click(screen.getByRole("button", { name: "Create mailbox" }));
+
+        await vi.waitFor(() => expect(location.href).toBe("/admin/mailboxes/detail?uid=room1"));
+        expect(requestBody.isResource).toBe(true);
+        expect(requestBody.resourceType).toBe("equipment");
+        expect(requestBody.resourceCapacity).toBe(4);
+        expect(requestBody.autoAcceptBookings).toBe(true);
+        expect(requestBody.allowConflicts).toBe(false);
+        expect(requestBody.bookingWindowDays).toBeUndefined();
+        expect(requestBody.maxDurationMinutes).toBeUndefined();
+    });
+
+    it("forwards booking window and max duration when both are set", async () => {
+        let requestBody: any;
+        mockFetch((url, init) => {
+            if (url === "/api/admin/release-notes") return jsonResponse(200, {});
+            if (url.startsWith("/api/mail/mailboxes/domains")) return jsonResponse(200, []);
+            if (url === "/api/mail/mailboxes" && init?.method === "POST") {
+                requestBody = JSON.parse(init.body as string);
+                return jsonResponse(200, { uid: "room2" });
+            }
+            throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
+        });
+        const user = userEvent.setup();
+        render(<NewMailboxPage userUid="admin-1" authServerUrl="https://auth.example.com" />);
+        await screen.findByText("New mailbox");
+
+        await user.type(screen.getByLabelText("Primary SMTP address"), "room2@example.com");
+        await user.type(screen.getByLabelText("Display name"), "Conference Room 2");
+        await user.click(screen.getByRole("checkbox", { name: /This is a resource mailbox/ }));
+        await user.click(screen.getByRole("checkbox", { name: "Allow conflicting bookings (skip conflict checking entirely)" }));
+        await user.type(screen.getByLabelText("Booking window, in days (optional)"), "14");
+        await user.type(screen.getByLabelText("Maximum duration, in minutes (optional)"), "60");
+        await user.click(screen.getByRole("button", { name: "Create mailbox" }));
+
+        await vi.waitFor(() => expect(requestBody).toBeDefined());
+        expect(requestBody.allowConflicts).toBe(true);
+        expect(requestBody.bookingWindowDays).toBe(14);
+        expect(requestBody.maxDurationMinutes).toBe(60);
+    });
+
+    it("omits every resource field when 'This is a resource mailbox' is not checked", async () => {
+        let requestBody: any;
+        mockFetch((url, init) => {
+            if (url === "/api/admin/release-notes") return jsonResponse(200, {});
+            if (url.startsWith("/api/mail/mailboxes/domains")) return jsonResponse(200, []);
+            if (url === "/api/mail/mailboxes" && init?.method === "POST") {
+                requestBody = JSON.parse(init.body as string);
+                return jsonResponse(200, { uid: "mb1" });
+            }
+            throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
+        });
+        const user = userEvent.setup();
+        render(<NewMailboxPage userUid="admin-1" authServerUrl="https://auth.example.com" />);
+        await screen.findByText("New mailbox");
+
+        await user.type(screen.getByLabelText("Primary SMTP address"), "support@example.com");
+        await user.type(screen.getByLabelText("Display name"), "Support");
+        await user.click(screen.getByRole("button", { name: "Create mailbox" }));
+
+        await vi.waitFor(() => expect(requestBody).toBeDefined());
+        expect(requestBody.isResource).toBeUndefined();
+        expect(requestBody.resourceType).toBeUndefined();
+    });
 });

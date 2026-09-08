@@ -64,6 +64,40 @@ describe("MailboxDetailPage", () => {
             "/admin/ingest-queue?mailboxUid=mb1",
         );
         expect(await screen.findByText("Shared access")).toBeInTheDocument();
+        expect(screen.queryByText("Resource type")).not.toBeInTheDocument();
+        expect(screen.queryByText("Resource settings")).not.toBeInTheDocument();
+    });
+
+    it("shows the resource type and the resource settings card for a resource mailbox", async () => {
+        mockFetch((url) => {
+            if (url === "/api/admin/release-notes") return jsonResponse(200, {});
+            if (url === "/api/mail/mailboxes/mb1") {
+                return jsonResponse(200, { ...mailbox, ownerUserUid: undefined, isResource: true, resourceType: "equipment" });
+            }
+            if (url === "/api/acls/mb1") return jsonResponse(200, { uid: "mb1", version: 0, records: [] });
+            throw new Error(`unexpected ${url}`);
+        });
+        render(<MailboxDetailPage userUid="admin-1" authServerUrl="https://auth.example.com" />);
+
+        // "Resource type" also labels the resource-settings card's own select — one match each.
+        expect(await screen.findAllByText("Resource type")).toHaveLength(2);
+        expect(screen.getByText("equipment")).toBeInTheDocument();
+        expect(screen.getByText("Resource settings")).toBeInTheDocument();
+    });
+
+    it("defaults the displayed resource type to 'room' when unset", async () => {
+        mockFetch((url) => {
+            if (url === "/api/admin/release-notes") return jsonResponse(200, {});
+            if (url === "/api/mail/mailboxes/mb1") {
+                return jsonResponse(200, { ...mailbox, ownerUserUid: undefined, isResource: true, resourceType: undefined });
+            }
+            if (url === "/api/acls/mb1") return jsonResponse(200, { uid: "mb1", version: 0, records: [] });
+            throw new Error(`unexpected ${url}`);
+        });
+        render(<MailboxDetailPage userUid="admin-1" authServerUrl="https://auth.example.com" />);
+
+        await screen.findAllByText("Resource type");
+        expect(screen.getByText("room")).toBeInTheDocument();
     });
 
     it("formats sub-GB and sub-KB quota sizes correctly", async () => {

@@ -28,6 +28,22 @@ export interface Mailbox {
     timezone: string;
     quotaBytes: number;
     usedBytes: number;
+    /** `true` for a bookable resource (Exchange's "room"/"equipment" mailbox concept) rather than a
+     * person — trusted-role-only to create, same gate as any other ownerless mailbox. */
+    isResource?: boolean;
+    /** Only meaningful when `isResource` is `true`. */
+    resourceType?: "room" | "equipment";
+    /** Informational only — not used by any accept/decline logic. */
+    resourceCapacity?: number;
+    /** Mirrors Exchange's `AutomateProcessing AutoAccept` — off by default. Has no effect unless
+     * `isResource` is also `true`. */
+    autoAcceptBookings?: boolean;
+    /** When set, every request is auto-accepted regardless of existing bookings. */
+    allowConflicts?: boolean;
+    /** A request starting further out than this many days is auto-declined. `undefined` means no limit. */
+    bookingWindowDays?: number;
+    /** A request longer than this many minutes is auto-declined. `undefined` means no limit. */
+    maxDurationMinutes?: number;
 }
 
 /** Lists mailboxes the caller can access (owned, shared with them, or — for a trusted caller — every one). */
@@ -47,6 +63,13 @@ export interface CreateMailboxInput {
     displayName: string;
     timezone: string;
     quotaBytes: number;
+    isResource?: boolean;
+    resourceType?: "room" | "equipment";
+    resourceCapacity?: number;
+    autoAcceptBookings?: boolean;
+    allowConflicts?: boolean;
+    bookingWindowDays?: number;
+    maxDurationMinutes?: number;
 }
 
 export function createMailbox(input: CreateMailboxInput): Promise<Mailbox> {
@@ -93,6 +116,13 @@ export interface UpdateMailboxInput {
     timezone?: string;
     quotaBytes?: number;
     aliasAddresses?: string[];
+    isResource?: boolean;
+    resourceType?: "room" | "equipment";
+    resourceCapacity?: number;
+    autoAcceptBookings?: boolean;
+    allowConflicts?: boolean;
+    bookingWindowDays?: number;
+    maxDurationMinutes?: number;
 }
 
 export function updateMailbox(input: UpdateMailboxInput): Promise<Mailbox> {

@@ -32,6 +32,13 @@ function NewMailboxForm() {
     const [ownerUserUid, setOwnerUserUid] = useState("");
     const [timezone, setTimezone] = useState("UTC");
     const [quotaGb, setQuotaGb] = useState(5);
+    const [isResource, setIsResource] = useState(false);
+    const [resourceType, setResourceType] = useState<"room" | "equipment">("room");
+    const [resourceCapacity, setResourceCapacity] = useState("");
+    const [autoAcceptBookings, setAutoAcceptBookings] = useState(false);
+    const [allowConflicts, setAllowConflicts] = useState(false);
+    const [bookingWindowDays, setBookingWindowDays] = useState("");
+    const [maxDurationMinutes, setMaxDurationMinutes] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
 
@@ -68,13 +75,23 @@ function NewMailboxForm() {
         setSaving(true);
         try {
             // ownerUserUid left blank creates a true ownerless shared mailbox (e.g. support@example.com);
-            // delegates are then granted access from the mailbox's detail page.
+            // delegates are then granted access from the mailbox's detail page. A resource mailbox is
+            // ownerless the same way — leave "Owner user uid" blank for one too.
             const mailbox = await createMailbox({
                 primarySmtpAddress: address,
                 displayName: displayName.trim(),
                 ownerUserUid: ownerUserUid.trim() || undefined,
                 timezone,
                 quotaBytes: Math.round(quotaGb * 1_000_000_000),
+                ...(isResource && {
+                    isResource: true,
+                    resourceType,
+                    resourceCapacity: resourceCapacity ? Number(resourceCapacity) : undefined,
+                    autoAcceptBookings,
+                    allowConflicts,
+                    bookingWindowDays: bookingWindowDays ? Number(bookingWindowDays) : undefined,
+                    maxDurationMinutes: maxDurationMinutes ? Number(maxDurationMinutes) : undefined,
+                }),
             });
             window.location.href = `/admin/mailboxes/detail?uid=${encodeURIComponent(mailbox.uid)}`;
         } catch (err) {
@@ -179,6 +196,84 @@ function NewMailboxForm() {
                         onChange={(e) => setQuotaGb(Number(e.target.value))}
                     />
                 </FormField>
+
+                <label className="flex items-center gap-2 text-sm mb-4">
+                    <input type="checkbox" checked={isResource} onChange={(e) => setIsResource(e.target.checked)} />
+                    This is a resource mailbox (a bookable room or piece of equipment)
+                </label>
+
+                {isResource && (
+                    <div className="border border-border rounded-sm p-4 mb-4 flex flex-col gap-4">
+                        <FormField label="Resource type" htmlFor="resourceType">
+                            <select
+                                id="resourceType"
+                                className={SELECT_CLASS}
+                                value={resourceType}
+                                onChange={(e) => setResourceType(e.target.value as "room" | "equipment")}
+                            >
+                                <option value="room">Room</option>
+                                <option value="equipment">Equipment</option>
+                            </select>
+                        </FormField>
+
+                        <FormField label="Capacity (optional)" htmlFor="resourceCapacity">
+                            <input
+                                id="resourceCapacity"
+                                type="number"
+                                min={0}
+                                step={1}
+                                className={INPUT_CLASS}
+                                value={resourceCapacity}
+                                onChange={(e) => setResourceCapacity(e.target.value)}
+                                placeholder="Informational only"
+                            />
+                        </FormField>
+
+                        <label className="flex items-center gap-2 text-sm">
+                            <input
+                                type="checkbox"
+                                checked={autoAcceptBookings}
+                                onChange={(e) => setAutoAcceptBookings(e.target.checked)}
+                            />
+                            Automatically accept booking requests
+                        </label>
+
+                        <label className="flex items-center gap-2 text-sm">
+                            <input
+                                type="checkbox"
+                                checked={allowConflicts}
+                                onChange={(e) => setAllowConflicts(e.target.checked)}
+                            />
+                            Allow conflicting bookings (skip conflict checking entirely)
+                        </label>
+
+                        <FormField label="Booking window, in days (optional)" htmlFor="bookingWindowDays">
+                            <input
+                                id="bookingWindowDays"
+                                type="number"
+                                min={0}
+                                step={1}
+                                className={INPUT_CLASS}
+                                value={bookingWindowDays}
+                                onChange={(e) => setBookingWindowDays(e.target.value)}
+                                placeholder="No limit"
+                            />
+                        </FormField>
+
+                        <FormField label="Maximum duration, in minutes (optional)" htmlFor="maxDurationMinutes">
+                            <input
+                                id="maxDurationMinutes"
+                                type="number"
+                                min={0}
+                                step={1}
+                                className={INPUT_CLASS}
+                                value={maxDurationMinutes}
+                                onChange={(e) => setMaxDurationMinutes(e.target.value)}
+                                placeholder="No limit"
+                            />
+                        </FormField>
+                    </div>
+                )}
 
                 <div className="flex gap-3 mt-2">
                     <Button type="submit" loading={saving} disabled={saving} className="!w-auto">

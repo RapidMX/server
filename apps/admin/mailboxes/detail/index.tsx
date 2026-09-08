@@ -7,6 +7,7 @@ import { ApiRequestError } from "../../../shared/lib/api.js";
 import { getMailbox, impersonateUser, Mailbox } from "../../../shared/lib/mailApi.js";
 import AdminShell, { AdminShellProps } from "../../../shared/components/admin/layout/AdminShell.js";
 import ShareAccessCard from "../../../shared/components/admin/mailboxes/ShareAccessCard.js";
+import ResourceSettingsCard from "../../../shared/components/admin/mailboxes/ResourceSettingsCard.js";
 import Alert from "../../../shared/components/feedback/Alert.js";
 import Button from "../../../shared/components/buttons/Button.js";
 
@@ -118,6 +119,12 @@ function MailboxDetailContent({ impersonationBaseUrl }: Pick<AdminShellProps, "i
                     </dd>
                     <dt className="text-text-muted">Alias addresses</dt>
                     <dd>{mailbox.aliasAddresses.length > 0 ? mailbox.aliasAddresses.join(", ") : "None"}</dd>
+                    {mailbox.isResource && (
+                        <>
+                            <dt className="text-text-muted">Resource type</dt>
+                            <dd className="capitalize">{mailbox.resourceType ?? "room"}</dd>
+                        </>
+                    )}
                     <dt className="text-text-muted">Created</dt>
                     <dd>{new Date(mailbox.dateCreated).toLocaleString()}</dd>
                 </dl>
@@ -132,6 +139,8 @@ function MailboxDetailContent({ impersonationBaseUrl }: Pick<AdminShellProps, "i
             </div>
 
             <ShareAccessCard mailboxUid={mailbox.uid} />
+
+            {mailbox.isResource && <ResourceSettingsCard mailbox={mailbox} onUpdate={setMailbox} />}
         </div>
     );
 }
