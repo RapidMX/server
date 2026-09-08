@@ -19,6 +19,16 @@ vi.mock("../../apps/shared/components/mail/MessageDetailPane.js", () => ({
     ),
 }));
 
+// `ConversationThreadPane`'s own exhaustive rendering (fetching every message, expand/collapse,
+// lazy attachment/mark-read) is tested in its own `ConversationThreadPane.test.tsx` — mocked here for
+// the same reason `MessageDetailPane` is: this file only exercises `InboxContent`'s own concerns, here
+// the "By date"/"By conversation" toggle and conversation-list selection wiring.
+vi.mock("../../apps/shared/components/mail/ConversationThreadPane.js", () => ({
+    default: ({ conversation }: { conversation: { conversationId: string } | null }) => (
+        <div data-testid="thread-pane">{conversation ? `conversation:${conversation.conversationId}` : "no-conversation"}</div>
+    ),
+}));
+
 const mailbox = {
     uid: "mb1",
     version: 0,
@@ -66,12 +76,32 @@ function messageFixture(overrides: Record<string, unknown> = {}) {
     };
 }
 
-function mockShellAndInbox(messages: unknown[], extra?: (url: string, init?: RequestInit) => Response | undefined) {
+function conversationFixture(overrides: Record<string, unknown> = {}) {
+    return {
+        conversationId: "c1",
+        subject: "Hello there",
+        messageUids: ["m1"],
+        folderUids: ["f1"],
+        messageCount: 1,
+        unreadCount: 0,
+        latestDate: "2026-01-01T00:00:00.000Z",
+        participants: [{ address: "sender@example.com", displayName: "Sender One", type: "to" as const }],
+        hasAttachments: false,
+        ...overrides,
+    };
+}
+
+function mockShellAndInbox(
+    messages: unknown[],
+    extra?: (url: string, init?: RequestInit) => Response | undefined,
+    conversations: unknown[] = [],
+) {
     return mockFetch((url, init) => {
         const custom = extra?.(url, init);
         if (custom) return custom;
         if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailbox]);
         if (url.startsWith("/api/mail/folders")) return jsonResponse(200, [inboxFolder]);
+        if (url.startsWith("/api/mail/messages/conversations")) return jsonResponse(200, conversations);
         if (url.startsWith("/api/mail/messages/")) {
             const method = init?.method ?? "GET";
             if (method === "PUT") {
@@ -240,6 +270,96 @@ describe("InboxPage", () => {
             expect(location.href).toBe("/messages/detail?uid=m1");
             expect(screen.getByTestId("detail-pane")).toHaveTextContent("no-message");
             expect(fetchMock.mock.calls.some((call) => (call[1] as RequestInit)?.method === "PUT")).toBe(false);
+        });
+    });
+
+    describe("By conversation", () => {
+        it("switches to the conversation list, replacing the per-folder message list, and shows the informational note", async () => {
+            mockShellAndInbox([messageFixture()], undefined, [conversationFixture()]);
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+            await screen.findByText("Hello there");
+
+            await user.click(screen.getByRole("button", { name: "By conversation" }));
+
+            expect(await screen.findByText(/Showing every conversation in this mailbox/)).toBeInTheDocument();
+            expect(screen.getByTestId("thread-pane")).toHaveTextContent("no-conversation");
+        });
+
+        it("selects a conversation in place on desktop", async () => {
+            mockShellAndInbox([], undefined, [conversationFixture()]);
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+
+            await user.click(await screen.findByRole("button", { name: "By conversation" }));
+            await user.click(await screen.findByText("Hello there"));
+
+            expect(await screen.findByTestId("thread-pane")).toHaveTextContent("conversation:c1");
+        });
+
+        it("navigates to the latest message's detail route instead of selecting in place on mobile", async () => {
+            mockMatchMedia(true);
+            mockShellAndInbox([], undefined, [conversationFixture({ messageUids: ["m1", "m2"] })]);
+            const location = mockLocation();
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+
+            await user.click(await screen.findByRole("button", { name: "By conversation" }));
+            await user.click(await screen.findByText("Hello there"));
+
+            expect(location.href).toBe("/messages/detail?uid=m2");
+            expect(screen.getByTestId("thread-pane")).toHaveTextContent("no-conversation");
+        });
+
+        it("shows an empty state when the mailbox has no conversations", async () => {
+            mockShellAndInbox([], undefined, []);
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+
+            await user.click(await screen.findByRole("button", { name: "By conversation" }));
+
+            expect(await screen.findByText("No conversations in this mailbox.")).toBeInTheDocument();
+        });
+
+        it("shows an error message when loading conversations fails", async () => {
+            mockShellAndInbox([], (url) =>
+                url.startsWith("/api/mail/messages/conversations") ? jsonResponse(500, { message: "boom" }) : undefined,
+            );
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+
+            await user.click(await screen.findByRole("button", { name: "By conversation" }));
+
+            expect(await screen.findByText("boom")).toBeInTheDocument();
+        });
+
+        it("shows a generic error message when loading conversations fails with a non-API error", async () => {
+            mockShellAndInbox([], (url) => {
+                if (url.startsWith("/api/mail/messages/conversations")) throw new TypeError("network down");
+                return undefined;
+            });
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+
+            await user.click(await screen.findByRole("button", { name: "By conversation" }));
+
+            expect(await screen.findByText("Could not load conversations.")).toBeInTheDocument();
+        });
+
+        it("switching back to 'By date' re-fetches the per-folder message list and drops the conversation selection", async () => {
+            mockShellAndInbox([messageFixture()], undefined, [conversationFixture()]);
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+            await screen.findByText("Hello there");
+
+            await user.click(screen.getByRole("button", { name: "By conversation" }));
+            await user.click(await screen.findByText("Hello there"));
+            expect(await screen.findByTestId("thread-pane")).toHaveTextContent("conversation:c1");
+
+            await user.click(screen.getByRole("button", { name: "By date" }));
+
+            expect(await screen.findByTestId("detail-pane")).toHaveTextContent("no-message");
+            expect(screen.queryByText(/Showing every conversation in this mailbox/)).not.toBeInTheDocument();
         });
     });
 });

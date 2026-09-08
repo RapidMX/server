@@ -2059,4 +2059,79 @@ fields, already admin-only for `isResource: true` via the existing trusted-role 
   every prior admin-page entry. **No interactive browser click-through was done** — same standing
   limitation as every entry in this file; JP should verify visually before relying on this, especially
   the resource fieldset's show/hide toggle and the settings card's own save flow.
+- Committed (`815da60`) with JP's explicit go-ahead.
+
+### 2026-09-08 — Wiring `@rapidmx/restapi`'s new features into `server`: Phase 6 (Conversation/thread grouping, webmail)
+
+Sixth slice of the same 15-phase plan (see the Phase 0–5 entries above for full context) — the first
+phase to touch `apps/www` rather than `apps/admin`. Implements the merged Gmail-style thread view JP
+confirmed via `AskUserQuestion` during this plan's own planning phase.
+
+- `apps/shared/lib/conversationsApi.ts` (new) — `ConversationSummary` type + a single
+  `listConversations(mailboxUid)` (`GET /messages/conversations?mailboxUid=`), matching
+  `BaseMessageRoute.conversations()`'s real response shape exactly (verified by reading restapi's own
+  source, not assumed): mailbox-wide, not folder-scoped, newest-activity-first, capped at a
+  server-side `conversationScanLimit` (default 500) messages per scan. Reuses `mailApi.ts`'s existing
+  `Recipient` type rather than redefining it.
+- `apps/shared/components/mail/ConversationList.tsx` (new) — the "By conversation" counterpart to the
+  per-message `<ul>` `apps/www/index.tsx` already rendered inline for "By date"; participants joined by
+  display name/address, subject, latest date, a message-count badge (only shown when >1), an unread
+  badge, and an attachment indicator.
+- `apps/shared/components/mail/ConversationThreadPane.tsx` (new) — fetches every message in a
+  conversation via `getMessage()` (parallel `Promise.all`), stacks them oldest-to-newest, expands only
+  the most recent by default with the rest collapsed to a one-line sender+preview summary until
+  clicked (multiple can be expanded at once, true Gmail-style — not mutually exclusive). Reuses
+  `MessageDetailPane` for each *expanded* message's own header/attachments/body-iframe rendering
+  rather than re-implementing it, but does **not** call the existing `useMessageAttachments`/
+  `useMarkMessageRead` hooks from `mailDetailHooks.ts` — those are built for exactly one
+  currently-selected message, and the rules of hooks don't allow calling a hook in a loop over however
+  many messages happen to be expanded. Reimplemented the same lazy-load-on-expand/mark-read-on-expand
+  logic directly as a `useEffect` iterating `expandedUids`, documented inline as the reason for the
+  divergence from the shared-hook precedent rather than leaving it to be rediscovered.
+- `apps/www/index.tsx`: a "By date"/"By conversation" toggle (client-side only, no persisted
+  preference) replaces the per-folder list and detail pane entirely in conversation mode; an inline
+  note ("Showing every conversation in this mailbox — the selected folder doesn't filter this view")
+  makes the folder-tree sidebar's now-informational-only selection explicit rather than a silent
+  surprise, per the plan's own instruction to document this rather than leave it to be discovered. No
+  dedicated mobile conversation-thread route this phase — a mobile tap lands on the *existing*
+  `/messages/detail?uid=` route for the conversation's most recent message (that route already
+  handles any message uid regardless of conversation grouping), rather than building a second mobile
+  detail page in the same phase that introduces the desktop merged view.
+- Three more instances of the "dead guard the UI structurally can't trigger" pattern, all fixed by
+  removal (matching every prior instance this plan has hit — Phase 1's `DomainDetailContent.
+  handleVerify`, `QuarantineContent.handleRelease`, Phase 4's `TransportRuleDetailContent.
+  handleSubmit`): `ConversationThreadPane`'s `latestUid ? [latestUid] : []` (a `ConversationSummary`'s
+  `messageUids` always has at least one entry — see `conversationsApi.ts`'s own doc comment) and
+  `apps/www/index.tsx`'s `if (!mailboxUid) {...}` guard inside the conversation-mode branch (`MailShell`
+  never resolves `folderUid` — this component's own earlier guard — before `mailboxUid` is already
+  known, so by the time the "By conversation" button can even be clicked, `mailboxUid` is guaranteed
+  set).
+- **One new lesson distinct from a dead-guard removal**: `ConversationThreadPane`'s attachment-fetch
+  failure handler originally called `setAttachmentsByUid((prev) => ({...prev, [uid]: []}))` to
+  explicitly cache "no attachments" on failure — but the render call site already does
+  `attachmentsByUid[uid] ?? []`, so an explicit `[]` and a merely-*unset* key render **identically**;
+  the state write was genuinely unobservable through the UI, not just hard to reach. Writing a test to
+  force branch coverage on unobservable internal state would have been exactly the kind of contrived
+  test this codebase's convention rejects — simplified the catch handler to a no-op (matching the
+  mark-as-read catch's own existing "best-effort" comment) instead, which is both simpler and
+  genuinely correct: a transient attachment-fetch failure now retries on the next relevant re-render
+  rather than being permanently (and silently) cached as "no attachments."
+- All new/touched files reached 100% coverage this phase — including the one other real gap worth
+  naming: the effect-side "message the API response didn't include" guard needed its own dedicated
+  test distinct from the render-side guard's test, since a defaults-only fixture never actually placed
+  a *missing* message inside `expandedUids` (only the auto-expanded latest message starts there) —
+  two different tests for what looked like the same defensive check at first glance.
+- Verification: `yarn tsc --noEmit`, client `tsc -p tsconfig.client.json --noEmit`, `yarn lint` all
+  clean. Full `yarn test`: 1006/1006 passing, coverage gate holds with no new carve-outs. `yarn dev` +
+  real `fetch()`/`curl` calls: created a real mailbox owned by the dev auto-auth user, confirmed
+  `GET /api/mail/messages/conversations?mailboxUid=...` returns `200 []` against it, and confirmed the
+  webmail index page itself loads (`200`) with that mailbox selected. **Did not verify an actual
+  threaded conversation's rendered output** — that needs a real message with RFC 5322 References/
+  In-Reply-To threading via the mail ingest pipeline, out of scope for a quick API-level smoke check;
+  flagging this explicitly rather than claiming full verification. **Could not confirm the rendered
+  page markup via `curl`** beyond a bare `200` for the same reason every prior webmail-client
+  entry couldn't (client-side hydration). **No interactive browser click-through was done** — same
+  standing limitation as every entry in this file; JP should verify visually before relying on this,
+  especially the merged-thread expand/collapse interaction and the view-mode toggle, which have no
+  automated visual check.
 - Not yet committed — holding for JP's review/commit-authorization, same default as every entry above.
