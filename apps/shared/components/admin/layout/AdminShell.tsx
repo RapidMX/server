@@ -4,7 +4,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 import "../../../styles/app.css";
 import React, { PropsWithChildren, ReactNode, useEffect, useState } from "react";
+import { HiOutlineBars3 } from "react-icons/hi2";
 import { apiFetch, ApiRequestError } from "../../../lib/api.js";
+import Drawer from "../../../lib/Drawer.js";
 import { useRedirectIfUnauthenticated } from "../../../lib/session.js";
 import Alert from "../../feedback/Alert.js";
 import UserMenu from "../../layout/UserMenu.js";
@@ -39,6 +41,7 @@ const NAV_LINKS = [
 export default function AdminShell({ userUid, authServerUrl, children }: PropsWithChildren<AdminShellProps>) {
     const [status, setStatus] = useState<Status>("checking");
     const [error, setError] = useState<string | null>(null);
+    const [drawerOpen, setDrawerOpen] = useState(false);
 
     useRedirectIfUnauthenticated(userUid, authServerUrl);
 
@@ -87,11 +90,19 @@ export default function AdminShell({ userUid, authServerUrl, children }: PropsWi
                 <header className="bg-surface border-b border-border">
                     <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
                         <div className="flex items-center gap-8">
+                            <button
+                                type="button"
+                                className="md:hidden w-9 h-9 flex items-center justify-center rounded-sm text-text-muted hover:bg-surface-alt hover:text-text"
+                                aria-label="Open menu"
+                                onClick={() => setDrawerOpen(true)}
+                            >
+                                <HiOutlineBars3 size={20} aria-hidden="true" />
+                            </button>
                             <a href="/admin" className="flex items-center gap-2 font-display font-bold text-lg uppercase tracking-wide">
                                 <img src="/images/logo.svg" width="24" height="24" alt="" />
                                 Mail Admin
                             </a>
-                            <nav className="flex items-center gap-5 text-sm font-medium text-text-muted">
+                            <nav className="hidden md:flex items-center gap-5 text-sm font-medium text-text-muted">
                                 {NAV_LINKS.map((link) => (
                                     <a key={link.href} href={link.href} className="hover:text-text">
                                         {link.label}
@@ -102,6 +113,20 @@ export default function AdminShell({ userUid, authServerUrl, children }: PropsWi
                         <UserMenu userUid={userUid} authServerUrl={authServerUrl} onSignOut={handleSignOut} />
                     </div>
                 </header>
+                <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="Menu">
+                    <nav className="flex flex-col gap-1 text-sm font-medium">
+                        {NAV_LINKS.map((link) => (
+                            <a
+                                key={link.href}
+                                href={link.href}
+                                className="px-2.5 py-1.5 rounded-sm text-text hover:bg-surface-alt"
+                                onClick={() => setDrawerOpen(false)}
+                            >
+                                {link.label}
+                            </a>
+                        ))}
+                    </nav>
+                </Drawer>
                 <main className="max-w-6xl mx-auto px-6 py-8">{children}</main>
             </div>
         );

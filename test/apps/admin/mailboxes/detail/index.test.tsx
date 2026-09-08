@@ -54,6 +54,7 @@ describe("MailboxDetailPage", () => {
         expect(screen.getByText("u1")).toBeInTheDocument();
         expect(screen.getByText("1.00 GB / 5.00 GB")).toBeInTheDocument();
         expect(screen.getByText("alias@example.com")).toBeInTheDocument();
+        expect(screen.getByText("Display name").closest("dl")).toHaveClass("grid-cols-1", "sm:grid-cols-2");
         expect(screen.getByRole("link", { name: "View quarantine" })).toHaveAttribute(
             "href",
             "/admin/quarantine?mailboxUid=mb1",

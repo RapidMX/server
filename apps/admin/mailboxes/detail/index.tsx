@@ -105,7 +105,7 @@ function MailboxDetailContent({ impersonationBaseUrl }: Pick<AdminShellProps, "i
             </div>
 
             <div className="bg-surface border border-border rounded-md p-6">
-                <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
                     <dt className="text-text-muted">Display name</dt>
                     <dd>{mailbox.displayName}</dd>
                     <dt className="text-text-muted">Owner</dt>

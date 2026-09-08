@@ -3,7 +3,7 @@
 // Copyright (C) 2026 Jean-Philippe Steinmetz. All rights reserved.
 ///////////////////////////////////////////////////////////////////////////////
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { jsonResponse, mockFetch, mockLocation } from "../../testUtils.js";
@@ -85,6 +85,50 @@ describe("AdminShell", () => {
         expect(screen.getByText("admin-1")).toBeInTheDocument();
         await user.click(screen.getByRole("menuitem", { name: "Sign Out" }));
         expect(location.href).toBe(AUTH_SERVER_URL);
+    });
+
+    it("opens the mobile menu drawer, navigates via one of its links, and can be closed", async () => {
+        mockFetch((url) => {
+            if (url === "/api/admin/release-notes") return jsonResponse(200, {});
+            throw new Error(`unexpected ${url}`);
+        });
+        const user = userEvent.setup();
+        render(
+            <AdminShell userUid="admin-1" authServerUrl={AUTH_SERVER_URL}>
+                content
+            </AdminShell>,
+        );
+        await screen.findByText("content");
+
+        expect(screen.queryByRole("dialog", { name: "Menu" })).not.toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: "Open menu" }));
+        const drawer = screen.getByRole("dialog", { name: "Menu" });
+        const quarantineLink = within(drawer).getByRole("link", { name: "Quarantine" });
+        expect(quarantineLink).toHaveAttribute("href", "/admin/quarantine");
+
+        await user.click(quarantineLink);
+        expect(screen.queryByRole("dialog", { name: "Menu" })).not.toBeInTheDocument();
+    });
+
+    it("closes the mobile menu drawer via its own Close button", async () => {
+        mockFetch((url) => {
+            if (url === "/api/admin/release-notes") return jsonResponse(200, {});
+            throw new Error(`unexpected ${url}`);
+        });
+        const user = userEvent.setup();
+        render(
+            <AdminShell userUid="admin-1" authServerUrl={AUTH_SERVER_URL}>
+                content
+            </AdminShell>,
+        );
+        await screen.findByText("content");
+
+        await user.click(screen.getByRole("button", { name: "Open menu" }));
+        const drawer = screen.getByRole("dialog", { name: "Menu" });
+        await user.click(within(drawer).getByRole("button", { name: "Close" }));
+
+        expect(screen.queryByRole("dialog", { name: "Menu" })).not.toBeInTheDocument();
     });
 
     it("signs out to '/' when authServerUrl is not configured", async () => {
