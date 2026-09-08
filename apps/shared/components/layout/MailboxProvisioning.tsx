@@ -102,7 +102,7 @@ export default function MailboxProvisioning() {
     return (
         <div className="min-h-screen flex items-center justify-center p-8 bg-surface-alt">
             <div className="w-full max-w-md bg-surface border border-border rounded-md p-8 flex flex-col items-center gap-4 text-center">
-                <img src="/images/logo_photo_dark_bg.png" width="128" height="128" alt="" />
+                <img src="/images/wordmark.png" height="128" alt="" />
                 {content}
             </div>
         </div>

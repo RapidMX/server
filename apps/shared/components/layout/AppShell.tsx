@@ -110,7 +110,7 @@ export default function AppShell({
                     aria-label="Apps"
                     className="w-16 shrink-0 bg-surface border-r border-border flex flex-col items-center py-3 gap-1"
                 >
-                    <img src="/images/logo_photo_dark_bg.png" width="56" height="56" alt="" className="mb-3" />
+                    <img src="/images/logo.svg" width="96" height="96" alt="" className="mb-3" />
                     {APPS.map(({ id, href, label, icon: Icon }) => (
                         <a
                             key={id}
