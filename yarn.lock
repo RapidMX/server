@@ -1617,7 +1617,7 @@ __metadata:
 
 "@rapidrest/service-core@patch:@rapidrest/service-core@npm%3A1.4.0#~/.yarn/patches/@rapidrest-service-core-npm-1.4.0-e716f9ee78.patch":
   version: 1.4.0
-  resolution: "@rapidrest/service-core@patch:@rapidrest/service-core@npm%3A1.4.0#~/.yarn/patches/@rapidrest-service-core-npm-1.4.0-e716f9ee78.patch::version=1.4.0&hash=54a480"
+  resolution: "@rapidrest/service-core@patch:@rapidrest/service-core@npm%3A1.4.0#~/.yarn/patches/@rapidrest-service-core-npm-1.4.0-e716f9ee78.patch::version=1.4.0&hash=ecc9f4"
   dependencies:
     axios: "npm:^1.19.0"
     dayjs: "npm:^1.11.23"
@@ -1647,7 +1647,7 @@ __metadata:
       optional: true
     uWebSockets.js:
       optional: true
-  checksum: 10c0/2b37394cdefd145bc6de2428714147381c4ebbff52d88ffbcd8f1b3ebaba05a61e1d3311b5a5a9ef3a70910d1cf16e092bf9e1ebfd8af4b4151d0dc343a301d9
+  checksum: 10c0/3a2e553626dd3037b6d1ed647085fa158f42a80a65aae137f94608b004caaebedf53546b60a61578512caa6bd7073c9951232c7e1cb4247066d0551f1d4b7560
   languageName: node
   linkType: hard
 

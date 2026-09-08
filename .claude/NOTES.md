@@ -1851,4 +1851,94 @@ form here, just a filterable list.
   every prior admin-page entry. **No interactive browser click-through was done** — same standing
   limitation as every entry in this file; JP should verify visually before relying on this, especially
   the filter-to-URL round-trip and the details disclosure.
+- Committed (`5c1c08c`) with JP's explicit go-ahead. `.github/workflows/ci.yml`'s unrelated local
+  modification is still sitting in the working tree, still excluded from every commit in this plan.
+
+### 2026-09-08 — Wiring `@rapidmx/restapi`'s new features into `server`: Phase 3 (Distribution lists) + a second real `@rapidrest/service-core` bug found and fixed
+
+Third slice of the same 15-phase plan (see the Phase 0/1 and Phase 2 entries above for full context).
+
+**Phase 3 — Distribution lists (admin), reusing `ShareAccessCard`'s interaction shape for a plain
+field instead of a separate ACL endpoint:**
+
+- `apps/shared/lib/distributionListsApi.ts` (new) — `DistributionList` type + full CRUD, same shape
+  as `domainsApi.ts`/`mailApi.ts`. Own direct unit tests in `test/apps/_lib/distributionListsApi.test.ts`.
+- `src/mongo/routes/DistributionListRoute.ts` + `src/sql/routes/DistributionListRoute.ts` (new) — same
+  one-line `@ApiRoute("mail/distribution-lists")` wrapper; no new DI wiring needed this time (unlike
+  Phase 1's `DnsResolver`).
+- `apps/shared/components/admin/distributionLists/MemberListCard.tsx` (new) — reuses
+  `ShareAccessCard`'s load/inline-add-row/per-row-remove *interaction shape*, not the component itself:
+  a `DistributionList` has no per-record ACL to speak of (`BaseDistributionListRoute`'s own doc
+  comment), so membership is a plain `memberAddresses: string[]` field, mutated via read-modify-write
+  `PUT` on the list itself rather than a separate `/acls/:id` endpoint. Takes the already-loaded `list`
+  and an `onUpdate` callback as props instead of owning its own fetch-on-mount — the parent detail page
+  already has the data, so pushing the PUT's response back up avoids a redundant re-fetch. Own full
+  test file, `test/apps/admin/_components/MemberListCard.test.tsx`.
+- `apps/admin/distribution-lists/{index,new,detail}.tsx` (new) — same three-page shape as every prior
+  phase. `ownerUserUid` renders read-only on the detail page (never an editable "transfer ownership"
+  control) — restapi's own doc comment confirms v1 has no delegated-ownership enforcement, so exposing
+  an edit control for it would imply a capability that doesn't exist.
+- `AdminShell.tsx`: `AdminSection` gains `"distributionLists"`, `NAV_ITEMS` gains a 6th entry
+  (`HiOutlineUserGroup`, `/admin/distribution-lists`).
+- All new files landed at 100% coverage (statements/branches/functions/lines, confirmed directly via
+  `coverage/lcov.info`'s `FNF`/`FNH`/`BRF`/`BRH`/`LF`/`LH` pairs) on the first full test run this
+  phase — no dead-code or race-condition fixups needed this time, unlike Phase 1's detail page.
+
+**A second real, pre-existing `@rapidrest/service-core` bug, found via this phase's own live `yarn
+dev` smoke test** (not by the test suite, which mocks `fetch` everywhere and so never exercises a real
+server round-trip): neither of `@rapidrest/service-core`'s two router implementations —
+`http/uWS/Router.ts` (backed by `uWebSockets.js`'s `getParameter()`) nor `http/bun/BunRouter.ts`
+(backed by `URL.pathname`) — ever percent-decodes a `:param` path segment. Query-string values *do*
+get decoded (`http/uWS/Adapters.ts`), but path params never did — `BunRouter.test.ts` even had a test
+explicitly asserting the buggy behavior as intentional ("extracts :param values without
+percent-decoding"), so this wasn't an oversight, it was a deliberate but incorrect design choice.
+Every `*Api.ts` wrapper in this repo that puts a uid in a URL *path* (as opposed to a query string)
+calls `encodeURIComponent(uid)` first — this repo's own established convention, going back to
+`mailApi.ts`'s original `getMailbox()`/`updateMailbox()`/`deleteMailbox()`. For any uid containing a
+character `encodeURIComponent` escapes — above all `@`, since every `Mailbox` and `DistributionList`
+uid is *derived directly from an email address* — the request arrives at the route handler with the
+literal percent-encoded string still in `req.params.id`, which never matches the stored (decoded) uid,
+so `repoUtils.findOne(id)` 404s even though the record exists. **Confirmed this breaks the
+already-shipped Mailboxes admin detail page today** (`GET /api/mail/mailboxes/jdoe%40example.com` →
+404, `GET /api/mail/mailboxes/jdoe@example.com` → 200, tested with Node's own `fetch()` — identical to
+what the browser client sends), not something either this phase or Phase 1 introduced — it just hadn't
+been hit yet by any uid containing a character worth encoding (`Domain.name` uids are bare hostnames,
+which `encodeURIComponent` passes through unchanged, so Phase 1's `domainsApi.ts` never surfaced it).
+
+- Surfaced to JP rather than silently working around it — same "ask before deciding how to proceed"
+  default as the Phase 0 ACL bug. **JP asked for it fixed directly in `service-core` this time too.**
+  Fix: both `extractParams`/param-capture sites now `decodeURIComponent()` each raw segment, falling
+  back to the raw value on malformed percent-encoding (a bare `%`) exactly like `Adapters.ts`'s
+  existing query-string fallback — same defensive pattern, extended to path params for consistency.
+  Updated `BunRouter.test.ts`'s stale "without percent-decoding" test to assert the fixed behavior
+  instead of the bug, and added a matching malformed-encoding fallback test to both `Router.test.ts`
+  and `BunRouter.test.ts`.
+- **Verifying this one was trickier than the Phase 0 ACL fix**: `service-core`'s own `Server.test.ts`
+  integration suite (which spins up a real uWS server + real `mongodb-memory-server`) was failing
+  broadly and unrelated-looking (`/hello` 404ing, wrong content-type on a 404, etc.) right after
+  building with the fix — proved this was pre-existing environmental flakiness in this session's local
+  machine state, *not* caused by the router change, by `git stash`-ing the fix, rebuilding, and getting
+  the *exact same* 9 failures from the unpatched baseline. The router fix's own dedicated unit tests
+  (`Router.test.ts`/`BunRouter.test.ts`, which fake the uWS/Bun request objects rather than binding a
+  real port) all passed cleanly throughout, 73/73. Didn't chase the `Server.test.ts` flakiness further
+  in `service-core` itself — out of scope for this plan, and `server`'s *own* `Server.mongo.test.ts`/
+  `Server.sql.test.ts` (which exercise the exact same real-server/real-DB path this fix touches) came
+  back fully green once patched in, which is the verification that actually matters here.
+- **No restapi re-patch needed for this one** — the router lives entirely in `server`'s own direct
+  `@rapidrest/service-core` dependency (the same hoisted copy every route resolves through, per the
+  Phase 0 entry's "two-hop patch" finding); restapi doesn't bundle its own nested copy and its route
+  *classes* never touch routing/param-extraction directly. Re-patched `server`'s existing
+  `@rapidrest/service-core` patch slot (same patch file as Phase 0 — `yarn patch` re-extracts the
+  already-patched 1.4.0 as the new base, so both the ACL fix and this router fix now ship in the one
+  patch) and re-ran `yarn install`.
+- Verification: `yarn tsc --noEmit` clean. Full `yarn test`: 916/916 passing (server's own suite,
+  including the real-database `Server.mongo.test.ts`/`Server.sql.test.ts`), coverage gate holds.
+  `yarn dev` + a real `fetch()` call (not `curl`, to match the browser client exactly): confirmed
+  `GET /api/mail/mailboxes/<encoded-uid>` now `200`s, confirmed the Distribution Lists member-add `PUT`
+  flow round-trips end-to-end, confirmed `/admin/distribution-lists/detail?uid=...` and
+  `/admin/mailboxes/detail?uid=...` both `200`. **Could not confirm the rendered page markup via
+  `curl`** — same standing `AdminShell` client-hydration-gated limitation as every prior admin-page
+  entry. **No interactive browser click-through was done** — same standing limitation as every entry
+  in this file; JP should verify visually before relying on this, especially the member add/remove
+  flow now that its underlying routing bug is fixed.
 - Not yet committed — holding for JP's review/commit-authorization, same default as every entry above.
