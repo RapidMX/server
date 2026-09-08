@@ -9,6 +9,7 @@ import {
     deleteCalendarEvent,
     getCalendarEvent,
     listCalendarEvents,
+    respondToEvent,
     updateCalendarEvent,
 } from "../../../apps/shared/lib/calendarApi.js";
 
@@ -139,5 +140,28 @@ describe("deleteCalendarEvent", () => {
             "/api/mail/calendar-events/e%2F1?version=4",
             expect.objectContaining({ method: "DELETE" }),
         );
+    });
+});
+
+describe("respondToEvent", () => {
+    it("POSTs the encoded uid's respond route with the response status", async () => {
+        const updated = { ...event, attendees: [{ address: "me@example.com", role: "required" as const, responseStatus: "accepted" as const, isOrganizer: false }] };
+        const fetchMock = mockFetch(() => jsonResponse(200, updated));
+        const result = await respondToEvent("e/1", "accepted");
+        expect(fetchMock).toHaveBeenCalledWith(
+            "/api/mail/calendar-events/e%2F1/respond",
+            expect.objectContaining({ method: "POST", body: JSON.stringify({ responseStatus: "accepted" }) }),
+        );
+        expect(result).toEqual(updated);
+    });
+
+    it("resolves with just the uid when declining, since the server soft-deletes the mailbox's own copy", async () => {
+        const fetchMock = mockFetch(() => jsonResponse(200, { uid: "e1" }));
+        const result = await respondToEvent("e1", "declined");
+        expect(fetchMock).toHaveBeenCalledWith(
+            "/api/mail/calendar-events/e1/respond",
+            expect.objectContaining({ method: "POST", body: JSON.stringify({ responseStatus: "declined" }) }),
+        );
+        expect(result).toEqual({ uid: "e1" });
     });
 });

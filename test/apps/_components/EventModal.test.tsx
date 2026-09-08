@@ -700,4 +700,241 @@ describe("EventModal", () => {
         await user.click(screen.getByRole("button", { name: "Cancel" }));
         expect(onClose).toHaveBeenCalled();
     });
+
+    describe("respond", () => {
+        it("shows a responseStatus badge for each attendee, reflecting needsAction/accepted/declined/tentative", () => {
+            const withAttendees = occurrence({
+                attendees: [
+                    { address: "bob@example.com", role: "required", responseStatus: "accepted", isOrganizer: false },
+                    { address: "amy@example.com", role: "required", responseStatus: "declined", isOrganizer: false },
+                ],
+            });
+            render(
+                <EventModal
+                    open
+                    onClose={vi.fn()}
+                    mailboxUid="mb1"
+                    folderUid="f1"
+                    organizerAddress="jane@example.com"
+                    occurrence={withAttendees}
+                    onSaved={vi.fn()}
+                    onDeleted={vi.fn()}
+                />,
+            );
+
+            expect(screen.getByText("Accepted")).toBeInTheDocument();
+            expect(screen.getByText("Declined")).toBeInTheDocument();
+        });
+
+        it("shows no response controls for a new (not-yet-created) event", () => {
+            render(
+                <EventModal
+                    open
+                    onClose={vi.fn()}
+                    mailboxUid="mb1"
+                    folderUid="f1"
+                    organizerAddress="jane@example.com"
+                    occurrence={null}
+                    onSaved={vi.fn()}
+                    onDeleted={vi.fn()}
+                />,
+            );
+            expect(screen.queryByText("Your response")).not.toBeInTheDocument();
+        });
+
+        it("shows no response controls when the viewing mailbox is the organizer", () => {
+            // `organizerAddress` ("jane@example.com") isn't listed among `attendees` at all here — the
+            // default fixture's `attendees: []` — so there's nothing to respond as.
+            render(
+                <EventModal
+                    open
+                    onClose={vi.fn()}
+                    mailboxUid="mb1"
+                    folderUid="f1"
+                    organizerAddress="jane@example.com"
+                    occurrence={occurrence()}
+                    onSaved={vi.fn()}
+                    onDeleted={vi.fn()}
+                />,
+            );
+            expect(screen.queryByText("Your response")).not.toBeInTheDocument();
+        });
+
+        it("shows no response controls when the viewing mailbox is listed as an attendee but flagged as the organizer", () => {
+            const selfAsOrganizer = occurrence({
+                attendees: [{ address: "jane@example.com", role: "required", responseStatus: "accepted", isOrganizer: true }],
+            });
+            render(
+                <EventModal
+                    open
+                    onClose={vi.fn()}
+                    mailboxUid="mb1"
+                    folderUid="f1"
+                    organizerAddress="jane@example.com"
+                    occurrence={selfAsOrganizer}
+                    onSaved={vi.fn()}
+                    onDeleted={vi.fn()}
+                />,
+            );
+            expect(screen.queryByText("Your response")).not.toBeInTheDocument();
+        });
+
+        function invitedOccurrence(overrides: Partial<CalendarOccurrence> = {}) {
+            return occurrence({
+                organizer: { address: "jane@example.com", type: "to" },
+                attendees: [{ address: "bob@example.com", role: "required", responseStatus: "needsAction", isOrganizer: false }],
+                ...overrides,
+            });
+        }
+
+        it("shows Accept/Tentative/Decline when the viewing mailbox is an invited (non-organizer) attendee", () => {
+            render(
+                <EventModal
+                    open
+                    onClose={vi.fn()}
+                    mailboxUid="mb1"
+                    folderUid="f1"
+                    organizerAddress="bob@example.com"
+                    occurrence={invitedOccurrence()}
+                    onSaved={vi.fn()}
+                    onDeleted={vi.fn()}
+                />,
+            );
+            expect(screen.getByText("Your response")).toBeInTheDocument();
+            expect(screen.getByRole("button", { name: "Accept" })).toBeInTheDocument();
+            expect(screen.getByRole("button", { name: "Tentative" })).toBeInTheDocument();
+            expect(screen.getByRole("button", { name: "Decline" })).toBeInTheDocument();
+        });
+
+        it("accepting POSTs responseStatus:accepted and calls onSaved", async () => {
+            const fetchMock = mockFetch(() => jsonResponse(200, { ...invitedOccurrence() }));
+            const onSaved = vi.fn();
+            const user = userEvent.setup();
+            render(
+                <EventModal
+                    open
+                    onClose={vi.fn()}
+                    mailboxUid="mb1"
+                    folderUid="f1"
+                    organizerAddress="bob@example.com"
+                    occurrence={invitedOccurrence()}
+                    onSaved={onSaved}
+                    onDeleted={vi.fn()}
+                />,
+            );
+
+            await user.click(screen.getByRole("button", { name: "Accept" }));
+
+            await waitFor(() =>
+                expect(fetchMock).toHaveBeenCalledWith(
+                    "/api/mail/calendar-events/e1/respond",
+                    expect.objectContaining({ method: "POST", body: JSON.stringify({ responseStatus: "accepted" }) }),
+                ),
+            );
+            expect(onSaved).toHaveBeenCalled();
+        });
+
+        it("marking tentative POSTs responseStatus:tentative and calls onSaved", async () => {
+            const fetchMock = mockFetch(() => jsonResponse(200, { ...invitedOccurrence() }));
+            const onSaved = vi.fn();
+            const user = userEvent.setup();
+            render(
+                <EventModal
+                    open
+                    onClose={vi.fn()}
+                    mailboxUid="mb1"
+                    folderUid="f1"
+                    organizerAddress="bob@example.com"
+                    occurrence={invitedOccurrence()}
+                    onSaved={onSaved}
+                    onDeleted={vi.fn()}
+                />,
+            );
+
+            await user.click(screen.getByRole("button", { name: "Tentative" }));
+
+            await waitFor(() =>
+                expect(fetchMock).toHaveBeenCalledWith(
+                    "/api/mail/calendar-events/e1/respond",
+                    expect.objectContaining({ method: "POST", body: JSON.stringify({ responseStatus: "tentative" }) }),
+                ),
+            );
+            expect(onSaved).toHaveBeenCalled();
+        });
+
+        it("declining POSTs responseStatus:declined and calls onDeleted instead of onSaved", async () => {
+            const fetchMock = mockFetch(() => jsonResponse(200, { uid: "e1" }));
+            const onSaved = vi.fn();
+            const onDeleted = vi.fn();
+            const user = userEvent.setup();
+            render(
+                <EventModal
+                    open
+                    onClose={vi.fn()}
+                    mailboxUid="mb1"
+                    folderUid="f1"
+                    organizerAddress="bob@example.com"
+                    occurrence={invitedOccurrence()}
+                    onSaved={onSaved}
+                    onDeleted={onDeleted}
+                />,
+            );
+
+            await user.click(screen.getByRole("button", { name: "Decline" }));
+
+            await waitFor(() =>
+                expect(fetchMock).toHaveBeenCalledWith(
+                    "/api/mail/calendar-events/e1/respond",
+                    expect.objectContaining({ method: "POST", body: JSON.stringify({ responseStatus: "declined" }) }),
+                ),
+            );
+            expect(onDeleted).toHaveBeenCalled();
+            expect(onSaved).not.toHaveBeenCalled();
+        });
+
+        it("shows an API error message and re-enables the response buttons when responding fails", async () => {
+            mockFetch(() => jsonResponse(500, { message: "boom" }));
+            const user = userEvent.setup();
+            render(
+                <EventModal
+                    open
+                    onClose={vi.fn()}
+                    mailboxUid="mb1"
+                    folderUid="f1"
+                    organizerAddress="bob@example.com"
+                    occurrence={invitedOccurrence()}
+                    onSaved={vi.fn()}
+                    onDeleted={vi.fn()}
+                />,
+            );
+
+            await user.click(screen.getByRole("button", { name: "Accept" }));
+
+            expect(await screen.findByText("boom")).toBeInTheDocument();
+            expect(screen.getByRole("button", { name: "Accept" })).not.toBeDisabled();
+        });
+
+        it("shows a generic error message when responding fails with a non-API error", async () => {
+            mockFetch(() => {
+                throw new TypeError("network down");
+            });
+            const user = userEvent.setup();
+            render(
+                <EventModal
+                    open
+                    onClose={vi.fn()}
+                    mailboxUid="mb1"
+                    folderUid="f1"
+                    organizerAddress="bob@example.com"
+                    occurrence={invitedOccurrence()}
+                    onSaved={vi.fn()}
+                    onDeleted={vi.fn()}
+                />,
+            );
+
+            await user.click(screen.getByRole("button", { name: "Decline" }));
+
+            expect(await screen.findByText("Could not send your response.")).toBeInTheDocument();
+        });
+    });
 });

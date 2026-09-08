@@ -1392,7 +1392,7 @@ __metadata:
 
 "@rapidmx/restapi@patch:@rapidmx/restapi@npm%3A0.2.0#~/.yarn/patches/@rapidmx-restapi-npm-0.2.0-2144d5a53f.patch":
   version: 0.2.0
-  resolution: "@rapidmx/restapi@patch:@rapidmx/restapi@npm%3A0.2.0#~/.yarn/patches/@rapidmx-restapi-npm-0.2.0-2144d5a53f.patch::version=0.2.0&hash=3fd897"
+  resolution: "@rapidmx/restapi@patch:@rapidmx/restapi@npm%3A0.2.0#~/.yarn/patches/@rapidmx-restapi-npm-0.2.0-2144d5a53f.patch::version=0.2.0&hash=419f19"
   dependencies:
     html-to-text: "npm:^9.0.5"
     mailparser: "npm:^3.7.2"
@@ -1411,7 +1411,7 @@ __metadata:
       optional: true
     pdf-parse:
       optional: true
-  checksum: 10c0/073754b0dceb8cb146988dabc3352557a6f3b026b3259d7027ad9b3fb83f7dd59e3b5642866256c19c5da6de76c41d33d8db1018a76edb1833a32e0199f6c255
+  checksum: 10c0/e7da1c51b8daf6ab4851147dcf39abdca84e82a571fbc2ff8d94227fbbec8460cbaadfa42c1ddd36fdab59801e076ed5cf6159a00bf2cd63d3a4fd6379fc036b
   languageName: node
   linkType: hard
 
@@ -1428,7 +1428,7 @@ __metadata:
     "@rapidrest/cli": "npm:^1.0.1"
     "@rapidrest/core": "npm:^5.1.0"
     "@rapidrest/react": "npm:^1.1.0"
-    "@rapidrest/service-core": "patch:@rapidrest/service-core@npm%3A1.4.0#~/.yarn/patches/@rapidrest-service-core-npm-1.4.0-e716f9ee78.patch"
+    "@rapidrest/service-core": "npm:^1.7.1"
     "@swc/core": "npm:^1.16.1"
     "@tailwindcss/vite": "npm:^4.3.3"
     "@testing-library/dom": "npm:^10.4.1"
@@ -1579,11 +1579,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@rapidrest/service-core@npm:1.4.0":
-  version: 1.4.0
-  resolution: "@rapidrest/service-core@npm:1.4.0"
+"@rapidrest/service-core@npm:^1.7.1":
+  version: 1.7.1
+  resolution: "@rapidrest/service-core@npm:1.7.1"
   dependencies:
-    axios: "npm:^1.19.0"
+    axios: "npm:^1.20.0"
     dayjs: "npm:^1.11.23"
     deepmerge: "npm:^4.3.1"
     node-schedule: "npm:^2.1.1"
@@ -1611,43 +1611,7 @@ __metadata:
       optional: true
     uWebSockets.js:
       optional: true
-  checksum: 10c0/632fe3c96578bb7bcfd67b08144a35ea1bad61adcbbcf422785b0ce459da40481844d12b515b1c43252ace457073e0c92e17fd1af66ed1c0a3b97c96ae3e76fb
-  languageName: node
-  linkType: hard
-
-"@rapidrest/service-core@patch:@rapidrest/service-core@npm%3A1.4.0#~/.yarn/patches/@rapidrest-service-core-npm-1.4.0-e716f9ee78.patch":
-  version: 1.4.0
-  resolution: "@rapidrest/service-core@patch:@rapidrest/service-core@npm%3A1.4.0#~/.yarn/patches/@rapidrest-service-core-npm-1.4.0-e716f9ee78.patch::version=1.4.0&hash=ecc9f4"
-  dependencies:
-    axios: "npm:^1.19.0"
-    dayjs: "npm:^1.11.23"
-    deepmerge: "npm:^4.3.1"
-    node-schedule: "npm:^2.1.1"
-    uWebSockets.js: "uNetworking/uWebSockets.js#v20.69.0"
-    winston-transport: "npm:^4.9.0"
-    ws: "npm:^8.21.3"
-  peerDependencies:
-    "@rapidrest/core": 5.x
-    lodash-es: 4.x
-    mongodb: ^7.0.0
-    openapi3-ts: 4.x
-    prom-client: 15.x
-    redis: 6.x
-    reflect-metadata: 0.2.x
-    typeorm: 1.1.x
-    uWebSockets.js: "*"
-    winston: 3.x
-  dependenciesMeta:
-    uWebSockets.js:
-      optional: true
-  peerDependenciesMeta:
-    mongodb:
-      optional: true
-    typeorm:
-      optional: true
-    uWebSockets.js:
-      optional: true
-  checksum: 10c0/3a2e553626dd3037b6d1ed647085fa158f42a80a65aae137f94608b004caaebedf53546b60a61578512caa6bd7073c9951232c7e1cb4247066d0551f1d4b7560
+  checksum: 10c0/a05eedaff4ec57df1ee67ee3ff3a222096a9578f3a0e79f6835fccfe7e39facccc83fb82a195556ea6a5545d45bc3a74e743938c3db236c45738f5e1efda1906
   languageName: node
   linkType: hard
 

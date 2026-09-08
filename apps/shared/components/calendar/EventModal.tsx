@@ -6,11 +6,14 @@ import React, { FormEvent, useState } from "react";
 import { ApiRequestError } from "../../lib/api.js";
 import {
     Attendee,
+    AttendeeResponseInput,
+    AttendeeResponseStatus,
     AttendeeRole,
     BusyStatus,
     CalendarEventInput,
     RecurrenceRule,
     createCalendarEvent,
+    respondToEvent,
     updateCalendarEvent,
 } from "../../lib/calendarApi.js";
 import { deleteEventOccurrence, deleteEventSeries, detachOccurrence, saveEventSeries } from "../../lib/calendarMutations.js";
@@ -29,6 +32,12 @@ const SELECT_CLASS =
 const ATTENDEE_ROLES: AttendeeRole[] = ["required", "optional", "resource"];
 const BUSY_STATUSES: BusyStatus[] = ["busy", "free", "tentative", "oof"];
 const BUSY_STATUS_LABEL: Record<BusyStatus, string> = { busy: "Busy", free: "Free", tentative: "Tentative", oof: "Out of office" };
+const RESPONSE_STATUS_LABEL: Record<AttendeeResponseStatus, string> = {
+    needsAction: "Awaiting response",
+    accepted: "Accepted",
+    declined: "Declined",
+    tentative: "Tentative",
+};
 
 /** `<input type="datetime-local">` reads/writes local time with no timezone suffix — `new Date(str)`
  * parses that as the browser's own local time, matching what the picker visually showed the user. */
@@ -97,6 +106,16 @@ export default function EventModal({
     const [confirmingDelete, setConfirmingDelete] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
+    const [responding, setResponding] = useState(false);
+
+    // The viewing mailbox can respond to an *existing* event it's invited to but doesn't organize —
+    // `organizerAddress` is always this mailbox's own primary SMTP address (see `EventModalProps`), so
+    // finding it among `attendees` (and not as that attendee's own organizer flag) identifies exactly
+    // that case. `@rapidmx/restapi`'s `respond()` route has no occurrence-vs-series scope of its own
+    // (see `calendarApi.ts`'s `respondToEvent` doc comment) — it always acts on `occurrence.uid` as a
+    // single event document, so this deliberately does not consult `editScope`.
+    const myAttendeeIndex = occurrence ? attendees.findIndex((a) => a.address.toLowerCase() === organizerAddress.toLowerCase()) : -1;
+    const canRespond = myAttendeeIndex !== -1 && !attendees[myAttendeeIndex].isOrganizer;
 
     function updateAttendee(index: number, patch: Partial<Attendee>) {
         setAttendees((prev) => prev.map((a, i) => (i === index ? { ...a, ...patch } : a)));
@@ -166,6 +185,27 @@ export default function EventModal({
         } catch (err) {
             setError(err instanceof ApiRequestError ? err.message : "Could not delete this event.");
             setSaving(false);
+        }
+    }
+
+    // Only rendered inside the `{canRespond && (...)}` block below, which already requires `occurrence`
+    // to be non-null (see `canRespond`'s own definition above) — same established pattern as
+    // `handleDelete`'s non-null assertion.
+    async function handleRespond(responseStatus: AttendeeResponseInput) {
+        setError(null);
+        setResponding(true);
+        try {
+            await respondToEvent(occurrence!.uid, responseStatus);
+            // A decline soft-deletes the mailbox's own copy server-side — treat it the same as a
+            // delete rather than a save so the calendar view drops it immediately.
+            if (responseStatus === "declined") {
+                onDeleted();
+            } else {
+                onSaved();
+            }
+        } catch (err) {
+            setError(err instanceof ApiRequestError ? err.message : "Could not send your response.");
+            setResponding(false);
         }
     }
 
@@ -248,6 +288,9 @@ export default function EventModal({
                                         </option>
                                     ))}
                                 </select>
+                                <span className="text-xs font-medium text-text-muted shrink-0 py-1 px-2.5 rounded-pill bg-surface-alt self-center">
+                                    {RESPONSE_STATUS_LABEL[attendee.responseStatus]}
+                                </span>
                                 <button
                                     type="button"
                                     onClick={() => removeAttendee(i)}
@@ -267,6 +310,44 @@ export default function EventModal({
                         </button>
                     </div>
                 </FormField>
+
+                {canRespond && (
+                    <div className="flex flex-col gap-2 mb-3 p-3 rounded-sm bg-surface-alt">
+                        <div className="flex items-center justify-between gap-3 flex-wrap">
+                            <span className="text-sm font-medium">Your response</span>
+                            <div className="flex gap-2">
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    className="!w-auto"
+                                    disabled={responding}
+                                    onClick={() => handleRespond("accepted")}
+                                >
+                                    Accept
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    className="!w-auto"
+                                    disabled={responding}
+                                    onClick={() => handleRespond("tentative")}
+                                >
+                                    Tentative
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    className="!w-auto text-danger"
+                                    disabled={responding}
+                                    onClick={() => handleRespond("declined")}
+                                >
+                                    Decline
+                                </Button>
+                            </div>
+                        </div>
+                        <p className="text-xs text-text-muted">Other attendees&rsquo; responses may take a few minutes to update.</p>
+                    </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-3">
                     <FormField label="Busy status" htmlFor="event-busyStatus">

@@ -2195,3 +2195,106 @@ Seventh slice of the same 15-phase plan (see the Phase 0–6 entries above for f
   standing limitation as every entry in this file; JP should verify visually before relying on this,
   particularly the confirmation modal's copy and the "Recall requested" indicator's placement.
 - Not yet committed — holding for JP's review/commit-authorization, same default as every entry above.
+
+### 2026-09-08 — Wiring `@rapidmx/restapi`'s new features into `server`: Phase 8 (Meeting invites/iTIP
+accept-decline-tentative UI) + a real `@rapidmx/restapi` bug found and fixed + a stale `@rapidrest/
+service-core` pin bumped from 1.4.0 to 1.7.1
+
+Eighth slice of the same 15-phase plan (see the Phase 0–7 entries above for full context). Adds
+Accept/Tentative/Decline to `EventModal.tsx` for an invited (non-organizing) attendee, plus a per-attendee
+responseStatus badge — the feature work was small; most of this phase was two real bugs surfaced by
+actually exercising it end to end.
+
+- `apps/shared/lib/calendarApi.ts`: `CalendarEvent` gains `inviteSequenceSent?`/`cancelNoticeSentAt?`
+  (read-only display fields, server-internal iTIP tracking, never sent in a `CalendarEventInput`); new
+  `respondToEvent(uid, responseStatus)` (`POST /mail/calendar-events/:id/respond`,
+  `AttendeeResponseInput = Exclude<AttendeeResponseStatus, "needsAction">` since that value is only ever
+  a default, never a valid response). **Synchronous, unlike `recallMessage()`** — confirmed by reading
+  restapi's `BaseCalendarEventRoute.respond()` directly: it mutates and persists the attendee's own
+  `responseStatus` before returning, with the outbound iTIP REPLY email send wrapped in its own
+  try/catch so a delivery failure never fails the request. On `accepted`/`tentative` the whole updated
+  `CalendarEvent` comes back (only the calling attendee's own row changed); on `declined` the backend
+  **soft-deletes the mailbox's own copy** and returns only `{ uid }` instead — the return type is
+  honestly `CalendarEvent | { uid: string }`, and the caller branches on which `responseStatus` it sent
+  (not on the response shape) to decide which case it's in.
+- `EventModal.tsx`: a responseStatus badge (`rounded-pill bg-surface-alt`, matching the Phase 7 "Recall
+  requested" pill's own styling) next to every attendee row, always rendered (not just for existing
+  events) since a freshly-added attendee's default `needsAction` reads the same way. A new "Your
+  response" block (Accept/Tentative/Decline buttons + a note that other attendees' responses may take a
+  few minutes to update) appears only when `organizerAddress` (the viewing mailbox's own address) is
+  found among `attendees` and that entry's own `isOrganizer` is `false` — deliberately checking the
+  attendee row's own flag rather than comparing against `occurrence.organizer.address`, so a
+  degenerate case (the organizer *also* listed as their own attendee) still hides the controls
+  correctly. **Does not consult `editScope`** (the existing occurrence-vs-series radio control) at all
+  — confirmed via restapi's source that `respond()` has no occurrence/series scope concept whatsoever,
+  always acting on the given event id as a single document; reusing `editScope` here would have implied
+  a distinction the backend doesn't actually support.
+- Declining calls `onDeleted()` instead of `onSaved()` (matching the backend's own soft-delete-on-decline
+  semantics) — the only place in this phase two different success paths route to two different existing
+  callbacks depending on which button was clicked.
+
+**Bug #1 — real, in `@rapidmx/restapi` itself** (not service-core this time): live-verifying `respond()`
+against a real event immediately 500'd. Root cause, confirmed by reproducing directly against restapi's
+compiled `dist` in isolation (not guessed): `IcsUtils.ts`'s `formatDateUtc()` assumed its argument was
+always a real `Date` (calling `.getUTCFullYear()` etc. straight on it), but `event.startDate`/`endDate`/
+`recurrenceId` (and `RecurrenceRule.until`/`exceptions`) come back as **plain strings** when read off a
+persisted `CalendarEventMongo` — already known and documented in this repo's own `calendarApi.ts` doc
+comment from an earlier phase's live verification, but never connected to `buildEventIcs()` until now.
+`respond()`'s call to `buildEventIcs()` sits *outside* the route's own try/catch (which only wraps the
+mail-send), so the `TypeError` propagated straight to an uncaught 500 — and the same helper is shared by
+`MeetingSchedulingJob`, `BaseBookingRoute`, and `ScanQueueJob`'s resource-auto-accept REPLY, so this
+silently affected the entire iTIP feature surface, not just `respond()`. Fixed directly in restapi
+(`src/util/IcsUtils.ts`): `formatDateUtc(date: Date | string)` now coerces
+(`date instanceof Date ? date : new Date(date)`) before formatting — the single choke point every ICS
+date value flows through, so one fix covers `DTSTART`/`DTEND`/`RECURRENCE-ID`/`EXDATE`/`RRULE`'s `UNTIL`
+alike. Added two dedicated regression tests to `test/util/IcsUtils.test.ts` that pass string-typed dates
+in (the actual persisted-and-reloaded shape), not just the always-a-real-`Date` shape every other test
+in that file constructs by hand. restapi's full suite: 1748/1748 passing after the fix (one assertion in
+my own new test was wrong on the first pass — checked for a standalone `UNTIL:` line when `UNTIL` is
+really embedded inside the `RRULE:` line as `UNTIL=...`; fixed the assertion, not the source). One
+pre-existing, unrelated coverage gap (`MailboxRouteSQL.ts` line 46, a single anonymous function/
+statement) surfaced in the full-suite coverage report — confirmed via `git diff --stat` that this
+session's diff touches only `IcsUtils.ts`/its test file, so this is pre-existing drift in restapi's own
+suite, not something introduced here, and out of scope to fix under this plan.
+
+**Bug #2 — not a bug exactly, a stale dependency pin**: repatching restapi (`yarn patch` → swap
+freshly-built `dist/` → `yarn patch-commit`, the established single-hop process from Phase 0 — restapi
+itself has no nested/hoisted duplicate the way `service-core` did, so no *second* hop was needed here)
+and restarting the dev server to pick up the `IcsUtils.ts` fix hit a second, unrelated wall: the server
+failed to boot entirely (`TypeError: RateLimit is not a function` in `BaseBookingRoute.ts`, a class-level
+decorator that throws at module-load time, not request time — so this wasn't "Booking is broken", it was
+"nothing starts"). Root cause: restapi's current HEAD (its newest commit, "Add anonymous appointment
+booking") declares `"@rapidrest/service-core": "^1.7.1"` in its own `package.json`, but `server`'s own
+*direct* dependency on `@rapidrest/service-core` — pinned back in Phase 0, patched only for the ACL bug
+found that session — was still `1.4.0`. `RateLimit`/`RateLimiter` simply don't exist in the 1.4.0 copy
+`server` resolves (confirmed by grepping the resolved `dist` directly). This is the exact "two-hop"
+resolution shape documented in the Phase 0 entry above (restapi has no nested copy of service-core inside
+`server`'s tree, so everything — restapi's own bundled routes included — resolves through `server`'s
+single hoisted top-level copy), just discovered from the opposite direction this time: not "my patch to
+service-core didn't take effect," but "restapi's real dependency requirement quietly outgrew server's
+stale pin over several of restapi's own commits, and nothing had rebuilt+repatched+restarted against a
+recent-enough restapi `HEAD` to notice until now." **Confirmed both of the two prior local service-core
+patches (the ACL fix, JP's commit `8f3de5d`; and the router `decodeURIComponent` fix from this same
+session's Phase 0) are already present upstream** in the real `service-core` 1.7.1 (grepped
+`maxDepth`/`specificity` in `ACLUtils.ts` and `decodeURIComponent` in both `Router.ts`/`BunRouter.ts`
+directly in the sibling repo's current source) — so the fix was a straight version bump, not a new
+patch: `server`'s `package.json` now declares a plain `"@rapidrest/service-core": "^1.7.1"` (no `patch:`
+protocol at all), and the now-superseded `.yarn/patches/@rapidrest-service-core-npm-1.4.0-*.patch` file
+was deleted. Re-verified the *entire* repo after the bump, not just the Phase 8 surface, since a 3-minor-
+version jump could plausibly have broken anything: `yarn tsc --noEmit`, client `tsc`, `yarn lint` all
+clean; full `yarn test` 1036/1036 passing with the same coverage numbers as before the bump (no
+regressions). Dev server restarted clean afterward with `RateLimiter`/routes registering normally.
+- Live-verified for real end to end after both fixes landed: created a real mailbox/calendar folder/
+  event (viewing mailbox listed as a non-organizing attendee), `POST .../respond` with `accepted` → `200`
+  with that attendee's `responseStatus` correctly updated to `"accepted"`; a second event responded to
+  with `declined` → `200 {"uid": ...}`, confirmed soft-deleted via a follow-up `GET` returning `404`;
+  spot-checked Phase 7's `recall` flow still works unaffected by the dependency bump; both the webmail
+  index and calendar pages still return `200`. **No interactive browser click-through was done** — same
+  standing limitation as every entry in this file; JP should verify visually before relying on this,
+  particularly the responseStatus badges' layout inside the existing attendee row and the "Your
+  response" block's placement/copy.
+- Not yet committed — holding for JP's review/commit-authorization, same default as every entry above.
+  Note this phase's commit will need to include changes in **two repos**: `restapi` (the `IcsUtils.ts`
+  fix + its test) and `server` (the Phase 8 feature + the `package.json`/`yarn.lock`/patch-file changes
+  from the dependency bump) — restapi's own commit is independent of and should land before `server`'s,
+  matching the precedent set by JP's own ACL fix commit in Phase 0.

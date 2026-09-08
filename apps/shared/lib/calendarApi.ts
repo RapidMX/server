@@ -78,6 +78,11 @@ export interface CalendarEvent {
     reminderMinutesBeforeStart?: number;
     icalUid: string;
     sequence: number;
+    /** The `sequence` value invites were last sent for (server-internal iTIP tracking) — read-only
+     * display, never sent back in a `CalendarEventInput`. */
+    inviteSequenceSent?: number;
+    /** Set when an iTIP CANCEL was last sent for this event — read-only display, never sent back. */
+    cancelNoticeSentAt?: string;
 }
 
 /**
@@ -145,4 +150,24 @@ export function updateCalendarEvent(input: UpdateCalendarEventInput): Promise<Ca
 
 export function deleteCalendarEvent(uid: string, version: number): Promise<void> {
     return apiFetch(`/mail/calendar-events/${encodeURIComponent(uid)}?version=${version}`, { method: "DELETE" });
+}
+
+/** The subset of `AttendeeResponseStatus` a caller can actually respond with — `"needsAction"` is only
+ * ever a default/initial value, never a valid response. */
+export type AttendeeResponseInput = Exclude<AttendeeResponseStatus, "needsAction">;
+
+/**
+ * Responds to a meeting invite as the calling mailbox's own attendee entry. Synchronous — unlike
+ * `recallMessage()` in `mailApi.ts`, this immediately mutates and persists the response (the iTIP
+ * REPLY email send is best-effort server-side and never affects this call's outcome). On
+ * `"accepted"`/`"tentative"` the whole updated `CalendarEvent` comes back, with only the calling
+ * attendee's own `responseStatus` changed. On `"declined"`, the backend instead soft-deletes the
+ * mailbox's own copy of the event and returns only `{ uid }` — the caller should treat a decline the
+ * same as a delete rather than expecting an updated event back.
+ */
+export function respondToEvent(uid: string, responseStatus: AttendeeResponseInput): Promise<CalendarEvent | { uid: string }> {
+    return apiFetch(`/mail/calendar-events/${encodeURIComponent(uid)}/respond`, {
+        method: "POST",
+        body: JSON.stringify({ responseStatus }),
+    });
 }
