@@ -20,9 +20,9 @@ const STATUS_STYLES: Record<IngestQueueEntry["status"], string> = {
     failed: "bg-danger text-white",
 };
 
-export default function IngestQueuePage(props: AdminShellProps) {
+export default function IngestQueuePage(props: Omit<AdminShellProps, "active">) {
     return (
-        <AdminShell {...props}>
+        <AdminShell {...props} active="ingestQueue">
             <IngestQueueContent />
         </AdminShell>
     );

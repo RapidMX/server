@@ -14,9 +14,9 @@ export function readMailboxUid(): string | null {
     return new URLSearchParams(window.location.search).get("mailboxUid");
 }
 
-export default function QuarantinePage(props: AdminShellProps & { userUid?: string }) {
+export default function QuarantinePage(props: Omit<AdminShellProps, "active"> & { userUid?: string }) {
     return (
-        <AdminShell {...props}>
+        <AdminShell {...props} active="quarantine">
             <QuarantineContent userUid={props.userUid} />
         </AdminShell>
     );

@@ -3,19 +3,29 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React from "react";
-import type { AppDef, AppShellApp } from "./AppShell.js";
+import type { IconType } from "react-icons";
+
+/** A single icon-rail/bottom-tab entry — deliberately generic (not tied to `AppShell`'s own
+ * `AppDef`/`AppShellApp`) so both `AppShell` (www) and `AdminShell` (admin) can share this component
+ * for their own, differently-shaped nav item sets. */
+export interface NavItem {
+    id: string;
+    href: string;
+    label: string;
+    icon: IconType;
+}
 
 export interface BottomTabBarProps {
-    apps: AppDef[];
-    active: AppShellApp;
+    apps: NavItem[];
+    active: string;
 }
 
 /**
- * The mobile counterpart to `AppShell`'s icon rail — same `apps` data (Mail/Calendar/Contacts/Tasks),
- * same full-page-nav `<a href>` links (this framework has no client-side router), just relocated to a
- * fixed bottom bar instead of a persistent left rail, which doesn't fit below the `md` breakpoint. Only
- * `AppShell` renders this (`md:hidden`, alongside the icon rail's `hidden md:flex`) — never both hidden
- * or both visible at once.
+ * The mobile counterpart to an icon rail (`AppShell`'s Mail/Calendar/Contacts/Tasks, or `AdminShell`'s
+ * Mailboxes/Quarantine/Ingest Queue) — same data, same full-page-nav `<a href>` links (this framework
+ * has no client-side router), just relocated to a fixed bottom bar instead of a persistent left rail,
+ * which doesn't fit below the `md` breakpoint. Only ever rendered alongside that rail (`md:hidden` here,
+ * `hidden md:flex` there) — never both hidden or both visible at once.
  */
 export default function BottomTabBar({ apps, active }: BottomTabBarProps) {
     return (

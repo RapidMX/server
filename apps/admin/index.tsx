@@ -12,9 +12,9 @@ import Button from "../shared/components/buttons/Button.js";
 
 const PAGE_SIZE = 25;
 
-export default function MailboxesListPage(props: AdminShellProps) {
+export default function MailboxesListPage(props: Omit<AdminShellProps, "active">) {
     return (
-        <AdminShell {...props}>
+        <AdminShell {...props} active="mailboxes">
             <MailboxesListContent />
         </AdminShell>
     );

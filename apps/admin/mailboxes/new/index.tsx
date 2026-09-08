@@ -15,9 +15,9 @@ const INPUT_CLASS =
 const SELECT_CLASS =
     "text-sm py-2.5 px-3 border border-border rounded-sm bg-surface text-text focus:outline-none focus:border-primary";
 
-export default function NewMailboxPage(props: AdminShellProps) {
+export default function NewMailboxPage(props: Omit<AdminShellProps, "active">) {
     return (
-        <AdminShell {...props}>
+        <AdminShell {...props} active="mailboxes">
             <NewMailboxForm />
         </AdminShell>
     );

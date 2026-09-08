@@ -26,9 +26,9 @@ function formatBytes(bytes: number): string {
     return `${bytes} B`;
 }
 
-export default function MailboxDetailPage(props: AdminShellProps) {
+export default function MailboxDetailPage(props: Omit<AdminShellProps, "active">) {
     return (
-        <AdminShell {...props}>
+        <AdminShell {...props} active="mailboxes">
             <MailboxDetailContent impersonationBaseUrl={props.impersonationBaseUrl} />
         </AdminShell>
     );

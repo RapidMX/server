@@ -1596,3 +1596,62 @@ above), per JP's mid-session authorization to proceed autonomously; nothing was 
 rewritten. JP has not yet reviewed the commits himself (that review was explicitly deferred to "once
 everything is finished," per his own instruction) — flag this NOTES.md entry to him alongside the
 commit range when reporting completion.
+
+### 2026-09-08 — Admin console: left icon rail replacing the horizontal top nav, same bottom-tab-bar treatment as `apps/www`
+
+Follow-up to the mobile-responsiveness refactor above. JP asked for `AdminShell`'s navigation
+(Mailboxes/Quarantine/Ingest Queue) to become a left icon rail matching `AppShell`'s exact pattern
+(icon rail on desktop, bottom tab bar below `md`), replacing both the old horizontal top nav *and*
+the hamburger+`Drawer` mobile menu added earlier that same day (Phase 8) — that Drawer-based
+approach is now fully superseded, not left as a fallback.
+
+- **Generalized `BottomTabBar`** rather than duplicating it: it previously imported `AppDef`/
+  `AppShellApp` directly from `AppShell.tsx`, tightly coupling it to www's specific 4-app union type.
+  Replaced with a locally-defined `NavItem` interface (`{ id: string; href: string; label: string;
+  icon: IconType }`) and widened `active` to plain `string` — `AppShell`'s own `AppDef`/`AppShellApp`
+  are still structurally assignable (a string-literal union `id` is assignable to `id: string`), so
+  `AppShell.tsx` itself needed zero changes despite `BottomTabBar` no longer importing anything from
+  it. `AdminShell` now imports and reuses the exact same component.
+- **`AdminShell.tsx` rewritten to mirror `AppShell.tsx`'s structure exactly**: `hidden md:flex` icon
+  rail (top logo, three icon links — `HiOutlineInboxStack`/`HiOutlineShieldExclamation`/
+  `HiOutlineQueueList` for Mailboxes/Quarantine/Ingest Queue), `<BottomTabBar>` alongside it, a
+  simplified header showing just the active section's label (the "Mail Admin" text branding that
+  used to sit next to the logo is gone — matches `AppShell`, which has no text branding beside its
+  own logo either, just the icon rail's active-state highlighting), content wrapped `pb-14 md:pb-0`
+  for bottom-tab-bar clearance. Removed the now-dead `Drawer`/`HiOutlineBars3`/`NAV_LINKS` imports
+  and state.
+- **New required `active: AdminSection` prop** (`"mailboxes" | "quarantine" | "ingestQueue"`),
+  mirroring `AppShellProps.active` exactly. Unlike `AppShellProps`, there was no pre-existing
+  `Omit<AdminShellProps, "active">` pattern for admin's own page props (every admin page previously
+  typed its own props as bare `AdminShellProps` and spread `{...props}` straight into `<AdminShell>`
+  with no `active` at all) — **this doesn't fail `tsc` at the call site**, because `ReactRoute`'s
+  dynamic route invocation isn't statically type-checked against each page component's declared
+  props; a missing required prop here is a silent runtime bug (nav highlighting would just never
+  match), not a compile error. Caught by reasoning through the framework's invocation path, not by
+  the type checker — fixed all 5 admin pages (`apps/admin/index.tsx`, `mailboxes/detail`,
+  `mailboxes/new`, `quarantine`, `ingest-queue`) to type their own props as
+  `Omit<AdminShellProps, "active">` and pass their own literal `active="..."` explicitly, exactly
+  matching how `MailShellProps`/`ContactsShellProps`/etc. already do this for `AppShellProps`. Worth
+  remembering for any *future* new required prop added to a shell: `tsc` passing is not sufficient
+  evidence that every page actually supplies it — trace the framework's actual runtime call path.
+- `AdminShell.test.tsx` rewritten to mirror `AppShell.test.tsx`'s icon-rail/bottom-tab-bar test
+  shape (highlighting, hidden/visible at `md`, both nav surfaces present); the three old
+  hamburger-drawer-specific tests deleted (functionality removed, not just relocated). All 5 admin
+  page test files needed no changes — they render the *page* component, which now hardcodes its own
+  `active`, so this was transparent to them.
+- Verification: `yarn tsc --noEmit`, client `tsc -p tsconfig.client.json --noEmit`, `yarn lint` all
+  clean. Full `yarn test`: 833/833 passing, coverage gate holds with no new carve-outs. `yarn dev` +
+  `curl`: `/admin`, `/admin/quarantine`, `/admin/ingest-queue` all return `200`. **Could not confirm
+  the actual nav-rail markup via `curl` this time** (unlike the earlier `apps/www` smoke test) —
+  `AdminShell` gates its entire authorized-chrome render behind an async `/admin/release-notes`
+  canary check that only resolves client-side after hydration (pre-existing behavior, not something
+  this change introduced), so raw SSR output is always just the `checking`-state placeholder
+  regardless of who's asking. Relied on the rewritten component test suite (72/72 admin tests
+  passing, including the new icon-rail/bottom-tab-bar coverage) as the primary verification instead.
+  **No interactive browser click-through was done** — same standing limitation as every other entry
+  in this file (no browser-automation tool available in this environment) — JP should verify visually
+  before relying on this.
+- Committed as its own commit, following the same "ask before committing" default as every other
+  entry — see whether JP asked for this one specifically before assuming it's covered by the earlier
+  blanket mobile-responsiveness authorization (that authorization was scoped to the 10-phase plan
+  already completed above, not automatically to new, separately-requested work like this).

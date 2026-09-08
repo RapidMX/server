@@ -4,14 +4,18 @@
 ///////////////////////////////////////////////////////////////////////////////
 import "../../../styles/app.css";
 import React, { PropsWithChildren, ReactNode, useEffect, useState } from "react";
-import { HiOutlineBars3 } from "react-icons/hi2";
+import { HiOutlineInboxStack, HiOutlineQueueList, HiOutlineShieldExclamation } from "react-icons/hi2";
 import { apiFetch, ApiRequestError } from "../../../lib/api.js";
-import Drawer from "../../../lib/Drawer.js";
 import { useRedirectIfUnauthenticated } from "../../../lib/session.js";
 import Alert from "../../feedback/Alert.js";
+import BottomTabBar, { NavItem } from "../../layout/BottomTabBar.js";
 import UserMenu from "../../layout/UserMenu.js";
 
+export type AdminSection = "mailboxes" | "quarantine" | "ingestQueue";
+
 export interface AdminShellProps {
+    /** Which icon in the rail is highlighted as the current section. */
+    active: AdminSection;
     /** Populated automatically by the framework from an authenticated request (e.g. a valid `jwt` cookie). */
     userUid?: string;
     /** auth-server's base URL, injected via the route's `fetchProps` — see `src/mongo/routes/AdminConsoleRoute.ts`. */
@@ -26,10 +30,10 @@ export interface AdminShellProps {
 
 type Status = "checking" | "denied" | "error" | "authorized";
 
-const NAV_LINKS = [
-    { href: "/admin", label: "Mailboxes" },
-    { href: "/admin/quarantine", label: "Quarantine" },
-    { href: "/admin/ingest-queue", label: "Ingest Queue" },
+const NAV_ITEMS: NavItem[] = [
+    { id: "mailboxes", href: "/admin", label: "Mailboxes", icon: HiOutlineInboxStack },
+    { id: "quarantine", href: "/admin/quarantine", label: "Quarantine", icon: HiOutlineShieldExclamation },
+    { id: "ingestQueue", href: "/admin/ingest-queue", label: "Ingest Queue", icon: HiOutlineQueueList },
 ];
 
 /**
@@ -38,10 +42,9 @@ const NAV_LINKS = [
  * caller's JWT carries a trusted role, a 403 means it doesn't. There is no local step-up/elevation flow
  * (that would need a cross-origin call to auth-server's own elevation endpoint — not wired up yet).
  */
-export default function AdminShell({ userUid, authServerUrl, children }: PropsWithChildren<AdminShellProps>) {
+export default function AdminShell({ active, userUid, authServerUrl, children }: PropsWithChildren<AdminShellProps>) {
     const [status, setStatus] = useState<Status>("checking");
     const [error, setError] = useState<string | null>(null);
-    const [drawerOpen, setDrawerOpen] = useState(false);
 
     useRedirectIfUnauthenticated(userUid, authServerUrl);
 
@@ -85,49 +88,44 @@ export default function AdminShell({ userUid, authServerUrl, children }: PropsWi
             </div>
         );
     } else {
+        const activeItem = NAV_ITEMS.find((item) => item.id === active);
         content = (
-            <div className="min-h-screen bg-surface-alt">
-                <header className="bg-surface border-b border-border">
-                    <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-                        <div className="flex items-center gap-8">
-                            <button
-                                type="button"
-                                className="md:hidden w-9 h-9 flex items-center justify-center rounded-sm text-text-muted hover:bg-surface-alt hover:text-text"
-                                aria-label="Open menu"
-                                onClick={() => setDrawerOpen(true)}
-                            >
-                                <HiOutlineBars3 size={20} aria-hidden="true" />
-                            </button>
-                            <a href="/admin" className="flex items-center gap-2 font-display font-bold text-lg uppercase tracking-wide">
-                                <img src="/images/logo.svg" width="24" height="24" alt="" />
-                                Mail Admin
-                            </a>
-                            <nav className="hidden md:flex items-center gap-5 text-sm font-medium text-text-muted">
-                                {NAV_LINKS.map((link) => (
-                                    <a key={link.href} href={link.href} className="hover:text-text">
-                                        {link.label}
-                                    </a>
-                                ))}
-                            </nav>
-                        </div>
-                        <UserMenu userUid={userUid} authServerUrl={authServerUrl} onSignOut={handleSignOut} />
-                    </div>
-                </header>
-                <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="Menu">
-                    <nav className="flex flex-col gap-1 text-sm font-medium">
-                        {NAV_LINKS.map((link) => (
+            <div className="min-h-screen flex flex-col bg-surface-alt">
+                <div className="flex-1 flex min-h-0">
+                    <nav
+                        aria-label="Admin sections"
+                        className="hidden md:flex w-16 shrink-0 bg-surface border-r border-border flex-col items-center py-3 gap-1"
+                    >
+                        <img src="/images/logo.svg" width="96" height="96" alt="" className="mb-3" />
+                        {NAV_ITEMS.map(({ id, href, label, icon: Icon }) => (
                             <a
-                                key={link.href}
-                                href={link.href}
-                                className="px-2.5 py-1.5 rounded-sm text-text hover:bg-surface-alt"
-                                onClick={() => setDrawerOpen(false)}
+                                key={id}
+                                href={href}
+                                aria-label={label}
+                                aria-current={id === active ? "page" : undefined}
+                                title={label}
+                                className={[
+                                    "w-10 h-10 flex items-center justify-center rounded-sm",
+                                    id === active
+                                        ? "bg-primary/10 text-primary-dark"
+                                        : "text-text-muted hover:bg-surface-alt hover:text-text",
+                                ].join(" ")}
                             >
-                                {link.label}
+                                <Icon size={20} aria-hidden="true" />
                             </a>
                         ))}
                     </nav>
-                </Drawer>
-                <main className="max-w-6xl mx-auto px-6 py-8">{children}</main>
+                    <BottomTabBar apps={NAV_ITEMS} active={active} />
+                    <div className="flex-1 flex flex-col min-w-0">
+                        <header className="h-16 shrink-0 bg-surface border-b border-border flex items-center justify-between gap-4 px-6">
+                            <span className="font-display font-bold text-lg uppercase tracking-wide">{activeItem?.label}</span>
+                            <UserMenu userUid={userUid} authServerUrl={authServerUrl} onSignOut={handleSignOut} />
+                        </header>
+                        <div className="flex-1 pb-14 md:pb-0">
+                            <main className="max-w-6xl mx-auto px-6 py-8">{children}</main>
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     }
