@@ -6,7 +6,7 @@ import React from "react";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { emptyResponse, jsonResponse, mockFetch } from "../testUtils.js";
+import { emptyResponse, jsonResponse, mockFetch, mockLocation, mockMatchMedia } from "../testUtils.js";
 import ContactsPage from "../../../apps/www/contacts/index.js";
 
 // The "Email" toolbar action opens a real `ComposeWindow` overlay — mocked here the same way every
@@ -977,5 +977,43 @@ describe("ContactsPage — sidebar views, sorting, and toolbar bulk actions", ()
         await user.upload(screen.getByLabelText("Import contacts file"), file);
 
         expect(fetchMock.mock.calls.length).toBe(callsBefore);
+    });
+
+    describe("on mobile", () => {
+        it("navigates to the contact detail route instead of selecting in place when a row is tapped", async () => {
+            mockMatchMedia(true);
+            mockShellAndContacts([jane]);
+            const location = mockLocation();
+            const user = userEvent.setup();
+            render(<ContactsPage userUid="u1" />);
+
+            await user.click(await screen.findByText("Jane Doe"));
+
+            expect(location.href).toBe("/contacts/detail?uid=c1");
+            expect(screen.queryByRole("region", { name: "Contact details" })).not.toBeInTheDocument();
+        });
+
+        it("still creates a new contact in place — an unsaved contact has no uid for a route", async () => {
+            mockMatchMedia(true);
+            const fetchMock = mockShellAndContacts([], (url, init) => {
+                if (url === "/api/mail/contacts" && init?.method === "POST") {
+                    return jsonResponse(200, { ...jane, uid: "new-c" });
+                }
+                return undefined;
+            });
+            const user = userEvent.setup();
+            render(<ContactsPage userUid="u1" />);
+            await screen.findByText("No contacts found.");
+
+            await user.click(screen.getByRole("button", { name: "New contact" }));
+            expect(screen.getByRole("heading", { name: "New contact" })).toBeInTheDocument();
+
+            await user.type(screen.getByLabelText("Display name"), "Jane Doe");
+            await user.click(screen.getByRole("button", { name: "Save" }));
+
+            await waitFor(() =>
+                expect(fetchMock).toHaveBeenCalledWith("/api/mail/contacts", expect.objectContaining({ method: "POST" })),
+            );
+        });
     });
 });

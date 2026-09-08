@@ -3,8 +3,10 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { FormEvent, useEffect, useMemo, useState } from "react";
+import { HiOutlineBars3 } from "react-icons/hi2";
 import { ApiRequestError } from "../../lib/api.js";
 import { Contact, ContactList, createContactList, listContactLists } from "../../lib/contactsApi.js";
+import Drawer from "../../lib/Drawer.js";
 
 export type ContactsView =
     | { type: "all" }
@@ -94,6 +96,7 @@ export default function ContactsSidebar({ mailboxUid, contacts, active, onSelect
     const [listsError, setListsError] = useState<string | null>(null);
     const [addingList, setAddingList] = useState(false);
     const [newListName, setNewListName] = useState("");
+    const [drawerOpen, setDrawerOpen] = useState(false);
 
     useEffect(() => {
         if (!mailboxUid) {
@@ -141,12 +144,20 @@ export default function ContactsSidebar({ mailboxUid, contacts, active, onSelect
         }
     }
 
-    return (
-        <nav aria-label="Contacts" className="w-56 shrink-0 border-r border-border flex flex-col gap-4 p-3 overflow-y-auto">
+    function handleSelect(view: ContactsView) {
+        onSelect(view);
+        setDrawerOpen(false);
+    }
+
+    // A function, not a plain JSX constant — rendered both in the desktop `<nav>` and the mobile
+    // `Drawer` (see MailShell/ContactsShell for the identical pattern and the duplicate-id reasoning
+    // behind the `idPrefix`).
+    const navContent = (idPrefix: string) => (
+        <>
             <div className="flex flex-col gap-0.5">
-                <NavItem label="Your contacts" count={contacts.length} active={active.type === "all"} onClick={() => onSelect({ type: "all" })} />
-                <NavItem label="Favorites" count={favoriteCount} active={active.type === "favorites"} onClick={() => onSelect({ type: "favorites" })} />
-                <NavItem label="Deleted" active={active.type === "deleted"} onClick={() => onSelect({ type: "deleted" })} />
+                <NavItem label="Your contacts" count={contacts.length} active={active.type === "all"} onClick={() => handleSelect({ type: "all" })} />
+                <NavItem label="Favorites" count={favoriteCount} active={active.type === "favorites"} onClick={() => handleSelect({ type: "favorites" })} />
+                <NavItem label="Deleted" active={active.type === "deleted"} onClick={() => handleSelect({ type: "deleted" })} />
             </div>
 
             <div>
@@ -169,7 +180,7 @@ export default function ContactsSidebar({ mailboxUid, contacts, active, onSelect
                             label={list.name}
                             count={listCounts.get(list.uid) ?? 0}
                             active={active.type === "list" && active.uid === list.uid}
-                            onClick={() => onSelect({ type: "list", uid: list.uid, name: list.name })}
+                            onClick={() => handleSelect({ type: "list", uid: list.uid, name: list.name })}
                         />
                     ))}
                 </div>
@@ -179,6 +190,7 @@ export default function ContactsSidebar({ mailboxUid, contacts, active, onSelect
                             type="text"
                             autoFocus
                             aria-label="New list name"
+                            id={`${idPrefix}-new-list-name`}
                             value={newListName}
                             onChange={(e) => setNewListName(e.target.value)}
                             className="flex-1 text-xs py-1 px-1.5 border border-border rounded-sm bg-surface"
@@ -200,12 +212,31 @@ export default function ContactsSidebar({ mailboxUid, contacts, active, onSelect
                                 label={name}
                                 swatch={categoryColor(name)}
                                 active={active.type === "category" && active.name === name}
-                                onClick={() => onSelect({ type: "category", name })}
+                                onClick={() => handleSelect({ type: "category", name })}
                             />
                         ))}
                     </div>
                 </div>
             )}
-        </nav>
+        </>
+    );
+
+    return (
+        <>
+            <button
+                type="button"
+                className="md:hidden m-3 w-9 h-9 flex items-center justify-center rounded-sm text-text-muted hover:bg-surface-alt hover:text-text"
+                aria-label="Open contacts menu"
+                onClick={() => setDrawerOpen(true)}
+            >
+                <HiOutlineBars3 size={20} aria-hidden="true" />
+            </button>
+            <nav aria-label="Contacts" className="hidden md:flex w-56 shrink-0 border-r border-border flex-col gap-4 p-3 overflow-y-auto">
+                {navContent("desktop")}
+            </nav>
+            <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="Contacts">
+                <div className="flex flex-col gap-4">{navContent("mobile")}</div>
+            </Drawer>
+        </>
     );
 }
