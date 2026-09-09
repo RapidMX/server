@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 import { dirname } from "path";
 import { JWTUtils, EventUtils, Logger } from "@rapidrest/core";
 import { ObjectFactory, Server } from "@rapidrest/service-core";
-import { LocalFsBlobStore, NodeDnsResolver, PostfixSendmailTransport } from "@rapidmx/restapi";
+import { FsDkimKeyProvider, LocalFsBlobStore, NodeDnsResolver, PostfixSendmailTransport } from "@rapidmx/restapi";
 import { MongoTextSearchProvider } from "@rapidmx/restapi/search";
 import { ClamAvScanProvider, RspamdSpamScanProvider } from "@rapidmx/restapi/scan";
 import {
@@ -44,6 +44,12 @@ objectFactory.register(RspamdSpamScanProvider, "SpamScanProvider");
 objectFactory.register(ClamAvScanProvider, "AvScanProvider");
 objectFactory.register(PostfixSendmailTransport, "MailTransport");
 objectFactory.register(NodeDnsResolver, "DnsResolver");
+// Opts into automatic per-domain DKIM key generation (writing into the shared volume the Postfix/rspamd
+// container reads from - see docker-compose.mail.yml's `dkim_rspamd_keys` volume and `mail:dkim:*`
+// config) rather than the library's default manual model (`NullDkimKeyProvider`, an admin fills in
+// dkimSelector/dkimPublicKey by hand). See @rapidmx/restapi's dkim/DkimKeyProvider.ts doc comment for the
+// security tradeoff this represents before changing it back.
+objectFactory.register(FsDkimKeyProvider, "DkimKeyProvider");
 
 let server: any = undefined;
 

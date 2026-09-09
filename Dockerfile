@@ -26,8 +26,11 @@ COPY --from=builder --chown=node:node /app/src ./src
 COPY --from=builder --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/scripts ./scripts
 RUN chmod +x /app/scripts/*
-# Add curl for health check
-RUN apt-get update && apt-get upgrade -f -y && apt-get install curl -y
+# Add curl for health check, and msmtp as the sendmail(1) implementation PostfixSendmailTransport shells
+# out to for outbound mail (see mail:transport:sendmail:path and scripts/docker-entrypoint.sh, which
+# writes its config at container start to relay through the deployment's Postfix container).
+RUN apt-get update && apt-get upgrade -f -y && apt-get install curl msmtp msmtp-mta -y
+RUN ln -sf /usr/bin/msmtp /usr/sbin/sendmail
 RUN npm install --global nodemon
 RUN corepack enable
 
@@ -42,11 +45,13 @@ EXPOSE 9229
 
 # Define environment variable
 ENV PORT=3000
+ENV HOME=/home/node
 
 USER node
 
 # Set a healthcheck to ensure the service is always alive
 HEALTHCHECK --interval=10s --timeout=60s --start-period=15s --retries=3 CMD curl -f http://localhost:3000/ || exit 1
 
+ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]
 # Run app.js when the container launches
 CMD ["node", "dist/src/server.js"]

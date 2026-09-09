@@ -3181,3 +3181,238 @@ genuinely public, unauthenticated page area.
   changes (this entry plus the three before it, plus the Phase 0 dependency-reconciliation entry that
   started this session) sit staged/unstaged pending JP's explicit go-ahead, matching how the original
   15-phase plan above was handled.
+
+### 2026-09-09 — Deploy wiring: docker-compose (auth-server + Postfix end-to-end), dynamic per-domain DKIM, real inbound MTA bridge
+
+JP's stated goal: "figuring out how to deploy this with everything wired up correctly," starting with
+docker-compose. This session closes every previously-flagged docker-compose/MTA-integration gap in one
+pass (Phase 1's "known incomplete" outbound sendmail note, Phase 1/3's "inbound content-filter not yet
+authored" note, and the DKIM-is-manual-only design). Spans this repo and `@rapidmx/restapi` (sibling repo,
+`d:\github\rapidmx\restapi`) — restapi changes are described here for context but belong to that repo's own
+NOTES.md too.
+
+- **Single-file compose, not multi-`-f`**: `docker-compose.mongo.yml`/`sql.yml` now `include:
+  docker-compose.mail.yml` (Compose Specification `include`, needs Compose 2.20+/confirmed working on the
+  installed v5.2.0) instead of requiring `-f docker-compose.mongo.yml -f docker-compose.mail.yml`. JP's
+  literal ask was `docker compose -f docker-compose.mongo.yml` alone standing up everything.
+- **`auth-server` wired in** as a real service (`ghcr.io/rapidrest/auth-server:${AUTH_SERVER_IMAGE_TAG:-latest}`
+  — that sibling repo's own CI already publishes this image, confirmed via its `.github/workflows/ci.yml`),
+  not built from a local sibling-repo path — a real deploy host won't have `d:\github\rapidrest\auth-server`
+  checked out. Sharing `mongo`/`redis`/`postgres` with `server` but on separate logical stores
+  (`rapidmx_server*`/`rapidmx_auth*` DB names, Redis DB index 0 vs 1) so the two services' data never
+  collides despite both originally copying the same scaffold's default db names ("rrst_acls"/"rrst_auth"
+  for both — a pre-existing latent collision risk if anyone ever pointed both at literally the same mongo
+  without overriding these, now avoided by construction). `mail:auth_server_url` is deliberately the
+  **browser-facing** `http://localhost:3001` default, not `http://auth-server:3000` — it's used for a
+  client-side redirect, not just server-side, so it must resolve outside the compose network too.
+  `auth:secret`/`auth:options:audience`/`auth:options:issuer`/`cookie_secret` are set identically on both
+  services via the same `${VAR:-default}` substitutions so JWT verification actually agrees between them
+  out of the box.
+- **Persistent volumes added that were missing before**: `mongo_data`/`postgres_data` (previously fully
+  ephemeral — a plain `docker compose down`/`up` wiped the whole database) and `blob_data` (`/app/data`,
+  `mail:blob:local:root`'s parent — previously every message body/attachment was lost on container
+  recreation too, despite that exact risk already being called out in `config.mongo.ts`'s own doc comment).
+- **`docker/postgres-init.sql`** (new) creates `rapidmx_server`/`rapidmx_auth` databases on first Postgres
+  boot via the official image's `/docker-entrypoint-initdb.d/` convention — only fires against a fresh data
+  volume, not an already-initialized one.
+- **DKIM/DMARC cert configuration for Postfix** (the literal second half of JP's ask): `docker-compose.mail.yml`'s
+  `postfix` service gains `DKIM_AUTOGENERATE`/`DKIM_SELECTOR` env vars and two named volumes —
+  `dkim_opendkim_keys` (`/etc/opendkim/keys`, for supplying a real opendkim-genkey-format key pair, which
+  the image auto-imports into rspamd's native format on startup) and `dkim_rspamd_keys`
+  (`/var/lib/rspamd/dkim`, rspamd's own live signing directory, keyed `<domain>.<selector>.key` — confirmed
+  via `docs.rspamd.com/modules/dkim_signing` that rspamd (not OpenDKIM) is `boky/postfix`'s default DKIM
+  backend since v6). **DMARC has no cert/key artifact of its own** — it's a DNS-published policy plus
+  SPF/DKIM alignment, which rspamd's `dmarc` module already evaluates by default; nothing to mount, just
+  documented as such in the compose file so it doesn't look like an oversight.
+- **Outbound relay actually wired up** (closing Phase 1's flagged gap): `Dockerfile` now installs
+  `msmtp`/`msmtp-mta` and symlinks `/usr/sbin/sendmail` -> `msmtp`, matching `PostfixSendmailTransport`'s
+  default `mail:transport:sendmail:path`. New `scripts/docker-entrypoint.sh` writes `~/.msmtprc` at
+  container *start* (not build time, so the relay target is overridable per deployment without a rebuild) —
+  `SENDMAIL_RELAY_HOST`/`_PORT`/`_TLS`/`FROM_ADDRESS` env vars, defaulting to `postfix:25`. `ENV
+  HOME=/home/node` added since msmtp reads `~/.msmtprc` by default and the entrypoint runs as the `node`
+  user.
+
+**Dynamic per-domain DKIM key generation** (JP's "bonus points" ask) — confirmed with JP first via
+AskUserQuestion that this should cross `@rapidmx/restapi`'s previously-documented "this app never generates
+or stores DKIM key material" boundary, since that's a real custody/security decision, not a pure
+implementation detail:
+- New `@rapidmx/restapi` module `src/dkim/`: `DkimKeyProvider` interface (`ensureKeyPair(domain):
+  Promise<DkimKeyPair | undefined>` — `undefined` means "this provider doesn't manage key material"),
+  `FsDkimKeyProvider` (generates a 2048-bit RSA key pair, writes the private key straight into
+  `mail:dkim:key_dir`/`<domain>.<selector>.key` — the exact path/format rspamd's `dkim_signing` module
+  reads, so no separate opendkim-import step is needed for auto-generated keys), `NullDkimKeyProvider`
+  (always resolves `undefined` — the default, preserving the original manual-admin-entry model).
+- **`@Inject("...")` in this framework's `ObjectFactory` throws if NOTHING is registered under that token at
+  all — there is no "leave the field undefined" optional-injection mode.** Discovered the hard way: adding
+  `@Inject("DkimKeyProvider")` to `BaseDomainRoute` broke every other route's construction in every
+  existing restapi integration test (`No class found with name: DkimKeyProvider`) the moment `Server.start()`
+  tried to instantiate `DomainRoute`/`MailIngestRoute`, because nothing had ever registered anything under
+  that new token. Fixed by always registering `NullDkimKeyProvider` as the safe default (restapi's own
+  `test/testDoubles.ts`; a real deployment must register *something* too — `server` registers
+  `FsDkimKeyProvider`). `BaseDomainRoute`/`DkimKeyProvider` were redesigned around this from the start (the
+  `ensureKeyPair` returns `undefined` for "not managed" rather than the caller checking "is anything
+  registered" — there's no clean way to ask that once something always is).
+- **A second, related gotcha**: `ObjectFactory.register(clazz, fqn)` is **first-registration-wins** (a
+  no-op if the name is already taken — see `@rapidrest/core`'s own `ObjectFactory.register()`:
+  `if (!this.classes.has(name)) { this.classes.set(name, clazz); }`). A new test file that wants
+  `FsDkimKeyProvider` instead of `testDoubles.ts`'s default `NullDkimKeyProvider` must register it **before**
+  calling `registerTestDoubles()`, not after — got this backwards once, silently got `NullDkimKeyProvider`
+  anyway, and the resulting test failures ("expected 'mail' but got null") took a moment to trace back to
+  registration order rather than real logic. Worth remembering for any future new optional-but-overridable
+  token.
+- **`BaseDomainRoute.create()`** auto-fills `dkimSelector`/`dkimPublicKey` from the registered provider
+  unless the caller already supplied both (an admin importing their own externally-managed key pair always
+  wins — never silently overwritten). **`dnsSetup()`** backfills the same for a pre-existing domain that
+  predates this feature, the first time its DNS-setup page is opened (best-effort — a generation failure
+  there doesn't break the rest of that otherwise read-only diagnostic call). Model doc comments
+  (`Domain.dkimSelector`/`dkimPublicKey` in `models/types.ts`+Mongo/SQL) updated — they used to assert this
+  app "never generates or stores DKIM key material," which is no longer true when `FsDkimKeyProvider` is
+  registered.
+- **Not independently verified live**: whether rspamd actually picks up a key file written to
+  `/var/lib/rspamd/dkim` *while already running*, with no restart — `docs.rspamd.com` doesn't document
+  this either way, and no live rspamd instance was available this session to test it directly. The `path`
+  template (`$domain`/`$selector` substitution) reads as a per-message dynamic lookup rather than a
+  preloaded map, which is why the design assumes hot-pickup, but this is a documented assumption, not a
+  confirmed fact — see `FsDkimKeyProvider`'s own doc comment. If a newly-added domain's mail comes out
+  unsigned, restarting the `postfix` container is the first thing to try.
+- New tests, all passing: `@rapidmx/restapi`'s `test/dkim/FsDkimKeyProvider.test.ts` (real filesystem I/O,
+  temp dir, mirrors `LocalFsBlobStore.test.ts`'s convention), `test/routes/{mongo,sql}/DomainRoute.dkim.test.ts`
+  (new, separate `Server`/`ObjectFactory` per backend with `FsDkimKeyProvider` registered — kept deliberately
+  separate from the existing `DomainRoute.test.ts` files, which still register no provider at all and so
+  keep proving the default `NullDkimKeyProvider` behavior is unaffected), and new `/internal/mta/domain`
+  cases added to the existing `test/routes/{mongo,sql}/MailIngestRoute.test.ts`. Full `@rapidmx/restapi`
+  suite re-run after all of this: 130 files / 1912 tests passing, `tsc --noEmit` and `eslint` both clean.
+
+**Real inbound MTA integration** (closing the other half of the long-flagged "Postfix-side integration is
+real, non-trivial follow-up work" gap) — also confirmed with JP first, since it's a genuinely new service,
+not just config:
+- New `@rapidmx/restapi` endpoint `GET /internal/mta/domain?name=<domain>` on `BaseMailIngestRoute` (200 if
+  `enabled && verified`, reusing the existing `getVerifiedDomainNames()` util already used by
+  `applyTransportRules()` — no new query logic). Documented in `transport/MTAIngestAdapter.ts` alongside the
+  existing `resolve`/`deliver` contract it was modeled on.
+- New `server`-only module `src/mta-bridge/` (deliberately NOT in restapi — it's deployment glue specific to
+  this compose topology, has no DI/ORM/route dependencies, and doesn't fit the "library other rapidrest apps
+  import" shape the rest of restapi does): `TcpTableServer` (a from-scratch implementation of Postfix's
+  `tcp_table(5)` line protocol — `get <percent-encoded key>\n` -> `<200|400|500> <percent-encoded value>\n`,
+  requests on one connection processed strictly in order since Postfix's client isn't known to pipeline),
+  `MtaIngestClient` (thin fetch wrapper for the three `/internal/mta/*` endpoints, bearer-secret
+  authenticated), `SmtpDeliveryServer` (a plain SMTP server via the new `smtp-server` dependency — receives
+  Postfix's final-delivery hand-off, buffers the whole message, calls `POST /internal/mta/deliver` once per
+  SMTP transaction with every original RCPT TO, matching that route's own multi-recipient contract), and
+  `index.ts` wiring all three into one process (`MTA_INGEST_BASE_URL`/`MTA_INGEST_SECRET`/
+  `MTA_BRIDGE_DOMAIN_PORT`/`_RECIPIENT_PORT`/`_SMTP_PORT` env vars). Runs as a new `mta-bridge`
+  docker-compose service — same image as `server` (`image: rapidmx-server:local`, just a different
+  `command:`, so `docker compose build` doesn't build the identical image twice under two auto-generated
+  tags).
+- `docker-compose.mail.yml`'s `postfix` service now sets `POSTFIX_relay_domains=tcp:mta-bridge:10040`,
+  `POSTFIX_relay_recipient_maps=tcp:mta-bridge:10041`, `POSTFIX_transport_maps=static:smtp:mta-bridge:2525`
+  (boky/postfix's generic `POSTFIX_<param>=<value>` main.cf-override mechanism — confirmed via
+  `docs-rspamd`/that image's own README fetched this session, not assumed). `relay_domains`/
+  `relay_recipient_maps` together are what makes acceptance dynamic per this app's own `Domain`/mailbox
+  database with **no Postfix restart needed** for a newly-added domain/mailbox (unlike DKIM's
+  hot-pickup-unconfirmed caveat above, this one follows directly from documented Postfix behavior: `tcp:`
+  lookup tables are consulted live, per SMTP transaction, not preloaded at startup). `ALLOWED_SENDER_DOMAINS`
+  is unrelated to this — it's Postfix's own outbound-submission anti-spoofing check, kept as a separate,
+  still-static, still-manually-maintained list (re-documented to avoid it reading as redundant with the new
+  dynamic inbound wiring).
+- New tests, all passing locally: `test/mta-bridge/TcpTableServer.test.ts` (9, real loopback socket I/O —
+  found/not-found/temporary/throwing-callback/percent-encoding/unsupported-command/pipelined-sequential-requests),
+  `test/mta-bridge/MtaIngestClient.test.ts` (10, mocked `fetch`), `test/mta-bridge/SmtpDeliveryServer.test.ts`
+  (2, real SMTP client via `nodemailer` — already a dependency for outbound — against a real loopback
+  listener, only `MtaIngestClient` mocked).
+- **Not live-tested against a real Postfix instance this session** (no running docker environment available
+  at that point — see the two pre-existing build blockers below, which were discovered and fixed instead).
+  The `tcp_table`/SMTP protocol implementations were built directly from Postfix's/rspamd's own documented
+  wire formats and cross-checked via `docs.rspamd.com`/the `boky/postfix` README, not by trial-and-error
+  against a live instance — matches this file's standing "flagged, not guessed at" convention for anything
+  not actually exercised live. A real send/receive round-trip through the full compose stack is the
+  natural next verification step once a docker environment is available.
+
+**Two pre-existing, unrelated Docker-image-build blockers found and fixed while trying to validate all of
+the above with a real `docker build`** (this repo's production image could not build at all before this
+session, for reasons having nothing to do with any of this session's own changes):
+- `package.json`'s `"better-sqlite3": "^13.0.3"` (devDependency) doesn't satisfy TypeORM 1.1.0's own peer
+  range (`^12.0.0`) — already documented as a known issue in this very file's own "Standing decisions"
+  section ("pin to the latest 12.x") but never actually applied. `yarn install --immutable` inside the
+  Docker builder stage tried to compile 13.x from source (no matching prebuilt binary for that
+  version/platform combo) and failed outright inside `node:lts-trixie-slim` (no build toolchain installed
+  there) — reproduced on the *unchanged* builder stage, confirmed via `git diff` against HEAD, so this
+  wasn't caused by anything else this session touched. Fixed: pinned to `^12.11.1` (latest 12.x, per `npm
+  view better-sqlite3@12 version`), re-ran `yarn install` locally (resolved/built clean, no more peer
+  warning).
+- `.dockerignore` excluded `test/` from the build context entirely, but `yarn build` (`rapidrest build`)
+  runs an eslint pass whose `tsconfig.eslint.json` has `include: ["test/**/*.ts", "test/**/*.tsx",
+  ".eslintrc.js"]` — with `test/` entirely absent from the container, that `include` glob matches zero
+  files, TypeScript raises `TS18003: No inputs were found`, and eslint's type-aware parser then fails for
+  **every** file in the lint run (128 errors across totally unrelated `apps/**` files, not just test files).
+  Fixed by removing `test` from `.dockerignore` — the final `runner` stage never copies `test/` anyway (its
+  `COPY --from=builder` list is an explicit allowlist that never included it), so this only affects the
+  `builder` stage's context, not the shipped image.
+- Neither of these was found by reading code — both were found by actually attempting `docker build
+  --no-cache` (Docker Desktop wasn't running at the start of this session; started it and built for real).
+  Given `.github/workflows/ci.yml`'s own `test-docker-build` job runs the identical `docker build --no-cache
+  .` (no `--no-cache` on the *lockfile*, so it would have hit the same better-sqlite3 resolution), this CI
+  job was very likely red before this session too — worth a live check of recent workflow runs, not done
+  here (no `gh` CLI available in this environment).
+- After both fixes: `yarn install`, `yarn tsc --noEmit`, `yarn lint`, and every new/touched test file all
+  clean locally. `@rapidmx/restapi` re-patched into `server` via `yarn patch`/`yarn patch-commit` (per this
+  file's own standing decision on how to consume unpublished sibling-repo changes ahead of a real npm
+  publish) to pick up the new `dkim/`/`/internal/mta/domain` code — `package.json`'s `@rapidmx/restapi` line
+  now points at a `patch:` spec instead of the plain `^0.3.1` registry version; **this must be reverted
+  back to a plain version constraint once JP actually publishes a new `@rapidmx/restapi` version containing
+  these changes**, exactly like the pre-publish `mail`/`@rapidmx/restapi` precedent this file's own
+  standing decisions section already documents.
+- **Full local `docker build` and `docker compose up` DID complete successfully** (`server` reports
+  `healthy` via its own HEALTHCHECK; `postfix`/`rspamd`/`clamav` all report `healthy` too). `auth-server`
+  itself could NOT be pulled in this environment — `ghcr.io/rapidrest/auth-server:latest` returned "denied"
+  (a private GHCR package with no credentials configured here, not a bug in the compose wiring; a real
+  deploy host needs `docker login ghcr.io` first, or the package needs to be made public — JP should check
+  which is intended). Verified the rest of the stack directly instead (`docker compose up --no-deps` on
+  every other service). Full local `yarn vitest run` (server): 146 files/1416 tests passing via the default
+  runner, plus `test/Server.mongo.test.ts`/`test/Server.sql.test.ts` (6/6, run explicitly — for whatever
+  reason the default `vitest run` invocation used this session didn't pick these two up at all; not
+  investigated further, but confirmed passing when targeted directly) — the pre-existing Redis flake this
+  file has documented before did not reproduce this run.
+- **A second real, previously-undiscovered bug found only by actually watching the live boot log — not by
+  reading code or by any existing test — while checking on the above**: `server`'s own boot log showed
+  `Failed to instantiate dependency. Type=class ScanPipeline ...` twice at startup (`Parent=
+  ScanQueueJobMongo`/`Parent=routes.MessageRoute`, `Member=scanPipeline`) despite `RspamdSpamScanProvider`/
+  `ClamAvScanProvider` being correctly registered under `"SpamScanProvider"`/`"AvScanProvider"` at the top
+  of `server.mongo.ts`. Root cause was entirely inside `@rapidmx/restapi`'s `ScanPipeline` (fixed there, see
+  that repo's own NOTES.md for the full writeup) — its `allowedTags` `@Config` field had no default, and
+  `@rapidrest/core`'s `ObjectFactory.initialize()` throws for any `@Config` field with neither a live value
+  nor a default, silently killing spam/AV scanning entirely in any deployment (this one included) that
+  never explicitly sets `mail:scan:sanitize:allowed_tags` — which `config.mongo.ts`/`config.sql.ts` never
+  did. Confirmed the fix via a second full rebuild + `docker compose up`: the "Failed to instantiate
+  dependency" error is gone from the boot log after re-patching the fixed `@rapidmx/restapi` in. **This
+  means real inbound/outbound mail scanning was non-functional in this deployment before this session**,
+  on top of the two build blockers above and the missing outbound-relay/inbound-bridge wiring — the
+  live-boot-log check this session did specifically because of JP's docker-compose request is what
+  surfaced it; a `docker build` alone (checked earlier, before this specific finding) would not have.
+- **Confirmed fixed via a second full rebuild + live boot**: re-patched the fixed `@rapidmx/restapi` in,
+  rebuilt the `rapidmx-server:local` image, and brought the whole stack back up
+  (`docker compose -f docker-compose.mongo.yml up -d --build --no-deps mongo redis rspamd clamav postfix
+  server mta-bridge` — `--no-deps` to skip `auth-server`, which still can't be pulled here). Result:
+  `server`/`postfix`/`rspamd`/`clamav` all report `healthy`; `mta-bridge` logs confirm it's listening on
+  all three ports and forwarding to the right URL; `server`'s boot log shows `/internal/mta/domain`,
+  `/internal/mta/resolve`, `/internal/mta/deliver` all registered and **zero** "Failed to instantiate
+  dependency" errors anywhere (previously two, every boot). Re-ran `yarn tsc --noEmit`/`yarn lint`/the
+  targeted test files (`Server.mongo.test.ts`/`Server.sql.test.ts`/`test/mta-bridge/*`) locally too — all
+  clean, and the same ScanPipeline error is confirmed gone from `Server.mongo.test.ts`'s own boot log as
+  well (it was reproducible there too, pre-fix - see above). Stack torn down cleanly afterward
+  (`docker compose down`) — nothing left running.
+- **Not verified**: an actual `Domain` create -> DKIM key file written -> `/internal/mta/domain` reflecting
+  it round trip against the live stack. Attempted via a manually HS256-signed JWT (matching `auth:secret`/
+  `audience`/`issuer`) since dev-auto-login (`enableDevAutoLoginIfApplicable`) is deliberately a no-op for
+  a compiled `dist/**/*.js` entrypoint (`isRunningUnderYarnDev()` checks `process.argv[1]` ends in `.ts` -
+  by design, never active in a real/production-shaped run) - the manually-minted token still got `403`
+  (not chased further; likely a claim-shape mismatch against whatever `JWTStrategy`/`RequiresTrustedRole()`
+  actually expect beyond `roles`/`elevated`, or `/api/mail/domains` needs something this token didn't
+  carry). Not a blocker for this session's own scope - `FsDkimKeyProvider`'s create/backfill logic already
+  has full dedicated coverage in `@rapidmx/restapi`'s own test suite (real `ObjectFactory`+`Server`+Mongo/
+  SQL, not mocked) - but a real end-to-end walkthrough (ideally through the actual admin console once
+  `auth-server` can be pulled) is the natural next verification step before considering DKIM generation
+  fully proven in this exact deployment.
+- Not done this session: committing any of this (same standing "never auto-commit" rule as every entry in
+  this file), and no live browser/mail-client walkthrough or actual send/receive test through the running
+  stack.

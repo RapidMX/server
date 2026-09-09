@@ -35,18 +35,36 @@ Registry (ghcr.io).
 
 ### Docker Compose
 
-To run this project on docker you must use the included *docker-compose* scripts in the project source. Open up a new
-shell to the cloned folder and build the Docker image using `docker-compose`.
+Pick `docker-compose.mongo.yml` or `docker-compose.sql.yml` depending on which datastore backend you want
+(MongoDB or PostgreSQL) — there is no plain `docker-compose.yml`. Either one, on its own, brings up the
+*entire* stack: this service, the separate [`auth-server`](https://github.com/rapidrest/auth-server)
+deployment it verifies JWTs against, the mail-flow stack (Postfix, rspamd for spam scoring/DKIM signing,
+ClamAV), and the `mta-bridge` service that lets Postfix's own recipient/domain lookups and final delivery
+talk to this app's `/internal/mta` contract.
 
 ```bash
-docker-compose build
+docker compose -f docker-compose.mongo.yml up -d --build
 ```
 
-You can now run the server with the following command.
+`auth-server`'s image (`ghcr.io/rapidrest/auth-server`) is pulled from GHCR, not built locally — if it's a
+private package you'll need `docker login ghcr.io` with a token that has read access first.
 
-```bash
-docker-compose up
-```
+For anything beyond local evaluation, override these in a `.env` file next to the compose files (every one
+of them defaults to an insecure, publicly-known placeholder value otherwise — see `src/config.defaults.ts`):
+
+| Variable | Purpose |
+| --- | --- |
+| `AUTH_SECRET` | JWT signing secret — must match between this service and `auth-server` exactly |
+| `AUTH_AUDIENCE` / `AUTH_ISSUER` | JWT `aud`/`iss` claims — must also match `auth-server` |
+| `AUTH_SERVER_PUBLIC_URL` | Browser-facing base URL of `auth-server` (defaults to `http://localhost:3001`, dev/single-host only) |
+| `COOKIE_SECRET` | Shared cookie-signing secret |
+| `MAIL_INGEST_SECRET` | Bearer secret authenticating `mta-bridge`'s calls to this app's `/internal/mta` routes |
+| `MAIL_DOMAINS` | Comma-separated domains Postfix accepts *outbound* submissions for (`ALLOWED_SENDER_DOMAINS`) — keep in sync with the `Domain`s added via the admin console |
+| `DKIM_AUTOGENERATE` / `DKIM_SELECTOR` | DKIM key handling — see `docker-compose.mail.yml`'s own comments for how this interacts with the app's own automatic per-`Domain` key generation |
+
+The `dkim_rspamd_keys`/`dkim_opendkim_keys`/`mongo_data`/`postgres_data`/`blob_data` named volumes persist
+DKIM keys, database contents, and message/attachment storage across `docker compose down`/`up` — don't
+remove them (`docker compose down -v`) unless you actually want to start over.
 
 ### Kubernetes
 

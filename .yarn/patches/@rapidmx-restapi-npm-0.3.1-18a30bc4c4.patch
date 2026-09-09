@@ -1,0 +1,635 @@
+diff --git a/dist/lib/dkim/DkimKeyProvider.js b/dist/lib/dkim/DkimKeyProvider.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..6cbdc8cccb32e533240db3cba0c2357ae6fe5424
+--- /dev/null
++++ b/dist/lib/dkim/DkimKeyProvider.js
+@@ -0,0 +1,6 @@
++///////////////////////////////////////////////////////////////////////////////
++// Copyright (C) 2026 Jean-Philippe Steinmetz. All rights reserved.
++// SPDX-License-Identifier: MPL-2.0
++///////////////////////////////////////////////////////////////////////////////
++export {};
++//# sourceMappingURL=DkimKeyProvider.js.map
+\ No newline at end of file
+diff --git a/dist/lib/dkim/DkimKeyProvider.js.map b/dist/lib/dkim/DkimKeyProvider.js.map
+new file mode 100644
+index 0000000000000000000000000000000000000000..67a85bac8cc310a1c1f4e3630348014a488f8d81
+--- /dev/null
++++ b/dist/lib/dkim/DkimKeyProvider.js.map
+@@ -0,0 +1 @@
++{"version":3,"file":"DkimKeyProvider.js","sourceRoot":"","sources":["../../../src/dkim/DkimKeyProvider.ts"],"names":[],"mappings":"AAAA,+EAA+E;AAC/E,mEAAmE;AACnE,mCAAmC;AACnC,+EAA+E"}
+\ No newline at end of file
+diff --git a/dist/lib/dkim/FsDkimKeyProvider.js b/dist/lib/dkim/FsDkimKeyProvider.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..67e54ba79d1bde6ea659559a9fa6dd7196c13501
+--- /dev/null
++++ b/dist/lib/dkim/FsDkimKeyProvider.js
+@@ -0,0 +1,91 @@
++var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
++    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
++    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
++    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
++    return c > 3 && r && Object.defineProperty(target, key, r), r;
++};
++var __metadata = (this && this.__metadata) || function (k, v) {
++    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
++};
++///////////////////////////////////////////////////////////////////////////////
++// Copyright (C) 2026 Jean-Philippe Steinmetz. All rights reserved.
++// SPDX-License-Identifier: MPL-2.0
++///////////////////////////////////////////////////////////////////////////////
++import * as crypto from "crypto";
++import * as fs from "fs/promises";
++import * as path from "path";
++import { ObjectDecorators } from "@rapidrest/core";
++const { Config, Logger } = ObjectDecorators;
++/**
++ * `DkimKeyProvider` that writes a plain 2048-bit RSA key pair directly to the local filesystem, at the
++ * exact path rspamd's `dkim_signing` module expects for its default (non-map-based) `path` template -
++ * `<key_dir>/<domain>.<selector>.key` (see rspamd's own `dkim_signing.conf` documentation). A deployment
++ * mounts the same directory into both this service (write) and the Postfix/rspamd container (read) as a
++ * shared volume - see docker-compose.mail.yml's `dkim_rspamd_keys` volume.
++ *
++ * **Not verified against a live rspamd instance whether a key file written while rspamd is already
++ * running is picked up on the very next signed message or needs a restart/reload** - rspamd's own
++ * documentation doesn't say either way. `path`'s `$domain`/`$selector` substitution is evaluated
++ * per-message rather than resolved once against a preloaded map, which suggests a fresh read rather than
++ * a startup-cached one, but treat that as a reasonable expectation, not a confirmed guarantee - if mail
++ * for a newly-added domain isn't coming out signed, restart the Postfix/rspamd container as a first step.
++ *
++ * @author Jean-Philippe Steinmetz
++ */
++export class FsDkimKeyProvider {
++    constructor() {
++        this.keyDir = "/var/lib/rspamd/dkim";
++        this.selector = "mail";
++    }
++    keyPath(domain) {
++        // `domain` is always a normalized `Domain.name` (see `BaseDomainRoute.assignUidAndCheckCollision()`
++        // -> `normalizeAddress()`), never raw caller input, but guard the filename the same defense-in-depth
++        // way `LocalFsBlobStore.resolvePath()` does for its own keys.
++        const safeDomain = domain.toLowerCase().replace(/[\\/]/g, "_");
++        const safeSelector = this.selector.replace(/[\\/]/g, "_");
++        return path.join(this.keyDir, `${safeDomain}.${safeSelector}.key`);
++    }
++    static publicKeyFromPrivate(privateKeyPem) {
++        const publicKey = crypto.createPublicKey(privateKeyPem);
++        return publicKey.export({ type: "spki", format: "der" }).toString("base64");
++    }
++    async ensureKeyPair(domain) {
++        const filePath = this.keyPath(domain);
++        try {
++            const existingPem = await fs.readFile(filePath, "utf-8");
++            return { selector: this.selector, publicKey: FsDkimKeyProvider.publicKeyFromPrivate(existingPem) };
++        }
++        catch (err) {
++            if (err.code !== "ENOENT") {
++                throw err;
++            }
++        }
++        const { privateKey } = crypto.generateKeyPairSync("rsa", {
++            modulusLength: 2048,
++            privateKeyEncoding: { type: "pkcs8", format: "pem" },
++            publicKeyEncoding: { type: "spki", format: "pem" },
++        });
++        await fs.mkdir(this.keyDir, { recursive: true });
++        // 0644, not 0600: this file is read by a different container's process (rspamd, a different Linux
++        // user) over a shared volume, with no cross-container UID/GID coordination in place - see this
++        // class's own doc comment. The directory itself should still be access-restricted at the volume/
++        // host level in any deployment that cares about defense in depth beyond "not world-readable on the
++        // host filesystem".
++        await fs.writeFile(filePath, privateKey, { mode: 0o644 });
++        this.logger?.info(`FsDkimKeyProvider: generated new DKIM key pair for domain '${domain}' (selector '${this.selector}').`);
++        return { selector: this.selector, publicKey: FsDkimKeyProvider.publicKeyFromPrivate(privateKey) };
++    }
++}
++__decorate([
++    Config("mail:dkim:key_dir", "/var/lib/rspamd/dkim"),
++    __metadata("design:type", String)
++], FsDkimKeyProvider.prototype, "keyDir", void 0);
++__decorate([
++    Config("mail:dkim:selector", "mail"),
++    __metadata("design:type", String)
++], FsDkimKeyProvider.prototype, "selector", void 0);
++__decorate([
++    Logger,
++    __metadata("design:type", Object)
++], FsDkimKeyProvider.prototype, "logger", void 0);
++//# sourceMappingURL=FsDkimKeyProvider.js.map
+\ No newline at end of file
+diff --git a/dist/lib/dkim/FsDkimKeyProvider.js.map b/dist/lib/dkim/FsDkimKeyProvider.js.map
+new file mode 100644
+index 0000000000000000000000000000000000000000..dfc0d3085c9d5a956a12ca6195ce2c9384d3397c
+--- /dev/null
++++ b/dist/lib/dkim/FsDkimKeyProvider.js.map
+@@ -0,0 +1 @@
++{"version":3,"file":"FsDkimKeyProvider.js","sourceRoot":"","sources":["../../../src/dkim/FsDkimKeyProvider.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
+diff --git a/dist/lib/dkim/NullDkimKeyProvider.js b/dist/lib/dkim/NullDkimKeyProvider.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..a403fe17dbffa6e7462053c2911b8176e4cb81f4
+--- /dev/null
++++ b/dist/lib/dkim/NullDkimKeyProvider.js
+@@ -0,0 +1,17 @@
++/**
++ * The default `DkimKeyProvider` - never generates or stores DKIM key material, preserving this library's
++ * original manual model (an admin runs their own OpenDKIM keygen and fills in `Domain.dkimSelector`/
++ * `dkimPublicKey` by hand). `@Inject("DkimKeyProvider")` has no notion of an optional/unregistered
++ * dependency (unlike a plain `?:` field, the framework throws at construction time if nothing is
++ * registered under the token at all), so *some* class must always be registered here - a consuming
++ * application registers this one to keep the manual model, or `FsDkimKeyProvider` (or its own custom
++ * implementation) to opt into automatic key generation. See `DkimKeyProvider`'s own doc comment.
++ *
++ * @author Jean-Philippe Steinmetz
++ */
++export class NullDkimKeyProvider {
++    async ensureKeyPair(_domain) {
++        return undefined;
++    }
++}
++//# sourceMappingURL=NullDkimKeyProvider.js.map
+\ No newline at end of file
+diff --git a/dist/lib/dkim/NullDkimKeyProvider.js.map b/dist/lib/dkim/NullDkimKeyProvider.js.map
+new file mode 100644
+index 0000000000000000000000000000000000000000..d946115a654c0ed67c2ca5caebd6f64c8287fb18
+--- /dev/null
++++ b/dist/lib/dkim/NullDkimKeyProvider.js.map
+@@ -0,0 +1 @@
++{"version":3,"file":"NullDkimKeyProvider.js","sourceRoot":"","sources":["../../../src/dkim/NullDkimKeyProvider.ts"],"names":[],"mappings":"AAMA;;;;;;;;;;GAUG;AACH,MAAM,OAAO,mBAAmB;IACrB,KAAK,CAAC,aAAa,CAAC,OAAe;QACtC,OAAO,SAAS,CAAC;IACrB,CAAC;CACJ"}
+\ No newline at end of file
+diff --git a/dist/lib/dkim/index.js b/dist/lib/dkim/index.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..b8ee0dbc5bbebbaa9b09e7fdcfb01acc9ee811a0
+--- /dev/null
++++ b/dist/lib/dkim/index.js
+@@ -0,0 +1,8 @@
++///////////////////////////////////////////////////////////////////////////////
++// Copyright (C) 2026 Jean-Philippe Steinmetz. All rights reserved.
++// SPDX-License-Identifier: MPL-2.0
++///////////////////////////////////////////////////////////////////////////////
++export * from "./DkimKeyProvider.js";
++export * from "./FsDkimKeyProvider.js";
++export * from "./NullDkimKeyProvider.js";
++//# sourceMappingURL=index.js.map
+\ No newline at end of file
+diff --git a/dist/lib/dkim/index.js.map b/dist/lib/dkim/index.js.map
+new file mode 100644
+index 0000000000000000000000000000000000000000..45f7c656bafe1ef011397261d00dfbc68493c4e6
+--- /dev/null
++++ b/dist/lib/dkim/index.js.map
+@@ -0,0 +1 @@
++{"version":3,"file":"index.js","sourceRoot":"","sources":["../../../src/dkim/index.ts"],"names":[],"mappings":"AAAA,+EAA+E;AAC/E,mEAAmE;AACnE,mCAAmC;AACnC,+EAA+E;AAC/E,cAAc,sBAAsB,CAAC;AACrC,cAAc,wBAAwB,CAAC;AACvC,cAAc,0BAA0B,CAAC"}
+\ No newline at end of file
+diff --git a/dist/lib/index.js b/dist/lib/index.js
+index c76a00ec11357fd7f04a2321813a8d6b36f2b60f..37409de8aa8be5f483f7540113816c5187b9b29f 100644
+--- a/dist/lib/index.js
++++ b/dist/lib/index.js
+@@ -8,6 +8,7 @@ export * from "./jobs/index.js";
+ export * from "./transport/index.js";
+ export * from "./blob/index.js";
+ export * from "./dns/index.js";
++export * from "./dkim/index.js";
+ export * from "./push/index.js";
+ export * from "./util/index.js";
+ //# sourceMappingURL=index.js.map
+\ No newline at end of file
+diff --git a/dist/lib/index.js.map b/dist/lib/index.js.map
+index 1222ff9f0f5b7dc174936607601cce58143f1a1e..62ec8456af35a3bb3dfb2d7549512b00dfe8051a 100644
+--- a/dist/lib/index.js.map
++++ b/dist/lib/index.js.map
+@@ -1 +1 @@
+-{"version":3,"file":"index.js","sourceRoot":"","sources":["../../src/index.ts"],"names":[],"mappings":"AAAA,+EAA+E;AAC/E,mEAAmE;AACnE,mCAAmC;AACnC,+EAA+E;AAC/E,cAAc,mBAAmB,CAAC;AAClC,cAAc,mBAAmB,CAAC;AAClC,cAAc,iBAAiB,CAAC;AAChC,cAAc,sBAAsB,CAAC;AACrC,cAAc,iBAAiB,CAAC;AAChC,cAAc,gBAAgB,CAAC;AAC/B,cAAc,iBAAiB,CAAC;AAChC,cAAc,iBAAiB,CAAC"}
+\ No newline at end of file
++{"version":3,"file":"index.js","sourceRoot":"","sources":["../../src/index.ts"],"names":[],"mappings":"AAAA,+EAA+E;AAC/E,mEAAmE;AACnE,mCAAmC;AACnC,+EAA+E;AAC/E,cAAc,mBAAmB,CAAC;AAClC,cAAc,mBAAmB,CAAC;AAClC,cAAc,iBAAiB,CAAC;AAChC,cAAc,sBAAsB,CAAC;AACrC,cAAc,iBAAiB,CAAC;AAChC,cAAc,gBAAgB,CAAC;AAC/B,cAAc,iBAAiB,CAAC;AAChC,cAAc,iBAAiB,CAAC;AAChC,cAAc,iBAAiB,CAAC"}
+\ No newline at end of file
+diff --git a/dist/lib/models/mongo/DomainMongo.js b/dist/lib/models/mongo/DomainMongo.js
+index bd207e75654a725ed23a2de21cbf10ac220f5628..422ae874c5a80aeb5f91799ed0d30f1f0ee12a8e 100644
+--- a/dist/lib/models/mongo/DomainMongo.js
++++ b/dist/lib/models/mongo/DomainMongo.js
+@@ -78,7 +78,7 @@ __decorate([
+ ], DomainMongo.prototype, "lastCheckedAt", void 0);
+ __decorate([
+     Column(),
+-    Description("DKIM selector - the admin's own MTA/OpenDKIM key pair is under this selector name."),
++    Description("DKIM selector - the MTA's DKIM key pair for this domain is filed under this selector name."),
+     Nullable,
+     __metadata("design:type", String)
+ ], DomainMongo.prototype, "dkimSelector", void 0);
+diff --git a/dist/lib/models/mongo/DomainMongo.js.map b/dist/lib/models/mongo/DomainMongo.js.map
+index 0c3c1132f77a903fdb9c5fa23afb0cd35cef269f..45d346f58eb1ad161244e629760e8c2dead11a98 100644
+--- a/dist/lib/models/mongo/DomainMongo.js.map
++++ b/dist/lib/models/mongo/DomainMongo.js.map
+@@ -1 +1 @@
+-{"version":3,"file":"DomainMongo.js","sourceRoot":"","sources":["../../../../src/models/mongo/DomainMongo.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
++{"version":3,"file":"DomainMongo.js","sourceRoot":"","sources":["../../../../src/models/mongo/DomainMongo.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
+diff --git a/dist/lib/models/sql/DomainSQL.js b/dist/lib/models/sql/DomainSQL.js
+index 785d66be4b6f705257a3e9e51f0b05bb99d3c082..f410e5ec31882c2ff8031b0441cf9f98778d1aa8 100644
+--- a/dist/lib/models/sql/DomainSQL.js
++++ b/dist/lib/models/sql/DomainSQL.js
+@@ -78,7 +78,7 @@ __decorate([
+ ], DomainSQL.prototype, "lastCheckedAt", void 0);
+ __decorate([
+     Column({ nullable: true }),
+-    Description("DKIM selector - the admin's own MTA/OpenDKIM key pair is under this selector name."),
++    Description("DKIM selector - the MTA's DKIM key pair for this domain is filed under this selector name."),
+     Nullable,
+     __metadata("design:type", String)
+ ], DomainSQL.prototype, "dkimSelector", void 0);
+diff --git a/dist/lib/models/sql/DomainSQL.js.map b/dist/lib/models/sql/DomainSQL.js.map
+index 429dd94b92449a8d7fd80fb6fb2bc08395a3696d..22514422e9b64d90c643de2dfb6b810f58af22d3 100644
+--- a/dist/lib/models/sql/DomainSQL.js.map
++++ b/dist/lib/models/sql/DomainSQL.js.map
+@@ -1 +1 @@
+-{"version":3,"file":"DomainSQL.js","sourceRoot":"","sources":["../../../../src/models/sql/DomainSQL.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
++{"version":3,"file":"DomainSQL.js","sourceRoot":"","sources":["../../../../src/models/sql/DomainSQL.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
+diff --git a/dist/lib/models/types.js.map b/dist/lib/models/types.js.map
+index 2b188e9c3f1f0085282cb26fac1b948ee3e39d76..e3e61d0ebc1374fe14ca23893de3c0a8f091d68e 100644
+--- a/dist/lib/models/types.js.map
++++ b/dist/lib/models/types.js.map
+@@ -1 +1 @@
+-{"version":3,"file":"types.js","sourceRoot":"","sources":["../../../src/models/types.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
++{"version":3,"file":"types.js","sourceRoot":"","sources":["../../../src/models/types.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
+diff --git a/dist/lib/routes/BaseDomainRoute.js b/dist/lib/routes/BaseDomainRoute.js
+index 28058143c6617a06d73d7fd5cb941e6581493b98..bd78f6123256171224e0b2724526212253e75211 100644
+--- a/dist/lib/routes/BaseDomainRoute.js
++++ b/dist/lib/routes/BaseDomainRoute.js
+@@ -58,6 +58,22 @@ export class BaseDomainRoute extends CRUDRoute {
+     newVerificationToken() {
+         return crypto.randomBytes(32).toString("base64url");
+     }
++    /** Fills in `o.dkimSelector`/`o.dkimPublicKey` from `dkimKeyProvider` unless the caller already
++     * supplied both fields itself (an explicit caller-supplied pair - an admin importing their own
++     * externally-managed OpenDKIM key - always wins) or the registered provider doesn't manage key
++     * material at all (`NullDkimKeyProvider`, the default - see `DkimKeyProvider`'s own doc comment). A
++     * no-op (leaves whatever the caller sent, including nothing) in either of those cases. */
++    async ensureDkimFields(o) {
++        if (o.dkimSelector && o.dkimPublicKey) {
++            return;
++        }
++        const keyPair = await this.dkimKeyProvider.ensureKeyPair(o.name);
++        if (!keyPair) {
++            return;
++        }
++        o.dkimSelector = keyPair.selector;
++        o.dkimPublicKey = keyPair.publicKey;
++    }
+     /** Normalizes `o.name`, derives `uid` from it, and rejects a 409 on collision against an existing
+      * `Domain`. Mutates `o` in place - assigns `uid`, and starts a freshly created domain unverified with a
+      * new token (DNS ownership has never been checked for it yet), unless `o.name` is under a reserved,
+@@ -71,6 +87,7 @@ export class BaseDomainRoute extends CRUDRoute {
+         const uid = normalizeAddress(o.name);
+         o.uid = uid;
+         o.verificationToken = this.newVerificationToken();
++        await this.ensureDkimFields(o);
+         if (isReservedDomainName(uid)) {
+             // A reserved/special-use TLD (.local, .internal, etc. - see `isReservedDomainName()`'s own doc
+             // comment) is never resolvable via public DNS, so ownership can't be proven that way. Adding
+@@ -195,10 +212,28 @@ export class BaseDomainRoute extends CRUDRoute {
+      * purely diagnostic and always computed fresh.
+      */
+     async dnsSetup(id) {
+-        const domain = await this.repoUtils.findOne(id, { ignoreACL: true });
++        let domain = await this.repoUtils.findOne(id, { ignoreACL: true });
+         if (!domain) {
+             throw new ApiError(ApiErrors.NOT_FOUND, 404, ApiErrorMessages.NOT_FOUND);
+         }
++        // Backfill for a domain added before a key-generating `DkimKeyProvider` was registered (or one
++        // that predates this feature entirely) - a no-op once both fields are already set, or when the
++        // registered provider doesn't manage key material at all (`NullDkimKeyProvider`, the default), so
++        // this only ever does real work once per domain in a deployment that has opted into auto-
++        // generation. Best-effort: a key-generation failure here shouldn't break the rest of this otherwise
++        // read-only diagnostic endpoint.
++        if (!(domain.dkimSelector && domain.dkimPublicKey)) {
++            try {
++                const keyPair = await this.dkimKeyProvider.ensureKeyPair(domain.name);
++                if (keyPair) {
++                    const patch = { uid: domain.uid, version: domain.version, dkimSelector: keyPair.selector, dkimPublicKey: keyPair.publicKey };
++                    domain = await this.repoUtils.update(patch, domain, { version: domain.version, ignoreACL: true });
++                }
++            }
++            catch (err) {
++                this.logger?.warn(`BaseDomainRoute: failed to backfill DKIM key pair for '${domain.name}': ${err.message}`);
++            }
++        }
+         return await checkDnsSetup(this.dnsResolver, domain, this.mxHostname);
+     }
+ }
+@@ -206,6 +241,10 @@ __decorate([
+     Inject("DnsResolver"),
+     __metadata("design:type", Object)
+ ], BaseDomainRoute.prototype, "dnsResolver", void 0);
++__decorate([
++    Inject("DkimKeyProvider"),
++    __metadata("design:type", Object)
++], BaseDomainRoute.prototype, "dkimKeyProvider", void 0);
+ __decorate([
+     Config("mail:dns:mx_hostname", ""),
+     __metadata("design:type", String)
+diff --git a/dist/lib/routes/BaseDomainRoute.js.map b/dist/lib/routes/BaseDomainRoute.js.map
+index de0b00e6020bfd31f292f25608719752b46c7445..309e5b0b15e3215f2a2e16d293e8e0c966dd28a6 100644
+--- a/dist/lib/routes/BaseDomainRoute.js.map
++++ b/dist/lib/routes/BaseDomainRoute.js.map
+@@ -1 +1 @@
+-{"version":3,"file":"BaseDomainRoute.js","sourceRoot":"","sources":["../../../src/routes/BaseDomainRoute.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
++{"version":3,"file":"BaseDomainRoute.js","sourceRoot":"","sources":["../../../src/routes/BaseDomainRoute.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
+diff --git a/dist/lib/routes/BaseMailIngestRoute.js b/dist/lib/routes/BaseMailIngestRoute.js
+index 959700ad5d47964c368b6329543eac2cef144194..f2ca4f7e897a70ad07f0fd246b2d99b7bdf52de1 100644
+--- a/dist/lib/routes/BaseMailIngestRoute.js
++++ b/dist/lib/routes/BaseMailIngestRoute.js
+@@ -338,6 +338,15 @@ export class BaseMailIngestRoute {
+             quarantineReason: evaluation.quarantine ? QuarantineReason.TRANSPORT_RULE : undefined,
+         };
+     }
++    async domain(name, req, res) {
++        this.authorizeInternalCaller(req);
++        await this.init();
++        if (!name) {
++            throw new ApiError(ApiErrors.INVALID_REQUEST, 400, ApiErrorMessages.INVALID_REQUEST);
++        }
++        const domains = await getVerifiedDomainNames(this._objectFactory, this.domainClass);
++        return domains.includes(name.toLowerCase()) ? res.status(200) : res.status(404);
++    }
+     async resolve(rcpt, req, res) {
+         this.authorizeInternalCaller(req);
+         await this.init();
+@@ -489,6 +498,19 @@ __decorate([
+     Logger,
+     __metadata("design:type", Object)
+ ], BaseMailIngestRoute.prototype, "logger", void 0);
++__decorate([
++    Summary("Check relay domain"),
++    Description("Called by the MTA's relay-domain lookup (e.g. Postfix `relay_domains`) to decide whether it should " +
++        "accept/relay mail for a given domain at all, before ever checking an individual recipient. " +
++        "Responds 200 if the domain is a currently enabled-and-verified `Domain`, 404 otherwise."),
++    Get("/domain"),
++    __param(0, Query("name")),
++    __param(1, Request),
++    __param(2, Response),
++    __metadata("design:type", Function),
++    __metadata("design:paramtypes", [String, Object, Object]),
++    __metadata("design:returntype", Promise)
++], BaseMailIngestRoute.prototype, "domain", null);
+ __decorate([
+     Summary("Resolve recipient"),
+     Description("Called by the MTA's recipient-validation hook before accepting a message. Responds 200 if a mailbox " +
+diff --git a/dist/lib/routes/BaseMailIngestRoute.js.map b/dist/lib/routes/BaseMailIngestRoute.js.map
+index 56ce1bf80e39b2f39847e730123ffe0bbbe689e0..4a212a4cc893379c73c58c6dcbf6d3bda040ea55 100644
+--- a/dist/lib/routes/BaseMailIngestRoute.js.map
++++ b/dist/lib/routes/BaseMailIngestRoute.js.map
+@@ -1 +1 @@
+-{"version":3,"file":"BaseMailIngestRoute.js","sourceRoot":"","sources":["../../../src/routes/BaseMailIngestRoute.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
++{"version":3,"file":"BaseMailIngestRoute.js","sourceRoot":"","sources":["../../../src/routes/BaseMailIngestRoute.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
+diff --git a/dist/lib/scan/ScanPipeline.js b/dist/lib/scan/ScanPipeline.js
+index 91bb845a370d7f4db14e3373f82022ae2cd51fcf..5eb51f94d87f0cb9812405305a37182122d2946e 100644
+--- a/dist/lib/scan/ScanPipeline.js
++++ b/dist/lib/scan/ScanPipeline.js
+@@ -198,7 +198,7 @@ __decorate([
+     __metadata("design:type", Object)
+ ], ScanPipeline.prototype, "avScanProvider", void 0);
+ __decorate([
+-    Config("mail:scan:sanitize:allowed_tags"),
++    Config("mail:scan:sanitize:allowed_tags", sanitizeHtml.defaults.allowedTags.filter((tag) => tag !== "script")),
+     __metadata("design:type", Array)
+ ], ScanPipeline.prototype, "allowedTags", void 0);
+ __decorate([
+diff --git a/dist/lib/scan/ScanPipeline.js.map b/dist/lib/scan/ScanPipeline.js.map
+index 2dbdb21d7ce7c1d2c4c5e1bf9044163062490679..40bdfe88405081176495b4978779e3e41641cf92 100644
+--- a/dist/lib/scan/ScanPipeline.js.map
++++ b/dist/lib/scan/ScanPipeline.js.map
+@@ -1 +1 @@
+-{"version":3,"file":"ScanPipeline.js","sourceRoot":"","sources":["../../../src/scan/ScanPipeline.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
++{"version":3,"file":"ScanPipeline.js","sourceRoot":"","sources":["../../../src/scan/ScanPipeline.ts"],"names":[],"mappings":"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"}
+\ No newline at end of file
+diff --git a/dist/lib/transport/MTAIngestAdapter.js b/dist/lib/transport/MTAIngestAdapter.js
+index 7aced175f53b9356c96056e61d040518e33bb848..bbd8aa8ce8e4212c2cd5970a974738ad24e9dcfb 100644
+--- a/dist/lib/transport/MTAIngestAdapter.js
++++ b/dist/lib/transport/MTAIngestAdapter.js
+@@ -12,6 +12,13 @@
+  * and additionally gated by a shared bearer secret (`mail:transport:ingest:secret`) checked against the
+  * `Authorization` header — never exposed to the public internet.
+  *
++ * ### `GET /internal/mta/domain?name=<domain>`
++ * Called by the MTA's relay-domain lookup (e.g. Postfix `relay_domains` backed by a `tcp_table`/socketmap)
++ * to decide whether it should accept/relay mail for a domain at all, before ever checking an individual
++ * recipient - lets the set of accepted domains grow/shrink dynamically as `Domain`s are added/removed/(un)
++ * verified in this app's own database, with no MTA-side config file to keep in sync by hand. Responds
++ * `200` if the domain is currently `enabled` and `verified`, `404` otherwise.
++ *
+  * ### `GET /internal/mta/resolve?rcpt=<address>`
+  * Called by the MTA's recipient-validation hook (e.g. Postfix `recipient_lookup` via a `tcp_table`/socketmap,
+  * or an LMTP handshake) before accepting a message for `rcpt`, so a message for a nonexistent mailbox is
+diff --git a/dist/lib/transport/MTAIngestAdapter.js.map b/dist/lib/transport/MTAIngestAdapter.js.map
+index 3955fb469463e616b81a95af6acbd5143acd351e..18b02b1e2b04cd9ff21cbc070d88992f93f6d3b0 100644
+--- a/dist/lib/transport/MTAIngestAdapter.js.map
++++ b/dist/lib/transport/MTAIngestAdapter.js.map
+@@ -1 +1 @@
+-{"version":3,"file":"MTAIngestAdapter.js","sourceRoot":"","sources":["../../../src/transport/MTAIngestAdapter.ts"],"names":[],"mappings":"AAAA,+EAA+E;AAC/E,mEAAmE;AACnE,mCAAmC;AACnC,+EAA+E;AAE/E;;;;;;;;;;;;;;;;;;;;;;;GAuBG;AACH,MAAM,CAAC,MAAM,uBAAuB,GAChC,oGAAoG,CAAC"}
+\ No newline at end of file
++{"version":3,"file":"MTAIngestAdapter.js","sourceRoot":"","sources":["../../../src/transport/MTAIngestAdapter.ts"],"names":[],"mappings":"AAAA,+EAA+E;AAC/E,mEAAmE;AACnE,mCAAmC;AACnC,+EAA+E;AAE/E;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;GA8BG;AACH,MAAM,CAAC,MAAM,uBAAuB,GAChC,oGAAoG,CAAC"}
+\ No newline at end of file
+diff --git a/dist/types/dkim/DkimKeyProvider.d.ts b/dist/types/dkim/DkimKeyProvider.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..132c8ab81eee83eb3093c6f674c8e97a79d33235
+--- /dev/null
++++ b/dist/types/dkim/DkimKeyProvider.d.ts
+@@ -0,0 +1,43 @@
++/** A DKIM selector plus the public-key half of its key pair - exactly the two pieces of information
++ * `Domain.dkimSelector`/`Domain.dkimPublicKey` store (see `util/DnsSetupUtils.ts`'s `checkDkim()`), and
++ * everything an admin console needs to render the `<selector>._domainkey.<domain>` TXT record. */
++export interface DkimKeyPair {
++    selector: string;
++    /** Base64-encoded DER SubjectPublicKeyInfo - the exact value a DKIM TXT record's `p=` tag expects,
++     * with no PEM header/footer/newlines. */
++    publicKey: string;
++}
++/**
++ * Generates and persists the DKIM signing key pair the deployment's MTA (Postfix/rspamd) uses to sign
++ * outbound mail for a given domain, keeping `Domain.dkimSelector`/`Domain.dkimPublicKey` (and so the DNS
++ * setup checklist's recommended TXT record) in sync with whatever key material actually gets signed with.
++ *
++ * A real, security-relevant choice a deployment makes knowingly, not a silent default - registering
++ * `FsDkimKeyProvider` (or a custom implementation) crosses a boundary this library previously drew
++ * deliberately (see the now-superseded doc comments on `Domain.dkimSelector`/`dkimPublicKey`, which said
++ * this app would never generate or hold DKIM key material). `@Inject("DkimKeyProvider")` has no notion of
++ * "nothing registered, skip it" - some class must always be registered under this token - so
++ * `NullDkimKeyProvider` (always resolving `undefined`) is the default, preserving the original
++ * admin-fills-it-in-by-hand model until a deployment deliberately opts into `FsDkimKeyProvider` instead.
++ *
++ * Kept behind an interface - like `DnsResolver`/`BlobStore`/`MailTransport` - so tests never touch the
++ * real filesystem/key material, and so a deployment can swap in a different custody model (e.g. an HSM-
++ * or KMS-backed implementation) without touching `BaseDomainRoute` itself.
++ *
++ * @author Jean-Philippe Steinmetz
++ */
++export interface DkimKeyProvider {
++    /**
++     * Returns `domain`'s DKIM key pair, generating and persisting a new one first if none exists yet, or
++     * `undefined` if this provider doesn't manage key material at all (see `NullDkimKeyProvider`, the
++     * default registration - a deployment that wants the original manual model, where an admin fills in
++     * `dkimSelector`/`dkimPublicKey` by hand, registers that instead of `FsDkimKeyProvider`). Idempotent
++     * and safe to call on every `Domain` create/verify/dns-setup pass when it DOES manage key material - an
++     * existing key pair is never regenerated or rotated by this call (a `Domain`'s DKIM key, once minted,
++     * is stable for that domain's lifetime; rotation, if ever needed, is a deliberately separate,
++     * not-yet-built operation).
++     *
++     * @param domain The verified domain name (`Domain.name`) to ensure a key pair for.
++     */
++    ensureKeyPair(domain: string): Promise<DkimKeyPair | undefined>;
++}
+diff --git a/dist/types/dkim/FsDkimKeyProvider.d.ts b/dist/types/dkim/FsDkimKeyProvider.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..4ebdb29a65f5dca46c20869dd088a4889537808a
+--- /dev/null
++++ b/dist/types/dkim/FsDkimKeyProvider.d.ts
+@@ -0,0 +1,25 @@
++import { DkimKeyPair, DkimKeyProvider } from "./DkimKeyProvider.js";
++/**
++ * `DkimKeyProvider` that writes a plain 2048-bit RSA key pair directly to the local filesystem, at the
++ * exact path rspamd's `dkim_signing` module expects for its default (non-map-based) `path` template -
++ * `<key_dir>/<domain>.<selector>.key` (see rspamd's own `dkim_signing.conf` documentation). A deployment
++ * mounts the same directory into both this service (write) and the Postfix/rspamd container (read) as a
++ * shared volume - see docker-compose.mail.yml's `dkim_rspamd_keys` volume.
++ *
++ * **Not verified against a live rspamd instance whether a key file written while rspamd is already
++ * running is picked up on the very next signed message or needs a restart/reload** - rspamd's own
++ * documentation doesn't say either way. `path`'s `$domain`/`$selector` substitution is evaluated
++ * per-message rather than resolved once against a preloaded map, which suggests a fresh read rather than
++ * a startup-cached one, but treat that as a reasonable expectation, not a confirmed guarantee - if mail
++ * for a newly-added domain isn't coming out signed, restart the Postfix/rspamd container as a first step.
++ *
++ * @author Jean-Philippe Steinmetz
++ */
++export declare class FsDkimKeyProvider implements DkimKeyProvider {
++    private keyDir;
++    private selector;
++    private logger;
++    private keyPath;
++    private static publicKeyFromPrivate;
++    ensureKeyPair(domain: string): Promise<DkimKeyPair>;
++}
+diff --git a/dist/types/dkim/NullDkimKeyProvider.d.ts b/dist/types/dkim/NullDkimKeyProvider.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..3b0cb6afa21bd1d1dbae9938afea5f8a67ae7839
+--- /dev/null
++++ b/dist/types/dkim/NullDkimKeyProvider.d.ts
+@@ -0,0 +1,15 @@
++import { DkimKeyPair, DkimKeyProvider } from "./DkimKeyProvider.js";
++/**
++ * The default `DkimKeyProvider` - never generates or stores DKIM key material, preserving this library's
++ * original manual model (an admin runs their own OpenDKIM keygen and fills in `Domain.dkimSelector`/
++ * `dkimPublicKey` by hand). `@Inject("DkimKeyProvider")` has no notion of an optional/unregistered
++ * dependency (unlike a plain `?:` field, the framework throws at construction time if nothing is
++ * registered under the token at all), so *some* class must always be registered here - a consuming
++ * application registers this one to keep the manual model, or `FsDkimKeyProvider` (or its own custom
++ * implementation) to opt into automatic key generation. See `DkimKeyProvider`'s own doc comment.
++ *
++ * @author Jean-Philippe Steinmetz
++ */
++export declare class NullDkimKeyProvider implements DkimKeyProvider {
++    ensureKeyPair(_domain: string): Promise<DkimKeyPair | undefined>;
++}
+diff --git a/dist/types/dkim/index.d.ts b/dist/types/dkim/index.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..9ba2c47a20607f5a474a0b5e59a89d71ea01350b
+--- /dev/null
++++ b/dist/types/dkim/index.d.ts
+@@ -0,0 +1,3 @@
++export * from "./DkimKeyProvider.js";
++export * from "./FsDkimKeyProvider.js";
++export * from "./NullDkimKeyProvider.js";
+diff --git a/dist/types/index.d.ts b/dist/types/index.d.ts
+index 2eba6f12681b0d4fb1e17d1c1760874e20b10143..1416eb69c5c9d1b7242ef74eb58a4ea63a998d9b 100644
+--- a/dist/types/index.d.ts
++++ b/dist/types/index.d.ts
+@@ -4,5 +4,6 @@ export * from "./jobs/index.js";
+ export * from "./transport/index.js";
+ export * from "./blob/index.js";
+ export * from "./dns/index.js";
++export * from "./dkim/index.js";
+ export * from "./push/index.js";
+ export * from "./util/index.js";
+diff --git a/dist/types/models/types.d.ts b/dist/types/models/types.d.ts
+index 60893f5419971c32fc898757ec55ba2ad981268e..74c7fa2977949e3058f75a5b1a4c142cb01d6e7a 100644
+--- a/dist/types/models/types.d.ts
++++ b/dist/types/models/types.d.ts
+@@ -686,8 +686,10 @@ export interface Domain extends BaseEntity {
+     /** Last time a verification check (background job or manual trigger) ran against this domain,
+      * whether or not it succeeded - lets an admin see the check is actually happening. */
+     lastCheckedAt?: Date;
+-    /** DKIM selector, e.g. "default" - the admin's own MTA/OpenDKIM already has a key pair under this
+-     * selector name; this app never generates or stores DKIM key material (see `util/DnsSetupUtils.ts`). */
++    /** DKIM selector, e.g. "default" - the MTA/OpenDKIM key pair this server signs (or a deployment's own
++     * externally-managed one) is filed under this selector name. Auto-populated by `BaseDomainRoute` when
++     * a `DkimKeyProvider` is registered (see its own doc comment); a deployment that hasn't registered one
++     * still expects an admin to fill this in by hand from their own OpenDKIM keygen output. */
+     dkimSelector?: string;
+     /** The base64 public-key portion of that same DKIM key pair (the `p=` value), used to compute and
+      * check the `<dkimSelector>._domainkey.<name>` TXT record. */
+diff --git a/dist/types/routes/BaseDomainRoute.d.ts b/dist/types/routes/BaseDomainRoute.d.ts
+index f3fa187ec71b254913201899745b6dff93640ed8..0e1f5c3a0e064c565e1e0f0392c2cc7f3494cd59 100644
+--- a/dist/types/routes/BaseDomainRoute.d.ts
++++ b/dist/types/routes/BaseDomainRoute.d.ts
+@@ -21,11 +21,22 @@ export declare abstract class BaseDomainRoute<T extends Domain> extends CRUDRout
+      * without depending on either backend directly - see `util/AuditLogUtils.ts`. */
+     protected abstract auditLogClass: any;
+     private dnsResolver?;
++    /** Optional - a deployment that hasn't registered a `DkimKeyProvider` keeps the original manual model
++     * (an admin runs their own OpenDKIM keygen and fills in `dkimSelector`/`dkimPublicKey` by hand). See
++     * `DkimKeyProvider`'s own doc comment for why this crosses a boundary this library previously drew
++     * deliberately, and is therefore opt-in via DI registration rather than always-on. */
++    private dkimKeyProvider?;
+     /** This server's own inbound mail-exchange hostname - every `Domain`'s recommended MX (and, by
+      * extension, SPF `mx` mechanism) record points here. One global value, same single-value-config
+      * pattern as `mail:auth_server_url`. */
+     private mxHostname;
+     private newVerificationToken;
++    /** Fills in `o.dkimSelector`/`o.dkimPublicKey` from `dkimKeyProvider` unless the caller already
++     * supplied both fields itself (an explicit caller-supplied pair - an admin importing their own
++     * externally-managed OpenDKIM key - always wins) or the registered provider doesn't manage key
++     * material at all (`NullDkimKeyProvider`, the default - see `DkimKeyProvider`'s own doc comment). A
++     * no-op (leaves whatever the caller sent, including nothing) in either of those cases. */
++    private ensureDkimFields;
+     /** Normalizes `o.name`, derives `uid` from it, and rejects a 409 on collision against an existing
+      * `Domain`. Mutates `o` in place - assigns `uid`, and starts a freshly created domain unverified with a
+      * new token (DNS ownership has never been checked for it yet), unless `o.name` is under a reserved,
+diff --git a/dist/types/routes/BaseMailIngestRoute.d.ts b/dist/types/routes/BaseMailIngestRoute.d.ts
+index aa7d92f97bb1480688a32bd672a2ab247b6289c2..9e3052df4d8cf6507e1a83a1b99b969869961a19 100644
+--- a/dist/types/routes/BaseMailIngestRoute.d.ts
++++ b/dist/types/routes/BaseMailIngestRoute.d.ts
+@@ -134,6 +134,7 @@ export declare abstract class BaseMailIngestRoute<M extends Mailbox, Q extends I
+      * every `IngestQueueEntry` it creates for this transaction - see `ScanQueueJob.processEntry()`.
+      */
+     private applyTransportRules;
++    domain(name: string, req: HttpRequest, res: HttpResponse): Promise<HttpResponse>;
+     resolve(rcpt: string, req: HttpRequest, res: HttpResponse): Promise<HttpResponse>;
+     deliver(req: HttpRequest, res: HttpResponse): Promise<HttpResponse>;
+ }
+diff --git a/dist/types/transport/MTAIngestAdapter.d.ts b/dist/types/transport/MTAIngestAdapter.d.ts
+index db3f6971b9b81425cc90a0c0f65499f4004c7d8e..78636eb6a4cf8ad194fd3b77e3a4abdfd4e25181 100644
+--- a/dist/types/transport/MTAIngestAdapter.d.ts
++++ b/dist/types/transport/MTAIngestAdapter.d.ts
+@@ -8,6 +8,13 @@
+  * and additionally gated by a shared bearer secret (`mail:transport:ingest:secret`) checked against the
+  * `Authorization` header — never exposed to the public internet.
+  *
++ * ### `GET /internal/mta/domain?name=<domain>`
++ * Called by the MTA's relay-domain lookup (e.g. Postfix `relay_domains` backed by a `tcp_table`/socketmap)
++ * to decide whether it should accept/relay mail for a domain at all, before ever checking an individual
++ * recipient - lets the set of accepted domains grow/shrink dynamically as `Domain`s are added/removed/(un)
++ * verified in this app's own database, with no MTA-side config file to keep in sync by hand. Responds
++ * `200` if the domain is currently `enabled` and `verified`, `404` otherwise.
++ *
+  * ### `GET /internal/mta/resolve?rcpt=<address>`
+  * Called by the MTA's recipient-validation hook (e.g. Postfix `recipient_lookup` via a `tcp_table`/socketmap,
+  * or an LMTP handshake) before accepting a message for `rcpt`, so a message for a nonexistent mailbox is

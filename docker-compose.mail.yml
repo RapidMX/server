@@ -5,6 +5,13 @@ services:
             - mail__scan__av__clamav__host=clamav
             - mail__scan__av__clamav__port=3310
             - mail__transport__ingest__secret=${MAIL_INGEST_SECRET:-ChangeMeIngestSecret}
+        volumes:
+            # The registered `DkimKeyProvider` (`FsDkimKeyProvider` — see server.mongo.ts/server.sql.ts)
+            # writes each `Domain`'s generated private key directly into rspamd's own live signing
+            # directory on this shared volume, at the exact `<domain>.<selector>.key` path rspamd expects
+            # (mail:dkim:key_dir, defaulting to /var/lib/rspamd/dkim) — the same volume the `postfix`
+            # service below mounts at that path. See this file's `postfix` service for the other end.
+            - dkim_rspamd_keys:/var/lib/rspamd/dkim
         links:
             - rspamd
             - clamav
@@ -13,6 +20,27 @@ services:
             - rspamd
             - clamav
             - postfix
+    # Translates Postfix's own protocols (tcp_table lookups, plain SMTP) into calls against `server`'s
+    # `/internal/mta` contract - see src/mta-bridge/index.ts's own doc comment, and the `postfix` service
+    # below for how Postfix is pointed at it (relay_domains/relay_recipient_maps/transport_maps).
+    mta-bridge:
+        # Same image as `server` (built once, tagged `rapidmx-server:local` in docker-compose.mongo.yml/
+        # sql.yml's own `server` service) - just a different command, so `docker compose build` doesn't
+        # redundantly build the identical image twice under two different auto-generated tags.
+        image: rapidmx-server:local
+        command: ["node", "dist/src/mta-bridge/index.js"]
+        # The shared image's own HEALTHCHECK curls localhost:3000 (`server`'s HTTP port) - this service
+        # doesn't run that process at all (it listens on 10040/10041/2525 instead), so that inherited check
+        # would report "unhealthy" forever despite working correctly. Confirmed live: without this,
+        # `docker ps` showed `server-mta-bridge-1` stuck "unhealthy" while its own logs showed it correctly
+        # listening and forwarding to `server`.
+        healthcheck:
+            disable: true
+        environment:
+            - MTA_INGEST_BASE_URL=http://server:3000/internal/mta
+            - MTA_INGEST_SECRET=${MAIL_INGEST_SECRET:-ChangeMeIngestSecret}
+        links:
+            - server
     # Anti-spam scoring (SpamScanProvider) — see RspamdSpamScanProvider. Exposes its HTTP checkv2 API on 11333.
     rspamd:
         image: rspamd/rspamd:latest
@@ -25,16 +53,65 @@ services:
         ports:
             - "3310:3310"
     # The MTA — real inbound/outbound SMTP is intentionally out of scope for @rapidmx/restapi itself (see its
-    # README); this is the "dedicated MTA" it hands off to. `PostfixSendmailTransport` shells out to a local
-    # `sendmail` binary for OUTBOUND mail, so the `server` image needs one installed and configured to relay
-    # through this container (not yet wired here — a Dockerfile/postfix-client follow-up, tracked in
-    # .claude/NOTES.md). INBOUND delivery (Postfix -> `POST /internal/mta/deliver`) additionally needs this
-    # container's own `main.cf`/`master.cf` configured with a content-filter/recipient-validation policy that
-    # calls `GET /internal/mta/resolve` and hands accepted mail to `POST /internal/mta/deliver` — also not yet
-    # authored here; this service currently only stands up a working Postfix instance to build that on top of.
+    # README); this is the "dedicated MTA" it hands off to. OUTBOUND: the `server` image's `sendmail` binary
+    # (see Dockerfile/scripts/docker-entrypoint.sh) is msmtp, configured at container start to relay through
+    # this container over plain SMTP on 25 — Postfix's default `mynetworks` already trusts Docker's private
+    # bridge subnets, so no additional auth is needed for that hop. INBOUND delivery routes through the
+    # `mta-bridge` service below (recipient/domain validation via Postfix's own `tcp_table` lookup protocol,
+    # final delivery via plain SMTP), which translates both into calls against `server`'s
+    # `GET /internal/mta/domain`/`GET /internal/mta/resolve`/`POST /internal/mta/deliver` contract.
     postfix:
         image: boky/postfix:latest
         environment:
-            - ALLOWED_SENDER_DOMAINS=example.com
+            # Comma-separated list of domains this Postfix instance will accept/relay outbound mail for.
+            # Keep this in sync with the `Domain`s added via the admin console (Domains page) — Postfix
+            # itself has no visibility into that database. (Inbound *acceptance* of a domain is governed
+            # dynamically by relay_domains/mta-bridge below and does NOT depend on this list; this list is
+            # purely the anti-spoofing check on OUTBOUND submission - see boky/postfix's own README.)
+            - ALLOWED_SENDER_DOMAINS=${MAIL_DOMAINS:-example.com}
+            # Inbound recipient/domain acceptance - both back this deployment's own `Domain`/mailbox
+            # database dynamically via the `mta-bridge` service's `tcp_table` listeners, so a domain/mailbox
+            # added through the admin console is accepted here with no Postfix restart needed. Final
+            # delivery of anything accepted goes out over plain SMTP to mta-bridge's own delivery listener,
+            # which hands it to `POST /internal/mta/deliver`.
+            - POSTFIX_relay_domains=tcp:mta-bridge:10040
+            - POSTFIX_relay_recipient_maps=tcp:mta-bridge:10041
+            - POSTFIX_transport_maps=static:smtp:mta-bridge:2525
+            # rspamd (the image's default DKIM backend since v6) signs outbound mail using whatever key
+            # file it finds at /var/lib/rspamd/dkim/<domain>.<selector>.key. In this deployment that file
+            # is normally already there by the time a domain is added to ALLOWED_SENDER_DOMAINS above -
+            # the `server` service's own `FsDkimKeyProvider` writes it the moment a `Domain` is created (or,
+            # for one added before that provider existed, the first time its DNS-setup page is opened) - see
+            # this file's `server` service and @rapidmx/restapi's dkim/FsDkimKeyProvider.ts. DKIM_AUTOGENERATE
+            # is kept as a fallback safety net for a domain added here without a corresponding `Domain`
+            # record; because `dkim_rspamd_keys` is a persistent named volume either way, no key - generated
+            # by `server` or autogenerated here - is lost/rotated on container recreation.
+            - DKIM_AUTOGENERATE=${DKIM_AUTOGENERATE:-1}
+            - DKIM_SELECTOR=${DKIM_SELECTOR:-mail}
+        volumes:
+            # To supply your own DKIM key pair for a domain instead of relying on `server`'s own
+            # `FsDkimKeyProvider` or the DKIM_AUTOGENERATE fallback above: drop the standard opendkim-genkey
+            # output — `<domain>/<selector>.private` (PEM RSA private key) and `<domain>/<selector>.txt`
+            # (the DNS TXT record text) — into this volume under /etc/opendkim/keys/<domain>/; the image's
+            # own startup script imports it into rspamd's native format on container start. Whatever public
+            # key ends up in effect must match that Domain's `dkimSelector`/`dkimPublicKey` (admin console ->
+            # Domains -> DNS setup) so the DKIM DNS-record checklist reflects what Postfix actually signs
+            # with — `FsDkimKeyProvider` only ever fills those fields in when they're not already set, so a
+            # manually-imported key pair entered there first is never overwritten.
+            - dkim_opendkim_keys:/etc/opendkim/keys
+            # rspamd's own live signing directory - the other end of the `server` service's own mount of
+            # this same volume above. Also where DKIM_AUTOGENERATE and the opendkim import above write.
+            - dkim_rspamd_keys:/var/lib/rspamd/dkim
         ports:
             - "25:25"
+    # DMARC has no key/cert artifact of its own — it's a DNS-published policy plus SPF/DKIM alignment,
+    # which rspamd's dmarc module (enabled by default in this image) already evaluates on inbound mail
+    # with no configuration needed here. The app's own DNS-setup checklist (Domain.dmarcPolicy/
+    # dmarcReportEmail, admin console -> Domains -> DNS setup) is where an operator sets the *recommended*
+    # policy to publish; to override rspamd's own DMARC evaluation behavior (e.g. tighten/loosen scoring),
+    # use the image's generic `RSPAMD_<file>__<key>=<value>` passthrough, e.g.
+    # `RSPAMD_dmarc__enabled=false`.
+
+volumes:
+    dkim_opendkim_keys:
+    dkim_rspamd_keys:

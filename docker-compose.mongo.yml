@@ -1,5 +1,12 @@
+include:
+    # Rspamd + ClamAV + Postfix — the mail-flow stack this service hands outbound/inbound mail off to.
+    # Folded in via `include` (not a second `-f` flag) so `docker compose -f docker-compose.mongo.yml up`
+    # alone brings up a fully working deployment — see .claude/NOTES.md for the end-to-end wiring notes.
+    - docker-compose.mail.yml
+
 services:
     server:
+        image: rapidmx-server:local
         build:
             context: .
         command: ["node", "dist/src/server.mongo.js"]
@@ -8,14 +15,65 @@ services:
             - "9229:9229"
         environment:
             - datastores__acl__url=mongodb://mongo
+            - datastores__acl__database=${SERVER_ACL_DB_NAME:-rapidmx_server_acls}
             - datastores__cache__type=redis
-            - datastores__cache__url=redis://redis
+            - datastores__cache__url=redis://redis/0
             - datastores__events__type=redis
-            - datastores__events__url=redis://redis
+            - datastores__events__url=redis://redis/0
             - datastores__logs__type=redis
-            - datastores__logs__url=redis://redis
+            - datastores__logs__url=redis://redis/0
             - datastores__mongo__url=mongodb://mongo
-            - NODE_ENV=dev
+            - datastores__mongo__database=${SERVER_MONGO_DB_NAME:-rapidmx_server_mongo}
+            # Must match auth-server's own `auth__secret`/`auth__options__*` below exactly, or every JWT
+            # auth-server issues fails signature/audience/issuer verification here. See .claude/NOTES.md
+            # ("Authentication is out of scope for this repo") for why this service never issues its own.
+            - auth__secret=${AUTH_SECRET:-MyPasswordIsSecure}
+            - auth__options__audience=${AUTH_AUDIENCE:-mydomain.com}
+            - auth__options__issuer=${AUTH_ISSUER:-api.mydomain.com}
+            - cookie_secret=${COOKIE_SECRET:-f0fLSKFJLKWJFe09f32joff098u2fOFIWJ32890fnfnlak}
+            # Browser-facing: apps/www's/apps/admin's unauthenticated-redirect and this service's own SSR
+            # both resolve auth-server through this URL, so it must be reachable from the visitor's browser,
+            # not just from inside the compose network (hence localhost:3001, not http://auth-server:3000).
+            # Override with the real public auth-server URL in any deployment that isn't single-host/dev.
+            - mail__auth_server_url=${AUTH_SERVER_PUBLIC_URL:-http://localhost:3001}
+            - NODE_ENV=${NODE_ENV:-dev}
+        volumes:
+            # `mail:blob:local:root` (./data/blobs, relative to /app) — raw MIME sources, attachments,
+            # contact photos. Must be persistent in any real deployment or every message body/attachment
+            # is lost on container recreation.
+            - blob_data:/app/data
+        links:
+            - redis
+            - mongo
+            - auth-server
+        depends_on:
+            - auth-server
+    auth-server:
+        image: ghcr.io/rapidrest/auth-server:${AUTH_SERVER_IMAGE_TAG:-latest}
+        command: ["node", "dist/src/server.mongo.js"]
+        ports:
+            - "3001:3000"
+        environment:
+            - datastores__acl__url=mongodb://mongo
+            - datastores__acl__database=${AUTH_SERVER_ACL_DB_NAME:-rapidmx_auth_acls}
+            - datastores__cache__type=redis
+            - datastores__cache__url=redis://redis/1
+            - datastores__events__type=redis
+            - datastores__events__url=redis://redis/1
+            - datastores__logs__type=redis
+            - datastores__logs__url=redis://redis/1
+            - datastores__mongo__url=mongodb://mongo
+            - datastores__mongo__database=${AUTH_SERVER_MONGO_DB_NAME:-rapidmx_auth_mongo}
+            - auth__secret=${AUTH_SECRET:-MyPasswordIsSecure}
+            - auth__options__audience=${AUTH_AUDIENCE:-mydomain.com}
+            - auth__options__issuer=${AUTH_ISSUER:-api.mydomain.com}
+            # auth-server's own OAuth-authorization-server issuer/origin (distinct from the JWT
+            # audience/issuer pair above — see auth-server's own config.mongo.ts) — its public URL too.
+            - auth__oauth_server__issuer=${AUTH_SERVER_PUBLIC_URL:-http://localhost:3001}
+            - auth__oauth_server__keys__encryption_key=${AUTH_OAUTH_SERVER_ENCRYPTION_KEY:-96aa4879e304e525b74141bf1bc072c17e2b90c5b35250a2d18cbd2b8d4172ac}
+            - session__secret=${SESSION_SECRET:-SessionsHaveSecrets}
+            - cookie_secret=${COOKIE_SECRET:-f0fLSKFJLKWJFe09f32joff098u2fOFIWJ32890fnfnlak}
+            - NODE_ENV=${NODE_ENV:-dev}
         links:
             - redis
             - mongo
@@ -23,3 +81,9 @@ services:
         image: redis
     mongo:
         image: mongo
+        volumes:
+            - mongo_data:/data/db
+
+volumes:
+    blob_data:
+    mongo_data:

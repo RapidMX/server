@@ -156,6 +156,14 @@ conf.defaults({
                 secret: DEFAULT_MAIL_INGEST_SECRET,
             },
         },
+        // Consumed by the registered `DkimKeyProvider` (`FsDkimKeyProvider` — see server.mongo.ts). Must
+        // match Postfix/rspamd's own DKIM signing path/selector exactly (docker-compose.mail.yml's
+        // `dkim_rspamd_keys` volume + `DKIM_SELECTOR` env var) — these are the two ends of one shared
+        // volume, not independently configurable.
+        dkim: {
+            key_dir: "/var/lib/rspamd/dkim",
+            selector: "mail",
+        },
     },
     giphy: {
         api_key: DEFAULT_GIPHY_API_KEY,

@@ -13,7 +13,7 @@ import config from "../src/config.sql.js";
 import { Logger, sleep } from "@rapidrest/core";
 import { ObjectFactory, Server } from "@rapidrest/service-core";
 import { request } from "@rapidrest/service-core/test";
-import { LocalFsBlobStore, NodeDnsResolver, PostfixSendmailTransport } from "@rapidmx/restapi";
+import { FsDkimKeyProvider, LocalFsBlobStore, NodeDnsResolver, PostfixSendmailTransport } from "@rapidmx/restapi";
 import { PostgresFullTextSearchProvider } from "@rapidmx/restapi/search";
 import { ClamAvScanProvider, RspamdSpamScanProvider } from "@rapidmx/restapi/scan";
 import * as fs from "fs";
@@ -34,13 +34,14 @@ describe("Server Tests", () => {
     // Mirrors the DI provider registration in src/server.sql.ts — this test builds its own Server rather
     // than importing that script, so it must register the same @rapidmx/restapi string-token dependencies
     // itself or any route touching them (BlobStore/SearchProvider/SpamScanProvider/AvScanProvider/
-    // MailTransport/DnsResolver) fails to instantiate.
+    // MailTransport/DnsResolver/DkimKeyProvider) fails to instantiate.
     objectFactory.register(LocalFsBlobStore, "BlobStore");
     objectFactory.register(PostgresFullTextSearchProvider, "SearchProvider");
     objectFactory.register(RspamdSpamScanProvider, "SpamScanProvider");
     objectFactory.register(ClamAvScanProvider, "AvScanProvider");
     objectFactory.register(PostfixSendmailTransport, "MailTransport");
     objectFactory.register(NodeDnsResolver, "DnsResolver");
+    objectFactory.register(FsDkimKeyProvider, "DkimKeyProvider");
     const server: Server = new Server({ config, basePath: "./src/sql", logger, objectFactory });
 
     beforeAll(async () => {

@@ -1,0 +1,1981 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="3" failures="0" errors="0" time="5.9599209">
+    <testsuite name="test/Server.mongo.test.ts" timestamp="2026-09-09T21:04:07.569Z" hostname="Jane" tests="3" failures="0" errors="0" skipped="0" time="5.9599209">
+        <testcase classname="test/Server.mongo.test.ts" name="Server Tests &gt; Can start server." time="3.0483708">
+            <system-out>
+[DerivedLogger.emit] 2026-09-09T21:04:02.043Z [32minfo[39m: Starting server...
+
+[DerivedLogger.emit] 2026-09-09T21:04:02.043Z [32minfo[39m: Registering class OpenApiSpec
+[DerivedLogger.emit] 2026-09-09T21:04:02.044Z [34mdebug[39m: Creating new instance of class [OpenApiSpec] with name [OpenApiSpec:default]
+
+[DerivedLogger.emit] 2026-09-09T21:04:02.045Z [32minfo[39m: Registering class ConnectionManager
+[DerivedLogger.emit] 2026-09-09T21:04:02.045Z [34mdebug[39m: Creating new instance of class [ConnectionManager] with name [ConnectionManager:default]
+
+[DerivedLogger.emit] 2026-09-09T21:04:02.046Z [32minfo[39m: Loading all service classes...
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.298Z [32minfo[39m: Registering class AttachmentExtractionJobMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.299Z [32minfo[39m: Registering class CalendarReminderJobMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.299Z [32minfo[39m: Registering class DomainVerificationJobMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.299Z [32minfo[39m: Registering class EasDeviceStateCleanupJobMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.300Z [32minfo[39m: Registering class ExternalShareExpirationJobMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.300Z [32minfo[39m: Registering class MailboxQuotaRecalcJobMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.300Z [32minfo[39m: Registering class MeetingSchedulingJobMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.300Z [32minfo[39m: Registering class QuarantineRetentionJobMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.301Z [32minfo[39m: Registering class ScanQueueJobMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.301Z [32minfo[39m: Registering class SearchIndexJobMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.301Z [32minfo[39m: Registering class AttachmentMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.301Z [32minfo[39m: Registering class CalendarEventMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.302Z [32minfo[39m: Registering class CalendarShareLinkMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.302Z [32minfo[39m: Registering class ContactListMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.302Z [32minfo[39m: Registering class ContactMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.303Z [32minfo[39m: Registering class DeviceSyncStateMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.303Z [32minfo[39m: Registering class FolderMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.303Z [32minfo[39m: Registering class IngestQueueEntryMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.304Z [32minfo[39m: Registering class MailboxMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.304Z [32minfo[39m: Registering class MessageMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.304Z [32minfo[39m: Registering class NoteMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.304Z [32minfo[39m: Registering class QuarantineEntryMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.305Z [32minfo[39m: Registering class ScanResultMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.305Z [32minfo[39m: Registering class SearchIndexStateMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.305Z [32minfo[39m: Registering class TaskListMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.306Z [32minfo[39m: Registering class TaskMongo
+[DerivedLogger.emit] 2026-09-09T21:04:03.306Z [32minfo[39m: Registering class routes.ACLRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.306Z [32minfo[39m: Registering class routes.AdminConsoleRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.306Z [32minfo[39m: Registering class routes.AdminRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.307Z [32minfo[39m: Registering class routes.AttachmentRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.307Z [32minfo[39m: Registering class routes.AuditLogRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.307Z [32minfo[39m: Registering class routes.BookingRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.308Z [32minfo[39m: Registering class routes.BookingTypeRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.308Z [32minfo[39m: Registering class routes.BookRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.308Z [32minfo[39m: Registering class routes.BrandingRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.308Z [32minfo[39m: Registering class routes.CalendarEventRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.309Z [32minfo[39m: Registering class routes.CalendarShareLinkRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.309Z [32minfo[39m: Registering class routes.ContactListRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.309Z [32minfo[39m: Registering class routes.ContactRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.309Z [32minfo[39m: Registering class routes.DistributionListRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.310Z [32minfo[39m: Registering class routes.DomainRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.310Z [32minfo[39m: Registering class routes.FocusedInboxOverrideRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.310Z [32minfo[39m: Registering class routes.FolderRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.311Z [32minfo[39m: Registering class routes.GiphySearchRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.311Z [32minfo[39m: Registering class routes.IngestQueueRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.311Z [32minfo[39m: Registering class routes.MailboxRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.311Z [32minfo[39m: Registering class routes.MailComposeRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.312Z [32minfo[39m: Registering class routes.MailFilterRuleRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.312Z [32minfo[39m: Registering class routes.MailIngestRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.312Z [32minfo[39m: Registering class routes.MailSignatureRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.313Z [32minfo[39m: Registering class routes.MessageRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.313Z [32minfo[39m: Registering class routes.MetricsRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.313Z [32minfo[39m: Registering class routes.NoteRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.313Z [32minfo[39m: Registering class routes.OpenAPIRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.314Z [32minfo[39m: Registering class routes.PushRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.314Z [32minfo[39m: Registering class routes.QuarantineRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.314Z [32minfo[39m: Registering class routes.SearchRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.314Z [32minfo[39m: Registering class routes.StatusRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.315Z [32minfo[39m: Registering class routes.TaskListRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.315Z [32minfo[39m: Registering class routes.TaskRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.315Z [32minfo[39m: Registering class routes.TransportRuleRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.315Z [32minfo[39m: Registering class routes.WwwRoute
+[DerivedLogger.emit] 2026-09-09T21:04:03.316Z [32minfo[39m: Scanning for data models...
+[DerivedLogger.emit] 2026-09-09T21:04:03.318Z [32minfo[39m: Initializing database connection(s)...
+[ConnectionManager.emit] 2026-09-09T21:04:03.319Z [32minfo[39m: Connecting to database cache [redis://localhost]...
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.320Z [32minfo[39m: Connecting to database events [redis://localhost]...
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.320Z [32minfo[39m: Connecting to database logs [redis://localhost]...
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.321Z [32minfo[39m: Connecting to database acl [mongodb://localhost:9999/acls]...
+[ConnectionManager.emit] 2026-09-09T21:04:03.321Z [32minfo[39m: Connecting to database mongo [mongodb://localhost:9999/rrst_auth]...
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.358Z [33mwarn[39m: Datastore &apos;acl&apos; is a standalone MongoDB instance and does not support multi-document transactions. @Transactional will run without a transaction for models on this datastore. Configure MongoDB as a replica set (or sharded cluster) to enable it.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.360Z [33mwarn[39m: Datastore &apos;mongo&apos; is a standalone MongoDB instance and does not support multi-document transactions. @Transactional will run without a transaction for models on this datastore. Configure MongoDB as a replica set (or sharded cluster) to enable it.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.394Z [34mdebug[39m: Created collection: access_control_list_mongo
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.396Z [34mdebug[39m: Creating index parentUid on collection access_control_list_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.398Z [34mdebug[39m: Created collection: attachment_mongo
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.399Z [34mdebug[39m: Creating index attachment_mailbox on collection attachment_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.402Z [34mdebug[39m: Creating index uid on collection access_control_list_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.406Z [34mdebug[39m: Creating index attachment_folder on collection attachment_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.411Z [34mdebug[39m: Creating index uid_version on collection access_control_list_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.413Z [34mdebug[39m: Creating index attachment_message on collection attachment_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.417Z [34mdebug[39m: Creating index uid on collection attachment_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.420Z [34mdebug[39m: Creating index uid_version on collection attachment_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.427Z [34mdebug[39m: Created collection: calendar_event_mongo
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.428Z [34mdebug[39m: Creating index calevent_ical_uid on collection calendar_event_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.431Z [34mdebug[39m: Creating index calevent_folder on collection calendar_event_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.434Z [34mdebug[39m: Creating index uid on collection calendar_event_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.436Z [34mdebug[39m: Creating index uid_version on collection calendar_event_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.444Z [34mdebug[39m: Created collection: calendar_share_link_mongo
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.444Z [34mdebug[39m: Creating index calsharelink_folder on collection calendar_share_link_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.447Z [34mdebug[39m: Creating index calsharelink_token on collection calendar_share_link_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.450Z [34mdebug[39m: Creating index uid on collection calendar_share_link_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.454Z [34mdebug[39m: Creating index uid_version on collection calendar_share_link_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.461Z [34mdebug[39m: Created collection: contact_list_mongo
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.462Z [34mdebug[39m: Creating index contactlist_mailbox on collection contact_list_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.465Z [34mdebug[39m: Creating index uid on collection contact_list_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.467Z [34mdebug[39m: Creating index uid_version on collection contact_list_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.475Z [34mdebug[39m: Created collection: contact_mongo
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.475Z [34mdebug[39m: Creating index contact_folder on collection contact_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.478Z [34mdebug[39m: Creating index contact_mailbox on collection contact_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.481Z [34mdebug[39m: Creating index uid on collection contact_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.490Z [34mdebug[39m: Creating index uid_version on collection contact_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.497Z [34mdebug[39m: Created collection: device_sync_state_mongo
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.498Z [34mdebug[39m: Creating index devicesyncstate_mailbox_device on collection device_sync_state_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.501Z [34mdebug[39m: Creating index uid on collection device_sync_state_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.504Z [34mdebug[39m: Creating index uid_version on collection device_sync_state_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.511Z [34mdebug[39m: Created collection: folder_mongo
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.512Z [34mdebug[39m: Creating index folder_parent on collection folder_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.515Z [34mdebug[39m: Creating index folder_mailbox on collection folder_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.518Z [34mdebug[39m: Creating index uid on collection folder_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.521Z [34mdebug[39m: Creating index uid_version on collection folder_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.530Z [34mdebug[39m: Created collection: ingest_queue_entry_mongo
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.531Z [34mdebug[39m: Creating index ingestqueue_mailbox on collection ingest_queue_entry_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.535Z [34mdebug[39m: Creating index ingestqueue_status on collection ingest_queue_entry_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.538Z [34mdebug[39m: Creating index uid on collection ingest_queue_entry_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.541Z [34mdebug[39m: Creating index uid_version on collection ingest_queue_entry_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.558Z [34mdebug[39m: Created collection: mailbox_mongo
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.559Z [34mdebug[39m: Creating index mailbox_primary_smtp on collection mailbox_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.562Z [34mdebug[39m: Creating index mailbox_owner on collection mailbox_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.566Z [34mdebug[39m: Creating index uid on collection mailbox_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.569Z [34mdebug[39m: Creating index uid_version on collection mailbox_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.578Z [34mdebug[39m: Created collection: message_mongo
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.579Z [34mdebug[39m: Creating index message_id on collection message_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.588Z [34mdebug[39m: Creating index message_mailbox on collection message_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.590Z [34mdebug[39m: Creating index message_folder on collection message_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.593Z [34mdebug[39m: Creating index uid on collection message_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.596Z [34mdebug[39m: Creating index uid_version on collection message_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.604Z [34mdebug[39m: Created collection: note_mongo
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.605Z [34mdebug[39m: Creating index note_folder on collection note_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.607Z [34mdebug[39m: Creating index uid on collection note_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.610Z [34mdebug[39m: Creating index uid_version on collection note_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.617Z [34mdebug[39m: Created collection: quarantine_entry_mongo
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.618Z [34mdebug[39m: Creating index quarantine_mailbox on collection quarantine_entry_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.621Z [34mdebug[39m: Creating index uid on collection quarantine_entry_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.624Z [34mdebug[39m: Creating index uid_version on collection quarantine_entry_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.630Z [34mdebug[39m: Created collection: scan_result_mongo
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.631Z [34mdebug[39m: Creating index scanresult_target on collection scan_result_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.634Z [34mdebug[39m: Creating index uid on collection scan_result_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.637Z [34mdebug[39m: Creating index uid_version on collection scan_result_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.644Z [34mdebug[39m: Created collection: search_index_state_mongo
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.645Z [34mdebug[39m: Creating index searchindexstate_entity on collection search_index_state_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.648Z [34mdebug[39m: Creating index uid on collection search_index_state_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.651Z [34mdebug[39m: Creating index uid_version on collection search_index_state_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.658Z [34mdebug[39m: Created collection: task_list_mongo
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.659Z [34mdebug[39m: Creating index tasklist_mailbox on collection task_list_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.661Z [34mdebug[39m: Creating index uid on collection task_list_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.664Z [34mdebug[39m: Creating index uid_version on collection task_list_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.671Z [34mdebug[39m: Created collection: task_mongo
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.672Z [34mdebug[39m: Creating index task_folder on collection task_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.675Z [34mdebug[39m: Creating index uid on collection task_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.678Z [34mdebug[39m: Creating index uid_version on collection task_mongo.
+
+[ConnectionManager.emit] 2026-09-09T21:04:03.680Z [32minfo[39m: Successfully connected to all configured databases.
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.681Z [32minfo[39m: Registering class ACLUtils
+[DerivedLogger.emit] 2026-09-09T21:04:03.681Z [34mdebug[39m: Creating new instance of class [ACLUtils] with name [ACLUtils:default]
+[DerivedLogger.emit] 2026-09-09T21:04:03.681Z [32minfo[39m: Registering class RedisCache
+[DerivedLogger.emit] 2026-09-09T21:04:03.682Z [34mdebug[39m: Creating new instance of class [RedisCache] with name [RedisCache:AccessControlListMongo]
+
+[ACLUtils.emit] 2026-09-09T21:04:03.683Z [32minfo[39m: RBAC system is enabled and ready.
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.779Z [32minfo[39m: Registering class RouteUtils
+[DerivedLogger.emit] 2026-09-09T21:04:03.779Z [34mdebug[39m: Creating new instance of class [RouteUtils] with name [RouteUtils:default]
+[DerivedLogger.emit] 2026-09-09T21:04:03.780Z [32minfo[39m: Registering class AuthMiddleware
+[DerivedLogger.emit] 2026-09-09T21:04:03.780Z [34mdebug[39m: Creating new instance of class [AuthMiddleware] with name [AuthMiddleware:default]
+[DerivedLogger.emit] 2026-09-09T21:04:03.781Z [32minfo[39m: Registering class auth.JWTStrategy
+[DerivedLogger.emit] 2026-09-09T21:04:03.781Z [34mdebug[39m: Creating new instance of class [auth.JWTStrategy] with name [auth.JWTStrategy:958fcec2-6ab0-4430-9db9-92e9750ad94a]
+[DerivedLogger.emit] 2026-09-09T21:04:03.782Z [32minfo[39m: Registering class RateLimiter
+[DerivedLogger.emit] 2026-09-09T21:04:03.782Z [34mdebug[39m: Creating new instance of class [RateLimiter] with name [RateLimiter:default]
+[DerivedLogger.emit] 2026-09-09T21:04:03.783Z [32minfo[39m: Registering class MemoryStore
+[DerivedLogger.emit] 2026-09-09T21:04:03.783Z [34mdebug[39m: Creating new instance of class [MemoryStore] with name [MemoryStore:default]
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.784Z [32minfo[39m: Starting background services...
+[DerivedLogger.emit] 2026-09-09T21:04:03.784Z [32minfo[39m: Registering class BackgroundServiceManager
+[DerivedLogger.emit] 2026-09-09T21:04:03.784Z [34mdebug[39m: Creating new instance of class [BackgroundServiceManager] with name [BackgroundServiceManager:default]
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:03.785Z [32minfo[39m: Starting service AttachmentExtractionJobMongo...
+[DerivedLogger.emit] 2026-09-09T21:04:03.785Z [34mdebug[39m: Creating new instance of class [AttachmentExtractionJobMongo] with name [AttachmentExtractionJobMongo:AttachmentExtractionJobMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.786Z [32minfo[39m: Unable to register class undefined for BlobStore/undefined
+[DerivedLogger.emit] 2026-09-09T21:04:03.786Z [34mdebug[39m: Creating new instance of class [BlobStore] with name [BlobStore:default]
+[DerivedLogger.emit] 2026-09-09T21:04:03.787Z [32minfo[39m: Registering class RepoUtils
+[DerivedLogger.emit] 2026-09-09T21:04:03.787Z [34mdebug[39m: Creating new instance of class [RepoUtils] with name [RepoUtils:AttachmentMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.788Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+[DerivedLogger.emit] 2026-09-09T21:04:03.788Z [32minfo[39m: Registering class NotificationUtils
+[DerivedLogger.emit] 2026-09-09T21:04:03.789Z [34mdebug[39m: Creating new instance of class [NotificationUtils] with name [NotificationUtils:default]
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.798Z [32minfo[39m: Registering class RecoverableRepoUtils
+[DerivedLogger.emit] 2026-09-09T21:04:03.799Z [34mdebug[39m: Creating new instance of class [RecoverableRepoUtils] with name [RecoverableRepoUtils:MessageMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.799Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:03.815Z [32minfo[39m: Starting service CalendarReminderJobMongo...
+[DerivedLogger.emit] 2026-09-09T21:04:03.816Z [34mdebug[39m: Creating new instance of class [CalendarReminderJobMongo] with name [CalendarReminderJobMongo:CalendarReminderJobMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.816Z [34mdebug[39m: Creating new instance of class [RecoverableRepoUtils] with name [RecoverableRepoUtils:CalendarEventMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.817Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:03.821Z [32minfo[39m: Starting service DomainVerificationJobMongo...
+[DerivedLogger.emit] 2026-09-09T21:04:03.822Z [34mdebug[39m: Creating new instance of class [DomainVerificationJobMongo] with name [DomainVerificationJobMongo:DomainVerificationJobMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.822Z [32minfo[39m: Unable to register class undefined for DnsResolver/undefined
+[DerivedLogger.emit] 2026-09-09T21:04:03.823Z [34mdebug[39m: Creating new instance of class [DnsResolver] with name [DnsResolver:default]
+[DerivedLogger.emit] 2026-09-09T21:04:03.823Z [34mdebug[39m: Creating new instance of class [RepoUtils] with name [RepoUtils:DomainMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.823Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:03.826Z [32minfo[39m: Starting service EasDeviceStateCleanupJobMongo...
+[DerivedLogger.emit] 2026-09-09T21:04:03.827Z [34mdebug[39m: Creating new instance of class [EasDeviceStateCleanupJobMongo] with name [EasDeviceStateCleanupJobMongo:EasDeviceStateCleanupJobMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.827Z [34mdebug[39m: Creating new instance of class [RepoUtils] with name [RepoUtils:DeviceSyncStateMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.828Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:03.831Z [32minfo[39m: Starting service ExternalShareExpirationJobMongo...
+[DerivedLogger.emit] 2026-09-09T21:04:03.831Z [34mdebug[39m: Creating new instance of class [ExternalShareExpirationJobMongo] with name [ExternalShareExpirationJobMongo:ExternalShareExpirationJobMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.832Z [34mdebug[39m: Creating new instance of class [RepoUtils] with name [RepoUtils:CalendarShareLinkMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.832Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:03.835Z [32minfo[39m: Starting service MailboxQuotaRecalcJobMongo...
+[DerivedLogger.emit] 2026-09-09T21:04:03.836Z [34mdebug[39m: Creating new instance of class [MailboxQuotaRecalcJobMongo] with name [MailboxQuotaRecalcJobMongo:MailboxQuotaRecalcJobMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.836Z [32minfo[39m: Unable to register class undefined for BlobStore/undefined
+[DerivedLogger.emit] 2026-09-09T21:04:03.837Z [34mdebug[39m: Creating new instance of class [RepoUtils] with name [RepoUtils:MailboxMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.838Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:03.841Z [32minfo[39m: Starting service MeetingSchedulingJobMongo...
+[DerivedLogger.emit] 2026-09-09T21:04:03.842Z [34mdebug[39m: Creating new instance of class [MeetingSchedulingJobMongo] with name [MeetingSchedulingJobMongo:MeetingSchedulingJobMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.842Z [32minfo[39m: Unable to register class undefined for MailTransport/undefined
+[DerivedLogger.emit] 2026-09-09T21:04:03.843Z [34mdebug[39m: Creating new instance of class [MailTransport] with name [MailTransport:default]
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:03.844Z [32minfo[39m: Starting service QuarantineRetentionJobMongo...
+[DerivedLogger.emit] 2026-09-09T21:04:03.844Z [34mdebug[39m: Creating new instance of class [QuarantineRetentionJobMongo] with name [QuarantineRetentionJobMongo:QuarantineRetentionJobMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.844Z [34mdebug[39m: Creating new instance of class [RepoUtils] with name [RepoUtils:QuarantineEntryMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.845Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:03.848Z [32minfo[39m: Starting service ScanQueueJobMongo...
+[DerivedLogger.emit] 2026-09-09T21:04:03.849Z [34mdebug[39m: Creating new instance of class [ScanQueueJobMongo] with name [ScanQueueJobMongo:ScanQueueJobMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.849Z [32minfo[39m: Unable to register class undefined for BlobStore/undefined
+[DerivedLogger.emit] 2026-09-09T21:04:03.850Z [32minfo[39m: Registering class ScanPipeline
+[DerivedLogger.emit] 2026-09-09T21:04:03.850Z [34mdebug[39m: Creating new instance of class [ScanPipeline] with name [ScanPipeline:default]
+[DerivedLogger.emit] 2026-09-09T21:04:03.851Z [32minfo[39m: Unable to register class undefined for SpamScanProvider/undefined
+[DerivedLogger.emit] 2026-09-09T21:04:03.851Z [34mdebug[39m: Creating new instance of class [SpamScanProvider] with name [SpamScanProvider:default]
+[DerivedLogger.emit] 2026-09-09T21:04:03.852Z [32minfo[39m: Unable to register class undefined for AvScanProvider/undefined
+[DerivedLogger.emit] 2026-09-09T21:04:03.852Z [34mdebug[39m: Creating new instance of class [AvScanProvider] with name [AvScanProvider:default]
+[DerivedLogger.emit] 2026-09-09T21:04:03.853Z [32minfo[39m: Unable to register class undefined for MailTransport/undefined
+[DerivedLogger.emit] 2026-09-09T21:04:03.853Z [34mdebug[39m: Creating new instance of class [RepoUtils] with name [RepoUtils:IngestQueueEntryMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.855Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.859Z [34mdebug[39m: Creating new instance of class [RecoverableRepoUtils] with name [RecoverableRepoUtils:FolderMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.859Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.862Z [34mdebug[39m: Creating new instance of class [RepoUtils] with name [RepoUtils:ScanResultMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.862Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.865Z [34mdebug[39m: Creating new instance of class [RepoUtils] with name [RepoUtils:MailFilterRuleMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.866Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.868Z [34mdebug[39m: Creating new instance of class [RepoUtils] with name [RepoUtils:OofReplySuppressionMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.869Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.871Z [34mdebug[39m: Creating new instance of class [RepoUtils] with name [RepoUtils:FocusedInboxOverrideMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.872Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.874Z [34mdebug[39m: Creating new instance of class [RecoverableRepoUtils] with name [RecoverableRepoUtils:ContactMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.874Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:03.877Z [32minfo[39m: Starting service SearchIndexJobMongo...
+[DerivedLogger.emit] 2026-09-09T21:04:03.877Z [34mdebug[39m: Creating new instance of class [SearchIndexJobMongo] with name [SearchIndexJobMongo:SearchIndexJobMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.878Z [32minfo[39m: Unable to register class undefined for BlobStore/undefined
+[DerivedLogger.emit] 2026-09-09T21:04:03.878Z [32minfo[39m: Unable to register class undefined for SearchProvider/undefined
+[DerivedLogger.emit] 2026-09-09T21:04:03.879Z [34mdebug[39m: Creating new instance of class [SearchProvider] with name [SearchProvider:default]
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.893Z [32minfo[39m: Initializing event manager...
+[DerivedLogger.emit] 2026-09-09T21:04:03.894Z [32minfo[39m: Registering class EventListenerManager
+[DerivedLogger.emit] 2026-09-09T21:04:03.894Z [34mdebug[39m: Creating new instance of class [EventListenerManager] with name [EventListenerManager:default]
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.895Z [32minfo[39m: Scanning for routes...
+[DerivedLogger.emit] 2026-09-09T21:04:03.895Z [34mdebug[39m: Creating new instance of class [routes.ACLRoute] with name [routes.ACLRoute:default]
+[DerivedLogger.emit] 2026-09-09T21:04:03.896Z [34mdebug[39m: Creating new instance of class [RepoUtils] with name [RepoUtils:AccessControlListMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.897Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+
+[RouteUtils.emit] 2026-09-09T21:04:03.898Z [32minfo[39m: Registered Route: HEAD /api/acls
+[RouteUtils.emit] 2026-09-09T21:04:03.899Z [32minfo[39m: Registered Route: POST /api/acls
+[RouteUtils.emit] 2026-09-09T21:04:03.899Z [32minfo[39m: Registered Route: DELETE /api/acls/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.900Z [32minfo[39m: Registered Route: HEAD /api/acls/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.900Z [32minfo[39m: Registered Route: GET /api/acls
+[RouteUtils.emit] 2026-09-09T21:04:03.901Z [32minfo[39m: Registered Route: GET /api/acls/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.901Z [32minfo[39m: Registered Route: DELETE /api/acls
+[RouteUtils.emit] 2026-09-09T21:04:03.902Z [32minfo[39m: Registered Route: PUT /api/acls/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.902Z [32minfo[39m: Registered Route: PUT /api/acls/:id/:property
+[RouteUtils.emit] 2026-09-09T21:04:03.903Z [32minfo[39m: Registered Route: PUT /api/acls
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.903Z [34mdebug[39m: Creating new instance of class [routes.AdminConsoleRoute] with name [routes.AdminConsoleRoute:default]
+[DerivedLogger.emit] 2026-09-09T21:04:03.904Z [32minfo[39m: Registering class RedisStore
+[DerivedLogger.emit] 2026-09-09T21:04:03.904Z [34mdebug[39m: Creating new instance of class [RedisStore] with name [RedisStore:default]
+[DerivedLogger.emit] 2026-09-09T21:04:03.905Z [32minfo[39m: Registering class ObjectFactory
+
+[RouteUtils.emit] 2026-09-09T21:04:03.906Z [32minfo[39m: Registered Route: GET /admin/*
+[RouteUtils.emit] 2026-09-09T21:04:03.906Z [32minfo[39m: Registered Route: GET /admin
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.907Z [34mdebug[39m: Creating new instance of class [routes.AdminRoute] with name [routes.AdminRoute:default]
+
+[routes.AdminRoute.emit] 2026-09-09T21:04:03.907Z [32minfo[39m: Cache is enabled and ready.
+
+[RouteUtils.emit] 2026-09-09T21:04:03.908Z [32minfo[39m: Registered Route: GET /api/admin/clear-cache
+[RouteUtils.emit] 2026-09-09T21:04:03.909Z [32minfo[39m: Registered Route: WS /api/admin/logs
+[RouteUtils.emit] 2026-09-09T21:04:03.909Z [32minfo[39m: Registered Route: GET /api/admin/release-notes
+[RouteUtils.emit] 2026-09-09T21:04:03.909Z [32minfo[39m: Registered Route: GET /api/admin/restart
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.910Z [34mdebug[39m: Creating new instance of class [routes.AttachmentRoute] with name [routes.AttachmentRoute:default]
+[DerivedLogger.emit] 2026-09-09T21:04:03.910Z [32minfo[39m: Unable to register class undefined for BlobStore/undefined
+
+[RouteUtils.emit] 2026-09-09T21:04:03.911Z [32minfo[39m: Registered Route: POST /api/mail/attachments/upload
+[RouteUtils.emit] 2026-09-09T21:04:03.911Z [32minfo[39m: Registered Route: GET /api/mail/attachments/:id/content
+[RouteUtils.emit] 2026-09-09T21:04:03.912Z [32minfo[39m: Registered Route: HEAD /api/mail/attachments
+[RouteUtils.emit] 2026-09-09T21:04:03.912Z [32minfo[39m: Registered Route: POST /api/mail/attachments
+[RouteUtils.emit] 2026-09-09T21:04:03.913Z [32minfo[39m: Registered Route: DELETE /api/mail/attachments/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.913Z [32minfo[39m: Registered Route: HEAD /api/mail/attachments/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.913Z [32minfo[39m: Registered Route: GET /api/mail/attachments
+[RouteUtils.emit] 2026-09-09T21:04:03.914Z [32minfo[39m: Registered Route: GET /api/mail/attachments/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.914Z [32minfo[39m: Registered Route: DELETE /api/mail/attachments
+[RouteUtils.emit] 2026-09-09T21:04:03.915Z [32minfo[39m: Registered Route: PUT /api/mail/attachments/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.915Z [32minfo[39m: Registered Route: PUT /api/mail/attachments
+[RouteUtils.emit] 2026-09-09T21:04:03.915Z [32minfo[39m: Registered Route: PUT /api/mail/attachments/:id/:property
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.916Z [34mdebug[39m: Creating new instance of class [routes.AuditLogRoute] with name [routes.AuditLogRoute:default]
+[DerivedLogger.emit] 2026-09-09T21:04:03.916Z [34mdebug[39m: Creating new instance of class [RepoUtils] with name [RepoUtils:AuditLogEntryMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.916Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+
+[RouteUtils.emit] 2026-09-09T21:04:03.919Z [32minfo[39m: Registered Route: GET /api/mail/audit-log
+[RouteUtils.emit] 2026-09-09T21:04:03.920Z [32minfo[39m: Registered Route: HEAD /api/mail/audit-log
+[RouteUtils.emit] 2026-09-09T21:04:03.920Z [32minfo[39m: Registered Route: GET /api/mail/audit-log/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.920Z [32minfo[39m: Registered Route: POST /api/mail/audit-log
+[RouteUtils.emit] 2026-09-09T21:04:03.921Z [32minfo[39m: Registered Route: PUT /api/mail/audit-log/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.921Z [32minfo[39m: Registered Route: DELETE /api/mail/audit-log/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.921Z [32minfo[39m: Registered Route: DELETE /api/mail/audit-log
+[RouteUtils.emit] 2026-09-09T21:04:03.922Z [32minfo[39m: Registered Route: HEAD /api/mail/audit-log/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.922Z [32minfo[39m: Registered Route: PUT /api/mail/audit-log
+[RouteUtils.emit] 2026-09-09T21:04:03.922Z [32minfo[39m: Registered Route: PUT /api/mail/audit-log/:id/:property
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.922Z [34mdebug[39m: Creating new instance of class [routes.BookingRoute] with name [routes.BookingRoute:default]
+[DerivedLogger.emit] 2026-09-09T21:04:03.923Z [32minfo[39m: Unable to register class undefined for MailTransport/undefined
+
+[RouteUtils.emit] 2026-09-09T21:04:03.923Z [32minfo[39m: Registered Route: GET /api/mail/bookings/types/:slug
+[RouteUtils.emit] 2026-09-09T21:04:03.924Z [32minfo[39m: Registered Route: GET /api/mail/bookings/types/:slug/slots
+[RouteUtils.emit] 2026-09-09T21:04:03.924Z [32minfo[39m: Registered Route: POST /api/mail/bookings/types/:slug
+[RouteUtils.emit] 2026-09-09T21:04:03.925Z [32minfo[39m: Registered Route: GET /api/mail/bookings/manage/:token
+[RouteUtils.emit] 2026-09-09T21:04:03.925Z [32minfo[39m: Registered Route: POST /api/mail/bookings/manage/:token/cancel
+[RouteUtils.emit] 2026-09-09T21:04:03.926Z [32minfo[39m: Registered Route: POST /api/mail/bookings/manage/:token/reschedule
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.926Z [34mdebug[39m: Creating new instance of class [routes.BookingTypeRoute] with name [routes.BookingTypeRoute:default]
+[DerivedLogger.emit] 2026-09-09T21:04:03.926Z [34mdebug[39m: Creating new instance of class [RepoUtils] with name [RepoUtils:BookingTypeMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.927Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+
+[RouteUtils.emit] 2026-09-09T21:04:03.929Z [32minfo[39m: Registered Route: POST /api/mail/booking-types
+[RouteUtils.emit] 2026-09-09T21:04:03.929Z [32minfo[39m: Registered Route: PUT /api/mail/booking-types/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.930Z [32minfo[39m: Registered Route: HEAD /api/mail/booking-types
+[RouteUtils.emit] 2026-09-09T21:04:03.930Z [32minfo[39m: Registered Route: DELETE /api/mail/booking-types/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.930Z [32minfo[39m: Registered Route: HEAD /api/mail/booking-types/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.931Z [32minfo[39m: Registered Route: GET /api/mail/booking-types
+[RouteUtils.emit] 2026-09-09T21:04:03.931Z [32minfo[39m: Registered Route: GET /api/mail/booking-types/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.931Z [32minfo[39m: Registered Route: DELETE /api/mail/booking-types
+[RouteUtils.emit] 2026-09-09T21:04:03.932Z [32minfo[39m: Registered Route: PUT /api/mail/booking-types
+[RouteUtils.emit] 2026-09-09T21:04:03.932Z [32minfo[39m: Registered Route: PUT /api/mail/booking-types/:id/:property
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.933Z [34mdebug[39m: Creating new instance of class [routes.BookRoute] with name [routes.BookRoute:default]
+
+[RouteUtils.emit] 2026-09-09T21:04:03.934Z [32minfo[39m: Registered Route: GET /book/*
+[RouteUtils.emit] 2026-09-09T21:04:03.934Z [32minfo[39m: Registered Route: GET /book
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.934Z [34mdebug[39m: Creating new instance of class [routes.BrandingRoute] with name [routes.BrandingRoute:default]
+[DerivedLogger.emit] 2026-09-09T21:04:03.935Z [32minfo[39m: Unable to register class undefined for BlobStore/undefined
+
+[RouteUtils.emit] 2026-09-09T21:04:03.935Z [32minfo[39m: Registered Route: GET /api/mail/branding
+[RouteUtils.emit] 2026-09-09T21:04:03.936Z [32minfo[39m: Registered Route: PUT /api/mail/branding
+[RouteUtils.emit] 2026-09-09T21:04:03.936Z [32minfo[39m: Registered Route: POST /api/mail/branding/logo
+[RouteUtils.emit] 2026-09-09T21:04:03.937Z [32minfo[39m: Registered Route: GET /api/mail/branding/logo
+[RouteUtils.emit] 2026-09-09T21:04:03.937Z [32minfo[39m: Registered Route: DELETE /api/mail/branding/logo
+[RouteUtils.emit] 2026-09-09T21:04:03.937Z [32minfo[39m: Registered Route: POST /api/mail/branding/stylesheet
+[RouteUtils.emit] 2026-09-09T21:04:03.937Z [32minfo[39m: Registered Route: GET /api/mail/branding/stylesheet
+[RouteUtils.emit] 2026-09-09T21:04:03.938Z [32minfo[39m: Registered Route: DELETE /api/mail/branding/stylesheet
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.938Z [34mdebug[39m: Creating new instance of class [routes.CalendarEventRoute] with name [routes.CalendarEventRoute:default]
+[DerivedLogger.emit] 2026-09-09T21:04:03.939Z [32minfo[39m: Unable to register class undefined for MailTransport/undefined
+
+[RouteUtils.emit] 2026-09-09T21:04:03.939Z [32minfo[39m: Registered Route: PUT /api/mail/calendar-events/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.939Z [32minfo[39m: Registered Route: POST /api/mail/calendar-events/:id/respond
+[RouteUtils.emit] 2026-09-09T21:04:03.940Z [32minfo[39m: Registered Route: HEAD /api/mail/calendar-events
+[RouteUtils.emit] 2026-09-09T21:04:03.940Z [32minfo[39m: Registered Route: POST /api/mail/calendar-events
+[RouteUtils.emit] 2026-09-09T21:04:03.940Z [32minfo[39m: Registered Route: DELETE /api/mail/calendar-events/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.941Z [32minfo[39m: Registered Route: HEAD /api/mail/calendar-events/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.941Z [32minfo[39m: Registered Route: GET /api/mail/calendar-events
+[RouteUtils.emit] 2026-09-09T21:04:03.941Z [32minfo[39m: Registered Route: GET /api/mail/calendar-events/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.942Z [32minfo[39m: Registered Route: DELETE /api/mail/calendar-events
+[RouteUtils.emit] 2026-09-09T21:04:03.942Z [32minfo[39m: Registered Route: PUT /api/mail/calendar-events
+[RouteUtils.emit] 2026-09-09T21:04:03.942Z [32minfo[39m: Registered Route: PUT /api/mail/calendar-events/:id/:property
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.943Z [34mdebug[39m: Creating new instance of class [routes.CalendarShareLinkRoute] with name [routes.CalendarShareLinkRoute:default]
+
+[RouteUtils.emit] 2026-09-09T21:04:03.943Z [32minfo[39m: Registered Route: POST /api/mail/calendar-share-links
+[RouteUtils.emit] 2026-09-09T21:04:03.944Z [32minfo[39m: Registered Route: PUT /api/mail/calendar-share-links/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.944Z [32minfo[39m: Registered Route: DELETE /api/mail/calendar-share-links/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.944Z [32minfo[39m: Registered Route: HEAD /api/mail/calendar-share-links
+[RouteUtils.emit] 2026-09-09T21:04:03.944Z [32minfo[39m: Registered Route: HEAD /api/mail/calendar-share-links/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.945Z [32minfo[39m: Registered Route: GET /api/mail/calendar-share-links
+[RouteUtils.emit] 2026-09-09T21:04:03.945Z [32minfo[39m: Registered Route: GET /api/mail/calendar-share-links/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.945Z [32minfo[39m: Registered Route: DELETE /api/mail/calendar-share-links
+[RouteUtils.emit] 2026-09-09T21:04:03.946Z [32minfo[39m: Registered Route: PUT /api/mail/calendar-share-links
+[RouteUtils.emit] 2026-09-09T21:04:03.946Z [32minfo[39m: Registered Route: PUT /api/mail/calendar-share-links/:id/:property
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.947Z [34mdebug[39m: Creating new instance of class [routes.ContactListRoute] with name [routes.ContactListRoute:default]
+[DerivedLogger.emit] 2026-09-09T21:04:03.947Z [34mdebug[39m: Creating new instance of class [RepoUtils] with name [RepoUtils:ContactListMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.948Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+
+[RouteUtils.emit] 2026-09-09T21:04:03.957Z [32minfo[39m: Registered Route: HEAD /api/mail/contact-lists
+[RouteUtils.emit] 2026-09-09T21:04:03.958Z [32minfo[39m: Registered Route: POST /api/mail/contact-lists
+[RouteUtils.emit] 2026-09-09T21:04:03.958Z [32minfo[39m: Registered Route: DELETE /api/mail/contact-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.959Z [32minfo[39m: Registered Route: HEAD /api/mail/contact-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.959Z [32minfo[39m: Registered Route: GET /api/mail/contact-lists
+[RouteUtils.emit] 2026-09-09T21:04:03.959Z [32minfo[39m: Registered Route: GET /api/mail/contact-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.960Z [32minfo[39m: Registered Route: DELETE /api/mail/contact-lists
+[RouteUtils.emit] 2026-09-09T21:04:03.960Z [32minfo[39m: Registered Route: PUT /api/mail/contact-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.960Z [32minfo[39m: Registered Route: PUT /api/mail/contact-lists
+[RouteUtils.emit] 2026-09-09T21:04:03.960Z [32minfo[39m: Registered Route: PUT /api/mail/contact-lists/:id/:property
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.961Z [34mdebug[39m: Creating new instance of class [routes.ContactRoute] with name [routes.ContactRoute:default]
+
+[RouteUtils.emit] 2026-09-09T21:04:03.961Z [32minfo[39m: Registered Route: HEAD /api/mail/contacts
+[RouteUtils.emit] 2026-09-09T21:04:03.962Z [32minfo[39m: Registered Route: POST /api/mail/contacts
+[RouteUtils.emit] 2026-09-09T21:04:03.962Z [32minfo[39m: Registered Route: DELETE /api/mail/contacts/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.962Z [32minfo[39m: Registered Route: HEAD /api/mail/contacts/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.962Z [32minfo[39m: Registered Route: GET /api/mail/contacts
+[RouteUtils.emit] 2026-09-09T21:04:03.963Z [32minfo[39m: Registered Route: GET /api/mail/contacts/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.963Z [32minfo[39m: Registered Route: DELETE /api/mail/contacts
+[RouteUtils.emit] 2026-09-09T21:04:03.963Z [32minfo[39m: Registered Route: PUT /api/mail/contacts/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.964Z [32minfo[39m: Registered Route: PUT /api/mail/contacts
+[RouteUtils.emit] 2026-09-09T21:04:03.964Z [32minfo[39m: Registered Route: PUT /api/mail/contacts/:id/:property
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.964Z [34mdebug[39m: Creating new instance of class [routes.DistributionListRoute] with name [routes.DistributionListRoute:default]
+[DerivedLogger.emit] 2026-09-09T21:04:03.965Z [34mdebug[39m: Creating new instance of class [RepoUtils] with name [RepoUtils:DistributionListMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:03.965Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+
+[RouteUtils.emit] 2026-09-09T21:04:03.967Z [32minfo[39m: Registered Route: POST /api/mail/distribution-lists
+[RouteUtils.emit] 2026-09-09T21:04:03.968Z [32minfo[39m: Registered Route: PUT /api/mail/distribution-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.968Z [32minfo[39m: Registered Route: DELETE /api/mail/distribution-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.969Z [32minfo[39m: Registered Route: GET /api/mail/distribution-lists
+[RouteUtils.emit] 2026-09-09T21:04:03.969Z [32minfo[39m: Registered Route: HEAD /api/mail/distribution-lists
+[RouteUtils.emit] 2026-09-09T21:04:03.969Z [32minfo[39m: Registered Route: GET /api/mail/distribution-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.970Z [32minfo[39m: Registered Route: HEAD /api/mail/distribution-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.970Z [32minfo[39m: Registered Route: DELETE /api/mail/distribution-lists
+[RouteUtils.emit] 2026-09-09T21:04:03.970Z [32minfo[39m: Registered Route: PUT /api/mail/distribution-lists
+[RouteUtils.emit] 2026-09-09T21:04:03.970Z [32minfo[39m: Registered Route: PUT /api/mail/distribution-lists/:id/:property
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.971Z [34mdebug[39m: Creating new instance of class [routes.DomainRoute] with name [routes.DomainRoute:default]
+[DerivedLogger.emit] 2026-09-09T21:04:03.971Z [32minfo[39m: Unable to register class undefined for DnsResolver/undefined
+[DerivedLogger.emit] 2026-09-09T21:04:03.972Z [32minfo[39m: Unable to register class undefined for DkimKeyProvider/undefined
+[DerivedLogger.emit] 2026-09-09T21:04:03.972Z [34mdebug[39m: Creating new instance of class [DkimKeyProvider] with name [DkimKeyProvider:default]
+
+[RouteUtils.emit] 2026-09-09T21:04:03.972Z [32minfo[39m: Registered Route: POST /api/mail/domains
+[RouteUtils.emit] 2026-09-09T21:04:03.973Z [32minfo[39m: Registered Route: PUT /api/mail/domains/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.973Z [32minfo[39m: Registered Route: DELETE /api/mail/domains/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.973Z [32minfo[39m: Registered Route: GET /api/mail/domains
+[RouteUtils.emit] 2026-09-09T21:04:03.974Z [32minfo[39m: Registered Route: HEAD /api/mail/domains
+[RouteUtils.emit] 2026-09-09T21:04:03.974Z [32minfo[39m: Registered Route: GET /api/mail/domains/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.974Z [32minfo[39m: Registered Route: POST /api/mail/domains/:id/verify
+[RouteUtils.emit] 2026-09-09T21:04:03.974Z [32minfo[39m: Registered Route: GET /api/mail/domains/:id/dns-setup
+[RouteUtils.emit] 2026-09-09T21:04:03.975Z [32minfo[39m: Registered Route: HEAD /api/mail/domains/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.975Z [32minfo[39m: Registered Route: DELETE /api/mail/domains
+[RouteUtils.emit] 2026-09-09T21:04:03.975Z [32minfo[39m: Registered Route: PUT /api/mail/domains
+[RouteUtils.emit] 2026-09-09T21:04:03.976Z [32minfo[39m: Registered Route: PUT /api/mail/domains/:id/:property
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.976Z [34mdebug[39m: Creating new instance of class [routes.FocusedInboxOverrideRoute] with name [routes.FocusedInboxOverrideRoute:default]
+
+[RouteUtils.emit] 2026-09-09T21:04:03.977Z [32minfo[39m: Registered Route: HEAD /api/mail/focused-inbox-overrides
+[RouteUtils.emit] 2026-09-09T21:04:03.977Z [32minfo[39m: Registered Route: POST /api/mail/focused-inbox-overrides
+[RouteUtils.emit] 2026-09-09T21:04:03.977Z [32minfo[39m: Registered Route: DELETE /api/mail/focused-inbox-overrides/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.978Z [32minfo[39m: Registered Route: HEAD /api/mail/focused-inbox-overrides/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.978Z [32minfo[39m: Registered Route: GET /api/mail/focused-inbox-overrides
+[RouteUtils.emit] 2026-09-09T21:04:03.979Z [32minfo[39m: Registered Route: GET /api/mail/focused-inbox-overrides/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.979Z [32minfo[39m: Registered Route: DELETE /api/mail/focused-inbox-overrides
+[RouteUtils.emit] 2026-09-09T21:04:03.979Z [32minfo[39m: Registered Route: PUT /api/mail/focused-inbox-overrides/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.980Z [32minfo[39m: Registered Route: PUT /api/mail/focused-inbox-overrides
+[RouteUtils.emit] 2026-09-09T21:04:03.980Z [32minfo[39m: Registered Route: PUT /api/mail/focused-inbox-overrides/:id/:property
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.980Z [34mdebug[39m: Creating new instance of class [routes.FolderRoute] with name [routes.FolderRoute:default]
+
+[RouteUtils.emit] 2026-09-09T21:04:03.981Z [32minfo[39m: Registered Route: HEAD /api/mail/folders
+[RouteUtils.emit] 2026-09-09T21:04:03.981Z [32minfo[39m: Registered Route: POST /api/mail/folders
+[RouteUtils.emit] 2026-09-09T21:04:03.981Z [32minfo[39m: Registered Route: GET /api/mail/folders
+[RouteUtils.emit] 2026-09-09T21:04:03.982Z [32minfo[39m: Registered Route: HEAD /api/mail/folders/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.982Z [32minfo[39m: Registered Route: DELETE /api/mail/folders/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.982Z [32minfo[39m: Registered Route: GET /api/mail/folders/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.983Z [32minfo[39m: Registered Route: DELETE /api/mail/folders
+[RouteUtils.emit] 2026-09-09T21:04:03.983Z [32minfo[39m: Registered Route: PUT /api/mail/folders/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.983Z [32minfo[39m: Registered Route: PUT /api/mail/folders
+[RouteUtils.emit] 2026-09-09T21:04:03.983Z [32minfo[39m: Registered Route: PUT /api/mail/folders/:id/:property
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.984Z [34mdebug[39m: Creating new instance of class [routes.GiphySearchRoute] with name [routes.GiphySearchRoute:default]
+
+[RouteUtils.emit] 2026-09-09T21:04:03.984Z [32minfo[39m: Registered Route: GET /api/mail/giphy/search
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.984Z [34mdebug[39m: Creating new instance of class [routes.IngestQueueRoute] with name [routes.IngestQueueRoute:default]
+
+[RouteUtils.emit] 2026-09-09T21:04:03.985Z [32minfo[39m: Registered Route: HEAD /api/mail/ingest-queue
+[RouteUtils.emit] 2026-09-09T21:04:03.985Z [32minfo[39m: Registered Route: POST /api/mail/ingest-queue
+[RouteUtils.emit] 2026-09-09T21:04:03.986Z [32minfo[39m: Registered Route: DELETE /api/mail/ingest-queue/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.986Z [32minfo[39m: Registered Route: HEAD /api/mail/ingest-queue/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.986Z [32minfo[39m: Registered Route: GET /api/mail/ingest-queue
+[RouteUtils.emit] 2026-09-09T21:04:03.986Z [32minfo[39m: Registered Route: GET /api/mail/ingest-queue/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.987Z [32minfo[39m: Registered Route: DELETE /api/mail/ingest-queue
+[RouteUtils.emit] 2026-09-09T21:04:03.987Z [32minfo[39m: Registered Route: PUT /api/mail/ingest-queue/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.987Z [32minfo[39m: Registered Route: PUT /api/mail/ingest-queue
+[RouteUtils.emit] 2026-09-09T21:04:03.988Z [32minfo[39m: Registered Route: PUT /api/mail/ingest-queue/:id/:property
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.988Z [34mdebug[39m: Creating new instance of class [routes.MailboxRoute] with name [routes.MailboxRoute:default]
+
+[RouteUtils.emit] 2026-09-09T21:04:03.989Z [32minfo[39m: Registered Route: POST /api/mail/mailboxes
+[RouteUtils.emit] 2026-09-09T21:04:03.989Z [32minfo[39m: Registered Route: POST /api/mail/mailboxes/auto-provision
+[RouteUtils.emit] 2026-09-09T21:04:03.990Z [32minfo[39m: Registered Route: GET /api/mail/mailboxes/domains
+[RouteUtils.emit] 2026-09-09T21:04:03.990Z [32minfo[39m: Registered Route: GET /api/mail/mailboxes
+[RouteUtils.emit] 2026-09-09T21:04:03.990Z [32minfo[39m: Registered Route: HEAD /api/mail/mailboxes
+[RouteUtils.emit] 2026-09-09T21:04:03.991Z [32minfo[39m: Registered Route: HEAD /api/mail/mailboxes/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.991Z [32minfo[39m: Registered Route: DELETE /api/mail/mailboxes/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.991Z [32minfo[39m: Registered Route: GET /api/mail/mailboxes/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.991Z [32minfo[39m: Registered Route: DELETE /api/mail/mailboxes
+[RouteUtils.emit] 2026-09-09T21:04:03.992Z [32minfo[39m: Registered Route: PUT /api/mail/mailboxes/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.992Z [32minfo[39m: Registered Route: PUT /api/mail/mailboxes
+[RouteUtils.emit] 2026-09-09T21:04:03.992Z [32minfo[39m: Registered Route: PUT /api/mail/mailboxes/:id/:property
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.993Z [34mdebug[39m: Creating new instance of class [routes.MailComposeRoute] with name [routes.MailComposeRoute:default]
+[DerivedLogger.emit] 2026-09-09T21:04:03.993Z [32minfo[39m: Unable to register class undefined for BlobStore/undefined
+
+[RouteUtils.emit] 2026-09-09T21:04:03.993Z [32minfo[39m: Registered Route: POST /api/mail/compose/:id/assemble
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.994Z [34mdebug[39m: Creating new instance of class [routes.MailFilterRuleRoute] with name [routes.MailFilterRuleRoute:default]
+
+[RouteUtils.emit] 2026-09-09T21:04:03.994Z [32minfo[39m: Registered Route: HEAD /api/mail/mail-filter-rules
+[RouteUtils.emit] 2026-09-09T21:04:03.995Z [32minfo[39m: Registered Route: POST /api/mail/mail-filter-rules
+[RouteUtils.emit] 2026-09-09T21:04:03.995Z [32minfo[39m: Registered Route: DELETE /api/mail/mail-filter-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.996Z [32minfo[39m: Registered Route: HEAD /api/mail/mail-filter-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.996Z [32minfo[39m: Registered Route: GET /api/mail/mail-filter-rules
+[RouteUtils.emit] 2026-09-09T21:04:03.996Z [32minfo[39m: Registered Route: GET /api/mail/mail-filter-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.997Z [32minfo[39m: Registered Route: DELETE /api/mail/mail-filter-rules
+[RouteUtils.emit] 2026-09-09T21:04:03.997Z [32minfo[39m: Registered Route: PUT /api/mail/mail-filter-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:03.997Z [32minfo[39m: Registered Route: PUT /api/mail/mail-filter-rules
+[RouteUtils.emit] 2026-09-09T21:04:03.998Z [32minfo[39m: Registered Route: PUT /api/mail/mail-filter-rules/:id/:property
+
+[DerivedLogger.emit] 2026-09-09T21:04:03.998Z [34mdebug[39m: Creating new instance of class [routes.MailIngestRoute] with name [routes.MailIngestRoute:default]
+[DerivedLogger.emit] 2026-09-09T21:04:03.998Z [32minfo[39m: Unable to register class undefined for BlobStore/undefined
+[DerivedLogger.emit] 2026-09-09T21:04:03.999Z [32minfo[39m: Unable to register class undefined for MailTransport/undefined
+
+[RouteUtils.emit] 2026-09-09T21:04:04.000Z [32minfo[39m: Registered Route: GET /internal/mta/domain
+[RouteUtils.emit] 2026-09-09T21:04:04.000Z [32minfo[39m: Registered Route: GET /internal/mta/resolve
+[RouteUtils.emit] 2026-09-09T21:04:04.001Z [32minfo[39m: Registered Route: POST /internal/mta/deliver
+
+[DerivedLogger.emit] 2026-09-09T21:04:04.001Z [34mdebug[39m: Creating new instance of class [routes.MailSignatureRoute] with name [routes.MailSignatureRoute:default]
+[DerivedLogger.emit] 2026-09-09T21:04:04.002Z [34mdebug[39m: Creating new instance of class [RepoUtils] with name [RepoUtils:MailSignatureMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:04.002Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+
+[RouteUtils.emit] 2026-09-09T21:04:04.008Z [32minfo[39m: Registered Route: HEAD /api/mail/mail-signatures
+[RouteUtils.emit] 2026-09-09T21:04:04.009Z [32minfo[39m: Registered Route: POST /api/mail/mail-signatures
+[RouteUtils.emit] 2026-09-09T21:04:04.010Z [32minfo[39m: Registered Route: DELETE /api/mail/mail-signatures/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.010Z [32minfo[39m: Registered Route: HEAD /api/mail/mail-signatures/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.010Z [32minfo[39m: Registered Route: GET /api/mail/mail-signatures
+[RouteUtils.emit] 2026-09-09T21:04:04.011Z [32minfo[39m: Registered Route: GET /api/mail/mail-signatures/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.011Z [32minfo[39m: Registered Route: DELETE /api/mail/mail-signatures
+[RouteUtils.emit] 2026-09-09T21:04:04.012Z [32minfo[39m: Registered Route: PUT /api/mail/mail-signatures/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.012Z [32minfo[39m: Registered Route: PUT /api/mail/mail-signatures
+[RouteUtils.emit] 2026-09-09T21:04:04.012Z [32minfo[39m: Registered Route: PUT /api/mail/mail-signatures/:id/:property
+
+[DerivedLogger.emit] 2026-09-09T21:04:04.013Z [34mdebug[39m: Creating new instance of class [routes.MessageRoute] with name [routes.MessageRoute:default]
+[DerivedLogger.emit] 2026-09-09T21:04:04.013Z [32minfo[39m: Unable to register class undefined for BlobStore/undefined
+[DerivedLogger.emit] 2026-09-09T21:04:04.014Z [32minfo[39m: Unable to register class undefined for MailTransport/undefined
+
+[RouteUtils.emit] 2026-09-09T21:04:04.015Z [32minfo[39m: Registered Route: GET /api/mail/messages/conversations
+[RouteUtils.emit] 2026-09-09T21:04:04.015Z [32minfo[39m: Registered Route: POST /api/mail/messages/:id/send
+[RouteUtils.emit] 2026-09-09T21:04:04.015Z [32minfo[39m: Registered Route: POST /api/mail/messages/:id/recall
+[RouteUtils.emit] 2026-09-09T21:04:04.016Z [32minfo[39m: Registered Route: POST /api/mail/messages/:id/classify
+[RouteUtils.emit] 2026-09-09T21:04:04.016Z [32minfo[39m: Registered Route: PUT /api/mail/messages/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.016Z [32minfo[39m: Registered Route: POST /api/mail/messages/:id/receipt/approve
+[RouteUtils.emit] 2026-09-09T21:04:04.016Z [32minfo[39m: Registered Route: POST /api/mail/messages/:id/receipt/decline
+[RouteUtils.emit] 2026-09-09T21:04:04.017Z [32minfo[39m: Registered Route: DELETE /api/mail/messages/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.017Z [32minfo[39m: Registered Route: GET /api/mail/messages/:id/content
+[RouteUtils.emit] 2026-09-09T21:04:04.017Z [32minfo[39m: Registered Route: HEAD /api/mail/messages
+[RouteUtils.emit] 2026-09-09T21:04:04.018Z [32minfo[39m: Registered Route: POST /api/mail/messages
+[RouteUtils.emit] 2026-09-09T21:04:04.018Z [32minfo[39m: Registered Route: HEAD /api/mail/messages/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.018Z [32minfo[39m: Registered Route: GET /api/mail/messages
+[RouteUtils.emit] 2026-09-09T21:04:04.019Z [32minfo[39m: Registered Route: GET /api/mail/messages/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.019Z [32minfo[39m: Registered Route: DELETE /api/mail/messages
+[RouteUtils.emit] 2026-09-09T21:04:04.019Z [32minfo[39m: Registered Route: PUT /api/mail/messages
+[RouteUtils.emit] 2026-09-09T21:04:04.020Z [32minfo[39m: Registered Route: PUT /api/mail/messages/:id/:property
+
+[DerivedLogger.emit] 2026-09-09T21:04:04.020Z [34mdebug[39m: Creating new instance of class [routes.MetricsRoute] with name [routes.MetricsRoute:default]
+
+[RouteUtils.emit] 2026-09-09T21:04:04.021Z [32minfo[39m: Registered Route: GET /api/metrics
+[RouteUtils.emit] 2026-09-09T21:04:04.021Z [32minfo[39m: Registered Route: GET /api/metrics/:metric
+
+[DerivedLogger.emit] 2026-09-09T21:04:04.021Z [34mdebug[39m: Creating new instance of class [routes.NoteRoute] with name [routes.NoteRoute:default]
+[DerivedLogger.emit] 2026-09-09T21:04:04.022Z [34mdebug[39m: Creating new instance of class [RepoUtils] with name [RepoUtils:NoteMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:04.022Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+
+[RouteUtils.emit] 2026-09-09T21:04:04.025Z [32minfo[39m: Registered Route: HEAD /api/mail/notes
+[RouteUtils.emit] 2026-09-09T21:04:04.025Z [32minfo[39m: Registered Route: POST /api/mail/notes
+[RouteUtils.emit] 2026-09-09T21:04:04.025Z [32minfo[39m: Registered Route: DELETE /api/mail/notes/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.026Z [32minfo[39m: Registered Route: HEAD /api/mail/notes/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.026Z [32minfo[39m: Registered Route: GET /api/mail/notes
+[RouteUtils.emit] 2026-09-09T21:04:04.026Z [32minfo[39m: Registered Route: GET /api/mail/notes/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.027Z [32minfo[39m: Registered Route: DELETE /api/mail/notes
+[RouteUtils.emit] 2026-09-09T21:04:04.027Z [32minfo[39m: Registered Route: PUT /api/mail/notes/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.027Z [32minfo[39m: Registered Route: PUT /api/mail/notes
+[RouteUtils.emit] 2026-09-09T21:04:04.028Z [32minfo[39m: Registered Route: PUT /api/mail/notes/:id/:property
+
+[DerivedLogger.emit] 2026-09-09T21:04:04.028Z [34mdebug[39m: Creating new instance of class [routes.OpenAPIRoute] with name [routes.OpenAPIRoute:default]
+
+[RouteUtils.emit] 2026-09-09T21:04:04.028Z [32minfo[39m: Registered Route: GET /api/openapi
+[RouteUtils.emit] 2026-09-09T21:04:04.029Z [32minfo[39m: Registered Route: GET /api/openapi/json
+[RouteUtils.emit] 2026-09-09T21:04:04.029Z [32minfo[39m: Registered Route: GET /api/openapi/yaml
+
+[DerivedLogger.emit] 2026-09-09T21:04:04.029Z [34mdebug[39m: Creating new instance of class [routes.PushRoute] with name [routes.PushRoute:default]
+
+[RouteUtils.emit] 2026-09-09T21:04:04.030Z [32minfo[39m: Registered Route: WS /push
+[RouteUtils.emit] 2026-09-09T21:04:04.030Z [32minfo[39m: Registered Route: POST /push/:id
+
+[DerivedLogger.emit] 2026-09-09T21:04:04.030Z [34mdebug[39m: Creating new instance of class [routes.QuarantineRoute] with name [routes.QuarantineRoute:default]
+
+[RouteUtils.emit] 2026-09-09T21:04:04.031Z [32minfo[39m: Registered Route: HEAD /api/mail/quarantine
+[RouteUtils.emit] 2026-09-09T21:04:04.031Z [32minfo[39m: Registered Route: POST /api/mail/quarantine
+[RouteUtils.emit] 2026-09-09T21:04:04.031Z [32minfo[39m: Registered Route: DELETE /api/mail/quarantine/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.032Z [32minfo[39m: Registered Route: HEAD /api/mail/quarantine/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.032Z [32minfo[39m: Registered Route: GET /api/mail/quarantine
+[RouteUtils.emit] 2026-09-09T21:04:04.032Z [32minfo[39m: Registered Route: GET /api/mail/quarantine/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.033Z [32minfo[39m: Registered Route: DELETE /api/mail/quarantine
+[RouteUtils.emit] 2026-09-09T21:04:04.033Z [32minfo[39m: Registered Route: PUT /api/mail/quarantine/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.033Z [32minfo[39m: Registered Route: PUT /api/mail/quarantine
+[RouteUtils.emit] 2026-09-09T21:04:04.033Z [32minfo[39m: Registered Route: PUT /api/mail/quarantine/:id/:property
+
+[DerivedLogger.emit] 2026-09-09T21:04:04.034Z [34mdebug[39m: Creating new instance of class [routes.SearchRoute] with name [routes.SearchRoute:default]
+[DerivedLogger.emit] 2026-09-09T21:04:04.034Z [32minfo[39m: Unable to register class undefined for SearchProvider/undefined
+
+[RouteUtils.emit] 2026-09-09T21:04:04.035Z [32minfo[39m: Registered Route: GET /api/mail/search
+
+[DerivedLogger.emit] 2026-09-09T21:04:04.035Z [34mdebug[39m: Creating new instance of class [routes.StatusRoute] with name [routes.StatusRoute:default]
+[DerivedLogger.emit] 2026-09-09T21:04:04.035Z [32minfo[39m: Registering class StatusExtraData
+[DerivedLogger.emit] 2026-09-09T21:04:04.035Z [34mdebug[39m: Creating new instance of class [StatusExtraData] with name [StatusExtraData:default]
+
+[RouteUtils.emit] 2026-09-09T21:04:04.036Z [32minfo[39m: Registered Route: GET /api/status
+
+[DerivedLogger.emit] 2026-09-09T21:04:04.036Z [34mdebug[39m: Creating new instance of class [routes.TaskListRoute] with name [routes.TaskListRoute:default]
+[DerivedLogger.emit] 2026-09-09T21:04:04.037Z [34mdebug[39m: Creating new instance of class [RepoUtils] with name [RepoUtils:TaskListMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:04.037Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+
+[RouteUtils.emit] 2026-09-09T21:04:04.040Z [32minfo[39m: Registered Route: HEAD /api/mail/task-lists
+[RouteUtils.emit] 2026-09-09T21:04:04.040Z [32minfo[39m: Registered Route: POST /api/mail/task-lists
+[RouteUtils.emit] 2026-09-09T21:04:04.040Z [32minfo[39m: Registered Route: DELETE /api/mail/task-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.041Z [32minfo[39m: Registered Route: HEAD /api/mail/task-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.041Z [32minfo[39m: Registered Route: GET /api/mail/task-lists
+[RouteUtils.emit] 2026-09-09T21:04:04.041Z [32minfo[39m: Registered Route: GET /api/mail/task-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.041Z [32minfo[39m: Registered Route: DELETE /api/mail/task-lists
+[RouteUtils.emit] 2026-09-09T21:04:04.042Z [32minfo[39m: Registered Route: PUT /api/mail/task-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.042Z [32minfo[39m: Registered Route: PUT /api/mail/task-lists
+[RouteUtils.emit] 2026-09-09T21:04:04.042Z [32minfo[39m: Registered Route: PUT /api/mail/task-lists/:id/:property
+
+[DerivedLogger.emit] 2026-09-09T21:04:04.043Z [34mdebug[39m: Creating new instance of class [routes.TaskRoute] with name [routes.TaskRoute:default]
+[DerivedLogger.emit] 2026-09-09T21:04:04.043Z [34mdebug[39m: Creating new instance of class [RecoverableRepoUtils] with name [RecoverableRepoUtils:TaskMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:04.043Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+
+[RouteUtils.emit] 2026-09-09T21:04:04.046Z [32minfo[39m: Registered Route: HEAD /api/mail/tasks
+[RouteUtils.emit] 2026-09-09T21:04:04.046Z [32minfo[39m: Registered Route: POST /api/mail/tasks
+[RouteUtils.emit] 2026-09-09T21:04:04.046Z [32minfo[39m: Registered Route: DELETE /api/mail/tasks/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.047Z [32minfo[39m: Registered Route: HEAD /api/mail/tasks/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.047Z [32minfo[39m: Registered Route: GET /api/mail/tasks
+[RouteUtils.emit] 2026-09-09T21:04:04.047Z [32minfo[39m: Registered Route: GET /api/mail/tasks/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.047Z [32minfo[39m: Registered Route: DELETE /api/mail/tasks
+[RouteUtils.emit] 2026-09-09T21:04:04.048Z [32minfo[39m: Registered Route: PUT /api/mail/tasks/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.048Z [32minfo[39m: Registered Route: PUT /api/mail/tasks
+[RouteUtils.emit] 2026-09-09T21:04:04.048Z [32minfo[39m: Registered Route: PUT /api/mail/tasks/:id/:property
+
+[DerivedLogger.emit] 2026-09-09T21:04:04.049Z [34mdebug[39m: Creating new instance of class [routes.TransportRuleRoute] with name [routes.TransportRuleRoute:default]
+[DerivedLogger.emit] 2026-09-09T21:04:04.049Z [34mdebug[39m: Creating new instance of class [RepoUtils] with name [RepoUtils:TransportRuleMongo]
+[DerivedLogger.emit] 2026-09-09T21:04:04.049Z [32minfo[39m: Unable to register class undefined for ACLUtils/undefined
+
+[RouteUtils.emit] 2026-09-09T21:04:04.052Z [32minfo[39m: Registered Route: POST /api/mail/transport-rules
+[RouteUtils.emit] 2026-09-09T21:04:04.052Z [32minfo[39m: Registered Route: PUT /api/mail/transport-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.052Z [32minfo[39m: Registered Route: DELETE /api/mail/transport-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.053Z [32minfo[39m: Registered Route: GET /api/mail/transport-rules
+[RouteUtils.emit] 2026-09-09T21:04:04.053Z [32minfo[39m: Registered Route: HEAD /api/mail/transport-rules
+[RouteUtils.emit] 2026-09-09T21:04:04.053Z [32minfo[39m: Registered Route: GET /api/mail/transport-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.053Z [32minfo[39m: Registered Route: HEAD /api/mail/transport-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:04.054Z [32minfo[39m: Registered Route: DELETE /api/mail/transport-rules
+[RouteUtils.emit] 2026-09-09T21:04:04.054Z [32minfo[39m: Registered Route: PUT /api/mail/transport-rules
+[RouteUtils.emit] 2026-09-09T21:04:04.054Z [32minfo[39m: Registered Route: PUT /api/mail/transport-rules/:id/:property
+
+[DerivedLogger.emit] 2026-09-09T21:04:04.055Z [34mdebug[39m: Creating new instance of class [routes.WwwRoute] with name [routes.WwwRoute:default]
+
+[RouteUtils.emit] 2026-09-09T21:04:04.055Z [32minfo[39m: Registered Route: GET /*
+[RouteUtils.emit] 2026-09-09T21:04:04.056Z [32minfo[39m: Registered Route: GET /
+
+[DerivedLogger.emit] 2026-09-09T21:04:04.056Z [32minfo[39m: Listening on 0.0.0.0:3000...
+
+[DerivedLogger.emit] 2026-09-09T21:04:05.082Z [32minfo[39m: Stopping background services...
+[BackgroundServiceManager.emit] 2026-09-09T21:04:05.083Z [32minfo[39m: Stopping background service AttachmentExtractionJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:05.083Z [32minfo[39m: Stopping background service CalendarReminderJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:05.083Z [32minfo[39m: Stopping background service DomainVerificationJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:05.084Z [32minfo[39m: Stopping background service EasDeviceStateCleanupJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:05.084Z [32minfo[39m: Stopping background service ExternalShareExpirationJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:05.084Z [32minfo[39m: Stopping background service MailboxQuotaRecalcJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:05.085Z [32minfo[39m: Stopping background service MeetingSchedulingJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:05.085Z [32minfo[39m: Stopping background service QuarantineRetentionJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:05.085Z [32minfo[39m: Stopping background service ScanQueueJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:05.086Z [32minfo[39m: Stopping background service SearchIndexJobMongo...
+
+[DerivedLogger.emit] 2026-09-09T21:04:05.086Z [32minfo[39m: Stopping server...
+[DerivedLogger.emit] 2026-09-09T21:04:05.086Z [32minfo[39m: Closing database connections...
+
+[ConnectionManager.emit] 2026-09-09T21:04:05.089Z [32minfo[39m: Successfully disconnected from all configured databases.
+
+            </system-out>
+        </testcase>
+        <testcase classname="test/Server.mongo.test.ts" name="Server Tests &gt; Can stop server." time="1.1491537">
+            <system-out>
+[DerivedLogger.emit] 2026-09-09T21:04:05.090Z [32minfo[39m: Starting server...
+
+[DerivedLogger.emit] 2026-09-09T21:04:05.091Z [32minfo[39m: Loading all service classes...
+
+[DerivedLogger.emit] 2026-09-09T21:04:05.114Z [32minfo[39m: Scanning for data models...
+[DerivedLogger.emit] 2026-09-09T21:04:05.115Z [32minfo[39m: Initializing database connection(s)...
+[ConnectionManager.emit] 2026-09-09T21:04:05.115Z [32minfo[39m: Connecting to database cache [redis://localhost]...
+
+[ConnectionManager.emit] 2026-09-09T21:04:05.115Z [32minfo[39m: Connecting to database events [redis://localhost]...
+
+[ConnectionManager.emit] 2026-09-09T21:04:05.116Z [32minfo[39m: Connecting to database logs [redis://localhost]...
+
+[ConnectionManager.emit] 2026-09-09T21:04:05.116Z [32minfo[39m: Connecting to database acl [mongodb://localhost:9999/acls]...
+[ConnectionManager.emit] 2026-09-09T21:04:05.116Z [32minfo[39m: Connecting to database mongo [mongodb://localhost:9999/rrst_auth]...
+
+[ConnectionManager.emit] 2026-09-09T21:04:05.124Z [33mwarn[39m: Datastore &apos;acl&apos; is a standalone MongoDB instance and does not support multi-document transactions. @Transactional will run without a transaction for models on this datastore. Configure MongoDB as a replica set (or sharded cluster) to enable it.
+
+[ConnectionManager.emit] 2026-09-09T21:04:05.125Z [33mwarn[39m: Datastore &apos;mongo&apos; is a standalone MongoDB instance and does not support multi-document transactions. @Transactional will run without a transaction for models on this datastore. Configure MongoDB as a replica set (or sharded cluster) to enable it.
+
+[ConnectionManager.emit] 2026-09-09T21:04:05.137Z [32minfo[39m: Successfully connected to all configured databases.
+
+[DerivedLogger.emit] 2026-09-09T21:04:05.137Z [32minfo[39m: Starting background services...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:05.138Z [32minfo[39m: Starting service AttachmentExtractionJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:05.138Z [32minfo[39m: Starting service CalendarReminderJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:05.139Z [32minfo[39m: Starting service DomainVerificationJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:05.140Z [32minfo[39m: Starting service EasDeviceStateCleanupJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:05.140Z [32minfo[39m: Starting service ExternalShareExpirationJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:05.141Z [32minfo[39m: Starting service MailboxQuotaRecalcJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:05.142Z [32minfo[39m: Starting service MeetingSchedulingJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:05.142Z [32minfo[39m: Starting service QuarantineRetentionJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:05.143Z [32minfo[39m: Starting service ScanQueueJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:05.143Z [32minfo[39m: Starting service SearchIndexJobMongo...
+
+[DerivedLogger.emit] 2026-09-09T21:04:05.144Z [32minfo[39m: Initializing event manager...
+
+[DerivedLogger.emit] 2026-09-09T21:04:05.144Z [32minfo[39m: Scanning for routes...
+
+[RouteUtils.emit] 2026-09-09T21:04:05.144Z [32minfo[39m: Registered Route: HEAD /api/acls
+[RouteUtils.emit] 2026-09-09T21:04:05.145Z [32minfo[39m: Registered Route: POST /api/acls
+[RouteUtils.emit] 2026-09-09T21:04:05.145Z [32minfo[39m: Registered Route: DELETE /api/acls/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.145Z [32minfo[39m: Registered Route: HEAD /api/acls/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.146Z [32minfo[39m: Registered Route: GET /api/acls
+[RouteUtils.emit] 2026-09-09T21:04:05.146Z [32minfo[39m: Registered Route: GET /api/acls/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.146Z [32minfo[39m: Registered Route: DELETE /api/acls
+[RouteUtils.emit] 2026-09-09T21:04:05.146Z [32minfo[39m: Registered Route: PUT /api/acls/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.147Z [32minfo[39m: Registered Route: PUT /api/acls/:id/:property
+[RouteUtils.emit] 2026-09-09T21:04:05.147Z [32minfo[39m: Registered Route: PUT /api/acls
+
+[RouteUtils.emit] 2026-09-09T21:04:05.147Z [32minfo[39m: Registered Route: GET /admin/*
+[RouteUtils.emit] 2026-09-09T21:04:05.148Z [32minfo[39m: Registered Route: GET /admin
+
+[RouteUtils.emit] 2026-09-09T21:04:05.148Z [32minfo[39m: Registered Route: GET /api/admin/clear-cache
+[RouteUtils.emit] 2026-09-09T21:04:05.148Z [32minfo[39m: Registered Route: WS /api/admin/logs
+[RouteUtils.emit] 2026-09-09T21:04:05.149Z [32minfo[39m: Registered Route: GET /api/admin/release-notes
+[RouteUtils.emit] 2026-09-09T21:04:05.149Z [32minfo[39m: Registered Route: GET /api/admin/restart
+
+[RouteUtils.emit] 2026-09-09T21:04:05.149Z [32minfo[39m: Registered Route: POST /api/mail/attachments/upload
+[RouteUtils.emit] 2026-09-09T21:04:05.150Z [32minfo[39m: Registered Route: GET /api/mail/attachments/:id/content
+[RouteUtils.emit] 2026-09-09T21:04:05.150Z [32minfo[39m: Registered Route: HEAD /api/mail/attachments
+[RouteUtils.emit] 2026-09-09T21:04:05.150Z [32minfo[39m: Registered Route: POST /api/mail/attachments
+[RouteUtils.emit] 2026-09-09T21:04:05.150Z [32minfo[39m: Registered Route: DELETE /api/mail/attachments/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.151Z [32minfo[39m: Registered Route: HEAD /api/mail/attachments/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.151Z [32minfo[39m: Registered Route: GET /api/mail/attachments
+[RouteUtils.emit] 2026-09-09T21:04:05.151Z [32minfo[39m: Registered Route: GET /api/mail/attachments/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.151Z [32minfo[39m: Registered Route: DELETE /api/mail/attachments
+[RouteUtils.emit] 2026-09-09T21:04:05.152Z [32minfo[39m: Registered Route: PUT /api/mail/attachments/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.152Z [32minfo[39m: Registered Route: PUT /api/mail/attachments
+[RouteUtils.emit] 2026-09-09T21:04:05.152Z [32minfo[39m: Registered Route: PUT /api/mail/attachments/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:05.153Z [32minfo[39m: Registered Route: GET /api/mail/audit-log
+[RouteUtils.emit] 2026-09-09T21:04:05.153Z [32minfo[39m: Registered Route: HEAD /api/mail/audit-log
+[RouteUtils.emit] 2026-09-09T21:04:05.153Z [32minfo[39m: Registered Route: GET /api/mail/audit-log/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.153Z [32minfo[39m: Registered Route: POST /api/mail/audit-log
+[RouteUtils.emit] 2026-09-09T21:04:05.154Z [32minfo[39m: Registered Route: PUT /api/mail/audit-log/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.154Z [32minfo[39m: Registered Route: DELETE /api/mail/audit-log/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.154Z [32minfo[39m: Registered Route: DELETE /api/mail/audit-log
+[RouteUtils.emit] 2026-09-09T21:04:05.155Z [32minfo[39m: Registered Route: HEAD /api/mail/audit-log/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.155Z [32minfo[39m: Registered Route: PUT /api/mail/audit-log
+[RouteUtils.emit] 2026-09-09T21:04:05.155Z [32minfo[39m: Registered Route: PUT /api/mail/audit-log/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:05.155Z [32minfo[39m: Registered Route: GET /api/mail/bookings/types/:slug
+[RouteUtils.emit] 2026-09-09T21:04:05.156Z [32minfo[39m: Registered Route: GET /api/mail/bookings/types/:slug/slots
+[RouteUtils.emit] 2026-09-09T21:04:05.156Z [32minfo[39m: Registered Route: POST /api/mail/bookings/types/:slug
+[RouteUtils.emit] 2026-09-09T21:04:05.156Z [32minfo[39m: Registered Route: GET /api/mail/bookings/manage/:token
+[RouteUtils.emit] 2026-09-09T21:04:05.157Z [32minfo[39m: Registered Route: POST /api/mail/bookings/manage/:token/cancel
+[RouteUtils.emit] 2026-09-09T21:04:05.157Z [32minfo[39m: Registered Route: POST /api/mail/bookings/manage/:token/reschedule
+
+[RouteUtils.emit] 2026-09-09T21:04:05.157Z [32minfo[39m: Registered Route: POST /api/mail/booking-types
+[RouteUtils.emit] 2026-09-09T21:04:05.158Z [32minfo[39m: Registered Route: PUT /api/mail/booking-types/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.158Z [32minfo[39m: Registered Route: HEAD /api/mail/booking-types
+[RouteUtils.emit] 2026-09-09T21:04:05.158Z [32minfo[39m: Registered Route: DELETE /api/mail/booking-types/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.158Z [32minfo[39m: Registered Route: HEAD /api/mail/booking-types/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.159Z [32minfo[39m: Registered Route: GET /api/mail/booking-types
+[RouteUtils.emit] 2026-09-09T21:04:05.159Z [32minfo[39m: Registered Route: GET /api/mail/booking-types/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.159Z [32minfo[39m: Registered Route: DELETE /api/mail/booking-types
+[RouteUtils.emit] 2026-09-09T21:04:05.160Z [32minfo[39m: Registered Route: PUT /api/mail/booking-types
+[RouteUtils.emit] 2026-09-09T21:04:05.160Z [32minfo[39m: Registered Route: PUT /api/mail/booking-types/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:05.160Z [32minfo[39m: Registered Route: GET /book/*
+[RouteUtils.emit] 2026-09-09T21:04:05.160Z [32minfo[39m: Registered Route: GET /book
+
+[RouteUtils.emit] 2026-09-09T21:04:05.161Z [32minfo[39m: Registered Route: GET /api/mail/branding
+[RouteUtils.emit] 2026-09-09T21:04:05.161Z [32minfo[39m: Registered Route: PUT /api/mail/branding
+[RouteUtils.emit] 2026-09-09T21:04:05.161Z [32minfo[39m: Registered Route: POST /api/mail/branding/logo
+[RouteUtils.emit] 2026-09-09T21:04:05.162Z [32minfo[39m: Registered Route: GET /api/mail/branding/logo
+[RouteUtils.emit] 2026-09-09T21:04:05.162Z [32minfo[39m: Registered Route: DELETE /api/mail/branding/logo
+[RouteUtils.emit] 2026-09-09T21:04:05.162Z [32minfo[39m: Registered Route: POST /api/mail/branding/stylesheet
+[RouteUtils.emit] 2026-09-09T21:04:05.162Z [32minfo[39m: Registered Route: GET /api/mail/branding/stylesheet
+[RouteUtils.emit] 2026-09-09T21:04:05.163Z [32minfo[39m: Registered Route: DELETE /api/mail/branding/stylesheet
+
+[RouteUtils.emit] 2026-09-09T21:04:05.163Z [32minfo[39m: Registered Route: PUT /api/mail/calendar-events/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.163Z [32minfo[39m: Registered Route: POST /api/mail/calendar-events/:id/respond
+[RouteUtils.emit] 2026-09-09T21:04:05.164Z [32minfo[39m: Registered Route: HEAD /api/mail/calendar-events
+[RouteUtils.emit] 2026-09-09T21:04:05.164Z [32minfo[39m: Registered Route: POST /api/mail/calendar-events
+[RouteUtils.emit] 2026-09-09T21:04:05.164Z [32minfo[39m: Registered Route: DELETE /api/mail/calendar-events/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.165Z [32minfo[39m: Registered Route: HEAD /api/mail/calendar-events/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.165Z [32minfo[39m: Registered Route: GET /api/mail/calendar-events
+[RouteUtils.emit] 2026-09-09T21:04:05.165Z [32minfo[39m: Registered Route: GET /api/mail/calendar-events/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.166Z [32minfo[39m: Registered Route: DELETE /api/mail/calendar-events
+[RouteUtils.emit] 2026-09-09T21:04:05.166Z [32minfo[39m: Registered Route: PUT /api/mail/calendar-events
+[RouteUtils.emit] 2026-09-09T21:04:05.167Z [32minfo[39m: Registered Route: PUT /api/mail/calendar-events/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:05.167Z [32minfo[39m: Registered Route: POST /api/mail/calendar-share-links
+[RouteUtils.emit] 2026-09-09T21:04:05.167Z [32minfo[39m: Registered Route: PUT /api/mail/calendar-share-links/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.168Z [32minfo[39m: Registered Route: DELETE /api/mail/calendar-share-links/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.168Z [32minfo[39m: Registered Route: HEAD /api/mail/calendar-share-links
+[RouteUtils.emit] 2026-09-09T21:04:05.168Z [32minfo[39m: Registered Route: HEAD /api/mail/calendar-share-links/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.168Z [32minfo[39m: Registered Route: GET /api/mail/calendar-share-links
+[RouteUtils.emit] 2026-09-09T21:04:05.169Z [32minfo[39m: Registered Route: GET /api/mail/calendar-share-links/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.169Z [32minfo[39m: Registered Route: DELETE /api/mail/calendar-share-links
+[RouteUtils.emit] 2026-09-09T21:04:05.169Z [32minfo[39m: Registered Route: PUT /api/mail/calendar-share-links
+[RouteUtils.emit] 2026-09-09T21:04:05.170Z [32minfo[39m: Registered Route: PUT /api/mail/calendar-share-links/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:05.170Z [32minfo[39m: Registered Route: HEAD /api/mail/contact-lists
+[RouteUtils.emit] 2026-09-09T21:04:05.170Z [32minfo[39m: Registered Route: POST /api/mail/contact-lists
+[RouteUtils.emit] 2026-09-09T21:04:05.170Z [32minfo[39m: Registered Route: DELETE /api/mail/contact-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.171Z [32minfo[39m: Registered Route: HEAD /api/mail/contact-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.171Z [32minfo[39m: Registered Route: GET /api/mail/contact-lists
+[RouteUtils.emit] 2026-09-09T21:04:05.171Z [32minfo[39m: Registered Route: GET /api/mail/contact-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.172Z [32minfo[39m: Registered Route: DELETE /api/mail/contact-lists
+[RouteUtils.emit] 2026-09-09T21:04:05.172Z [32minfo[39m: Registered Route: PUT /api/mail/contact-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.172Z [32minfo[39m: Registered Route: PUT /api/mail/contact-lists
+[RouteUtils.emit] 2026-09-09T21:04:05.172Z [32minfo[39m: Registered Route: PUT /api/mail/contact-lists/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:05.173Z [32minfo[39m: Registered Route: HEAD /api/mail/contacts
+[RouteUtils.emit] 2026-09-09T21:04:05.173Z [32minfo[39m: Registered Route: POST /api/mail/contacts
+[RouteUtils.emit] 2026-09-09T21:04:05.173Z [32minfo[39m: Registered Route: DELETE /api/mail/contacts/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.174Z [32minfo[39m: Registered Route: HEAD /api/mail/contacts/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.174Z [32minfo[39m: Registered Route: GET /api/mail/contacts
+[RouteUtils.emit] 2026-09-09T21:04:05.174Z [32minfo[39m: Registered Route: GET /api/mail/contacts/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.175Z [32minfo[39m: Registered Route: DELETE /api/mail/contacts
+[RouteUtils.emit] 2026-09-09T21:04:05.175Z [32minfo[39m: Registered Route: PUT /api/mail/contacts/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.175Z [32minfo[39m: Registered Route: PUT /api/mail/contacts
+[RouteUtils.emit] 2026-09-09T21:04:05.175Z [32minfo[39m: Registered Route: PUT /api/mail/contacts/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:05.176Z [32minfo[39m: Registered Route: POST /api/mail/distribution-lists
+[RouteUtils.emit] 2026-09-09T21:04:05.176Z [32minfo[39m: Registered Route: PUT /api/mail/distribution-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.176Z [32minfo[39m: Registered Route: DELETE /api/mail/distribution-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.177Z [32minfo[39m: Registered Route: GET /api/mail/distribution-lists
+[RouteUtils.emit] 2026-09-09T21:04:05.177Z [32minfo[39m: Registered Route: HEAD /api/mail/distribution-lists
+[RouteUtils.emit] 2026-09-09T21:04:05.177Z [32minfo[39m: Registered Route: GET /api/mail/distribution-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.178Z [32minfo[39m: Registered Route: HEAD /api/mail/distribution-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.178Z [32minfo[39m: Registered Route: DELETE /api/mail/distribution-lists
+[RouteUtils.emit] 2026-09-09T21:04:05.178Z [32minfo[39m: Registered Route: PUT /api/mail/distribution-lists
+[RouteUtils.emit] 2026-09-09T21:04:05.178Z [32minfo[39m: Registered Route: PUT /api/mail/distribution-lists/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:05.179Z [32minfo[39m: Registered Route: POST /api/mail/domains
+[RouteUtils.emit] 2026-09-09T21:04:05.179Z [32minfo[39m: Registered Route: PUT /api/mail/domains/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.179Z [32minfo[39m: Registered Route: DELETE /api/mail/domains/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.180Z [32minfo[39m: Registered Route: GET /api/mail/domains
+[RouteUtils.emit] 2026-09-09T21:04:05.180Z [32minfo[39m: Registered Route: HEAD /api/mail/domains
+[RouteUtils.emit] 2026-09-09T21:04:05.180Z [32minfo[39m: Registered Route: GET /api/mail/domains/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.180Z [32minfo[39m: Registered Route: POST /api/mail/domains/:id/verify
+[RouteUtils.emit] 2026-09-09T21:04:05.181Z [32minfo[39m: Registered Route: GET /api/mail/domains/:id/dns-setup
+[RouteUtils.emit] 2026-09-09T21:04:05.181Z [32minfo[39m: Registered Route: HEAD /api/mail/domains/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.181Z [32minfo[39m: Registered Route: DELETE /api/mail/domains
+[RouteUtils.emit] 2026-09-09T21:04:05.182Z [32minfo[39m: Registered Route: PUT /api/mail/domains
+[RouteUtils.emit] 2026-09-09T21:04:05.182Z [32minfo[39m: Registered Route: PUT /api/mail/domains/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:05.183Z [32minfo[39m: Registered Route: HEAD /api/mail/focused-inbox-overrides
+[RouteUtils.emit] 2026-09-09T21:04:05.183Z [32minfo[39m: Registered Route: POST /api/mail/focused-inbox-overrides
+[RouteUtils.emit] 2026-09-09T21:04:05.185Z [32minfo[39m: Registered Route: DELETE /api/mail/focused-inbox-overrides/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.185Z [32minfo[39m: Registered Route: HEAD /api/mail/focused-inbox-overrides/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.185Z [32minfo[39m: Registered Route: GET /api/mail/focused-inbox-overrides
+[RouteUtils.emit] 2026-09-09T21:04:05.185Z [32minfo[39m: Registered Route: GET /api/mail/focused-inbox-overrides/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.186Z [32minfo[39m: Registered Route: DELETE /api/mail/focused-inbox-overrides
+[RouteUtils.emit] 2026-09-09T21:04:05.186Z [32minfo[39m: Registered Route: PUT /api/mail/focused-inbox-overrides/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.186Z [32minfo[39m: Registered Route: PUT /api/mail/focused-inbox-overrides
+[RouteUtils.emit] 2026-09-09T21:04:05.187Z [32minfo[39m: Registered Route: PUT /api/mail/focused-inbox-overrides/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:05.187Z [32minfo[39m: Registered Route: HEAD /api/mail/folders
+[RouteUtils.emit] 2026-09-09T21:04:05.187Z [32minfo[39m: Registered Route: POST /api/mail/folders
+[RouteUtils.emit] 2026-09-09T21:04:05.188Z [32minfo[39m: Registered Route: GET /api/mail/folders
+[RouteUtils.emit] 2026-09-09T21:04:05.188Z [32minfo[39m: Registered Route: HEAD /api/mail/folders/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.188Z [32minfo[39m: Registered Route: DELETE /api/mail/folders/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.188Z [32minfo[39m: Registered Route: GET /api/mail/folders/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.189Z [32minfo[39m: Registered Route: DELETE /api/mail/folders
+[RouteUtils.emit] 2026-09-09T21:04:05.189Z [32minfo[39m: Registered Route: PUT /api/mail/folders/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.189Z [32minfo[39m: Registered Route: PUT /api/mail/folders
+[RouteUtils.emit] 2026-09-09T21:04:05.190Z [32minfo[39m: Registered Route: PUT /api/mail/folders/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:05.190Z [32minfo[39m: Registered Route: GET /api/mail/giphy/search
+
+[RouteUtils.emit] 2026-09-09T21:04:05.190Z [32minfo[39m: Registered Route: HEAD /api/mail/ingest-queue
+[RouteUtils.emit] 2026-09-09T21:04:05.191Z [32minfo[39m: Registered Route: POST /api/mail/ingest-queue
+[RouteUtils.emit] 2026-09-09T21:04:05.191Z [32minfo[39m: Registered Route: DELETE /api/mail/ingest-queue/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.191Z [32minfo[39m: Registered Route: HEAD /api/mail/ingest-queue/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.191Z [32minfo[39m: Registered Route: GET /api/mail/ingest-queue
+[RouteUtils.emit] 2026-09-09T21:04:05.192Z [32minfo[39m: Registered Route: GET /api/mail/ingest-queue/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.192Z [32minfo[39m: Registered Route: DELETE /api/mail/ingest-queue
+[RouteUtils.emit] 2026-09-09T21:04:05.192Z [32minfo[39m: Registered Route: PUT /api/mail/ingest-queue/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.193Z [32minfo[39m: Registered Route: PUT /api/mail/ingest-queue
+[RouteUtils.emit] 2026-09-09T21:04:05.193Z [32minfo[39m: Registered Route: PUT /api/mail/ingest-queue/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:05.193Z [32minfo[39m: Registered Route: POST /api/mail/mailboxes
+[RouteUtils.emit] 2026-09-09T21:04:05.193Z [32minfo[39m: Registered Route: POST /api/mail/mailboxes/auto-provision
+[RouteUtils.emit] 2026-09-09T21:04:05.194Z [32minfo[39m: Registered Route: GET /api/mail/mailboxes/domains
+[RouteUtils.emit] 2026-09-09T21:04:05.194Z [32minfo[39m: Registered Route: GET /api/mail/mailboxes
+[RouteUtils.emit] 2026-09-09T21:04:05.194Z [32minfo[39m: Registered Route: HEAD /api/mail/mailboxes
+[RouteUtils.emit] 2026-09-09T21:04:05.195Z [32minfo[39m: Registered Route: HEAD /api/mail/mailboxes/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.195Z [32minfo[39m: Registered Route: DELETE /api/mail/mailboxes/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.195Z [32minfo[39m: Registered Route: GET /api/mail/mailboxes/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.195Z [32minfo[39m: Registered Route: DELETE /api/mail/mailboxes
+[RouteUtils.emit] 2026-09-09T21:04:05.196Z [32minfo[39m: Registered Route: PUT /api/mail/mailboxes/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.196Z [32minfo[39m: Registered Route: PUT /api/mail/mailboxes
+[RouteUtils.emit] 2026-09-09T21:04:05.196Z [32minfo[39m: Registered Route: PUT /api/mail/mailboxes/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:05.197Z [32minfo[39m: Registered Route: POST /api/mail/compose/:id/assemble
+
+[RouteUtils.emit] 2026-09-09T21:04:05.197Z [32minfo[39m: Registered Route: HEAD /api/mail/mail-filter-rules
+[RouteUtils.emit] 2026-09-09T21:04:05.197Z [32minfo[39m: Registered Route: POST /api/mail/mail-filter-rules
+[RouteUtils.emit] 2026-09-09T21:04:05.198Z [32minfo[39m: Registered Route: DELETE /api/mail/mail-filter-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.198Z [32minfo[39m: Registered Route: HEAD /api/mail/mail-filter-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.198Z [32minfo[39m: Registered Route: GET /api/mail/mail-filter-rules
+[RouteUtils.emit] 2026-09-09T21:04:05.198Z [32minfo[39m: Registered Route: GET /api/mail/mail-filter-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.199Z [32minfo[39m: Registered Route: DELETE /api/mail/mail-filter-rules
+[RouteUtils.emit] 2026-09-09T21:04:05.199Z [32minfo[39m: Registered Route: PUT /api/mail/mail-filter-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.199Z [32minfo[39m: Registered Route: PUT /api/mail/mail-filter-rules
+[RouteUtils.emit] 2026-09-09T21:04:05.200Z [32minfo[39m: Registered Route: PUT /api/mail/mail-filter-rules/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:05.200Z [32minfo[39m: Registered Route: GET /internal/mta/domain
+[RouteUtils.emit] 2026-09-09T21:04:05.200Z [32minfo[39m: Registered Route: GET /internal/mta/resolve
+[RouteUtils.emit] 2026-09-09T21:04:05.200Z [32minfo[39m: Registered Route: POST /internal/mta/deliver
+
+[RouteUtils.emit] 2026-09-09T21:04:05.201Z [32minfo[39m: Registered Route: HEAD /api/mail/mail-signatures
+[RouteUtils.emit] 2026-09-09T21:04:05.201Z [32minfo[39m: Registered Route: POST /api/mail/mail-signatures
+[RouteUtils.emit] 2026-09-09T21:04:05.201Z [32minfo[39m: Registered Route: DELETE /api/mail/mail-signatures/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.202Z [32minfo[39m: Registered Route: HEAD /api/mail/mail-signatures/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.202Z [32minfo[39m: Registered Route: GET /api/mail/mail-signatures
+[RouteUtils.emit] 2026-09-09T21:04:05.202Z [32minfo[39m: Registered Route: GET /api/mail/mail-signatures/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.202Z [32minfo[39m: Registered Route: DELETE /api/mail/mail-signatures
+[RouteUtils.emit] 2026-09-09T21:04:05.203Z [32minfo[39m: Registered Route: PUT /api/mail/mail-signatures/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.203Z [32minfo[39m: Registered Route: PUT /api/mail/mail-signatures
+[RouteUtils.emit] 2026-09-09T21:04:05.203Z [32minfo[39m: Registered Route: PUT /api/mail/mail-signatures/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:05.204Z [32minfo[39m: Registered Route: GET /api/mail/messages/conversations
+[RouteUtils.emit] 2026-09-09T21:04:05.204Z [32minfo[39m: Registered Route: POST /api/mail/messages/:id/send
+[RouteUtils.emit] 2026-09-09T21:04:05.204Z [32minfo[39m: Registered Route: POST /api/mail/messages/:id/recall
+[RouteUtils.emit] 2026-09-09T21:04:05.204Z [32minfo[39m: Registered Route: POST /api/mail/messages/:id/classify
+[RouteUtils.emit] 2026-09-09T21:04:05.205Z [32minfo[39m: Registered Route: PUT /api/mail/messages/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.205Z [32minfo[39m: Registered Route: POST /api/mail/messages/:id/receipt/approve
+[RouteUtils.emit] 2026-09-09T21:04:05.205Z [32minfo[39m: Registered Route: POST /api/mail/messages/:id/receipt/decline
+[RouteUtils.emit] 2026-09-09T21:04:05.205Z [32minfo[39m: Registered Route: DELETE /api/mail/messages/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.206Z [32minfo[39m: Registered Route: GET /api/mail/messages/:id/content
+[RouteUtils.emit] 2026-09-09T21:04:05.206Z [32minfo[39m: Registered Route: HEAD /api/mail/messages
+[RouteUtils.emit] 2026-09-09T21:04:05.206Z [32minfo[39m: Registered Route: POST /api/mail/messages
+[RouteUtils.emit] 2026-09-09T21:04:05.206Z [32minfo[39m: Registered Route: HEAD /api/mail/messages/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.207Z [32minfo[39m: Registered Route: GET /api/mail/messages
+[RouteUtils.emit] 2026-09-09T21:04:05.207Z [32minfo[39m: Registered Route: GET /api/mail/messages/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.207Z [32minfo[39m: Registered Route: DELETE /api/mail/messages
+[RouteUtils.emit] 2026-09-09T21:04:05.208Z [32minfo[39m: Registered Route: PUT /api/mail/messages
+[RouteUtils.emit] 2026-09-09T21:04:05.208Z [32minfo[39m: Registered Route: PUT /api/mail/messages/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:05.208Z [32minfo[39m: Registered Route: GET /api/metrics
+[RouteUtils.emit] 2026-09-09T21:04:05.208Z [32minfo[39m: Registered Route: GET /api/metrics/:metric
+
+[RouteUtils.emit] 2026-09-09T21:04:05.209Z [32minfo[39m: Registered Route: HEAD /api/mail/notes
+[RouteUtils.emit] 2026-09-09T21:04:05.209Z [32minfo[39m: Registered Route: POST /api/mail/notes
+[RouteUtils.emit] 2026-09-09T21:04:05.209Z [32minfo[39m: Registered Route: DELETE /api/mail/notes/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.210Z [32minfo[39m: Registered Route: HEAD /api/mail/notes/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.210Z [32minfo[39m: Registered Route: GET /api/mail/notes
+[RouteUtils.emit] 2026-09-09T21:04:05.210Z [32minfo[39m: Registered Route: GET /api/mail/notes/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.210Z [32minfo[39m: Registered Route: DELETE /api/mail/notes
+[RouteUtils.emit] 2026-09-09T21:04:05.211Z [32minfo[39m: Registered Route: PUT /api/mail/notes/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.211Z [32minfo[39m: Registered Route: PUT /api/mail/notes
+[RouteUtils.emit] 2026-09-09T21:04:05.211Z [32minfo[39m: Registered Route: PUT /api/mail/notes/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:05.212Z [32minfo[39m: Registered Route: GET /api/openapi
+[RouteUtils.emit] 2026-09-09T21:04:05.212Z [32minfo[39m: Registered Route: GET /api/openapi/json
+[RouteUtils.emit] 2026-09-09T21:04:05.212Z [32minfo[39m: Registered Route: GET /api/openapi/yaml
+
+[RouteUtils.emit] 2026-09-09T21:04:05.212Z [32minfo[39m: Registered Route: WS /push
+[RouteUtils.emit] 2026-09-09T21:04:05.213Z [32minfo[39m: Registered Route: POST /push/:id
+
+[RouteUtils.emit] 2026-09-09T21:04:05.213Z [32minfo[39m: Registered Route: HEAD /api/mail/quarantine
+[RouteUtils.emit] 2026-09-09T21:04:05.213Z [32minfo[39m: Registered Route: POST /api/mail/quarantine
+[RouteUtils.emit] 2026-09-09T21:04:05.214Z [32minfo[39m: Registered Route: DELETE /api/mail/quarantine/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.214Z [32minfo[39m: Registered Route: HEAD /api/mail/quarantine/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.214Z [32minfo[39m: Registered Route: GET /api/mail/quarantine
+[RouteUtils.emit] 2026-09-09T21:04:05.214Z [32minfo[39m: Registered Route: GET /api/mail/quarantine/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.215Z [32minfo[39m: Registered Route: DELETE /api/mail/quarantine
+[RouteUtils.emit] 2026-09-09T21:04:05.215Z [32minfo[39m: Registered Route: PUT /api/mail/quarantine/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.215Z [32minfo[39m: Registered Route: PUT /api/mail/quarantine
+[RouteUtils.emit] 2026-09-09T21:04:05.216Z [32minfo[39m: Registered Route: PUT /api/mail/quarantine/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:05.216Z [32minfo[39m: Registered Route: GET /api/mail/search
+
+[RouteUtils.emit] 2026-09-09T21:04:05.216Z [32minfo[39m: Registered Route: GET /api/status
+
+[RouteUtils.emit] 2026-09-09T21:04:05.217Z [32minfo[39m: Registered Route: HEAD /api/mail/task-lists
+[RouteUtils.emit] 2026-09-09T21:04:05.217Z [32minfo[39m: Registered Route: POST /api/mail/task-lists
+[RouteUtils.emit] 2026-09-09T21:04:05.217Z [32minfo[39m: Registered Route: DELETE /api/mail/task-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.217Z [32minfo[39m: Registered Route: HEAD /api/mail/task-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.218Z [32minfo[39m: Registered Route: GET /api/mail/task-lists
+[RouteUtils.emit] 2026-09-09T21:04:05.218Z [32minfo[39m: Registered Route: GET /api/mail/task-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.218Z [32minfo[39m: Registered Route: DELETE /api/mail/task-lists
+[RouteUtils.emit] 2026-09-09T21:04:05.218Z [32minfo[39m: Registered Route: PUT /api/mail/task-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.219Z [32minfo[39m: Registered Route: PUT /api/mail/task-lists
+[RouteUtils.emit] 2026-09-09T21:04:05.219Z [32minfo[39m: Registered Route: PUT /api/mail/task-lists/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:05.219Z [32minfo[39m: Registered Route: HEAD /api/mail/tasks
+[RouteUtils.emit] 2026-09-09T21:04:05.220Z [32minfo[39m: Registered Route: POST /api/mail/tasks
+[RouteUtils.emit] 2026-09-09T21:04:05.220Z [32minfo[39m: Registered Route: DELETE /api/mail/tasks/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.220Z [32minfo[39m: Registered Route: HEAD /api/mail/tasks/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.220Z [32minfo[39m: Registered Route: GET /api/mail/tasks
+[RouteUtils.emit] 2026-09-09T21:04:05.221Z [32minfo[39m: Registered Route: GET /api/mail/tasks/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.221Z [32minfo[39m: Registered Route: DELETE /api/mail/tasks
+[RouteUtils.emit] 2026-09-09T21:04:05.221Z [32minfo[39m: Registered Route: PUT /api/mail/tasks/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.221Z [32minfo[39m: Registered Route: PUT /api/mail/tasks
+[RouteUtils.emit] 2026-09-09T21:04:05.222Z [32minfo[39m: Registered Route: PUT /api/mail/tasks/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:05.222Z [32minfo[39m: Registered Route: POST /api/mail/transport-rules
+[RouteUtils.emit] 2026-09-09T21:04:05.222Z [32minfo[39m: Registered Route: PUT /api/mail/transport-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.223Z [32minfo[39m: Registered Route: DELETE /api/mail/transport-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.223Z [32minfo[39m: Registered Route: GET /api/mail/transport-rules
+[RouteUtils.emit] 2026-09-09T21:04:05.223Z [32minfo[39m: Registered Route: HEAD /api/mail/transport-rules
+[RouteUtils.emit] 2026-09-09T21:04:05.223Z [32minfo[39m: Registered Route: GET /api/mail/transport-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.224Z [32minfo[39m: Registered Route: HEAD /api/mail/transport-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:05.224Z [32minfo[39m: Registered Route: DELETE /api/mail/transport-rules
+[RouteUtils.emit] 2026-09-09T21:04:05.224Z [32minfo[39m: Registered Route: PUT /api/mail/transport-rules
+[RouteUtils.emit] 2026-09-09T21:04:05.225Z [32minfo[39m: Registered Route: PUT /api/mail/transport-rules/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:05.225Z [32minfo[39m: Registered Route: GET /*
+[RouteUtils.emit] 2026-09-09T21:04:05.225Z [32minfo[39m: Registered Route: GET /
+
+[DerivedLogger.emit] 2026-09-09T21:04:05.226Z [32minfo[39m: Listening on 0.0.0.0:3000...
+
+[DerivedLogger.emit] 2026-09-09T21:04:06.232Z [32minfo[39m: Stopping background services...
+[BackgroundServiceManager.emit] 2026-09-09T21:04:06.233Z [32minfo[39m: Stopping background service AttachmentExtractionJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:06.233Z [32minfo[39m: Stopping background service CalendarReminderJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:06.233Z [32minfo[39m: Stopping background service DomainVerificationJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:06.234Z [32minfo[39m: Stopping background service EasDeviceStateCleanupJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:06.234Z [32minfo[39m: Stopping background service ExternalShareExpirationJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:06.234Z [32minfo[39m: Stopping background service MailboxQuotaRecalcJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:06.234Z [32minfo[39m: Stopping background service MeetingSchedulingJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:06.235Z [32minfo[39m: Stopping background service QuarantineRetentionJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:06.235Z [32minfo[39m: Stopping background service ScanQueueJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:06.235Z [32minfo[39m: Stopping background service SearchIndexJobMongo...
+
+[DerivedLogger.emit] 2026-09-09T21:04:06.235Z [32minfo[39m: Stopping server...
+[DerivedLogger.emit] 2026-09-09T21:04:06.236Z [32minfo[39m: Closing database connections...
+
+[ConnectionManager.emit] 2026-09-09T21:04:06.237Z [32minfo[39m: Successfully disconnected from all configured databases.
+
+[DerivedLogger.emit] 2026-09-09T21:04:06.238Z [32minfo[39m: Stopping background services...
+
+[DerivedLogger.emit] 2026-09-09T21:04:06.238Z [32minfo[39m: Stopping server...
+[DerivedLogger.emit] 2026-09-09T21:04:06.239Z [32minfo[39m: Closing database connections...
+[ConnectionManager.emit] 2026-09-09T21:04:06.239Z [32minfo[39m: Successfully disconnected from all configured databases.
+
+            </system-out>
+        </testcase>
+        <testcase classname="test/Server.mongo.test.ts" name="Server Tests &gt; Can restart server." time="1.2821998">
+            <system-out>
+[DerivedLogger.emit] 2026-09-09T21:04:06.239Z [32minfo[39m: Starting server...
+
+[DerivedLogger.emit] 2026-09-09T21:04:06.239Z [32minfo[39m: Loading all service classes...
+
+[DerivedLogger.emit] 2026-09-09T21:04:06.261Z [32minfo[39m: Scanning for data models...
+[DerivedLogger.emit] 2026-09-09T21:04:06.262Z [32minfo[39m: Initializing database connection(s)...
+[ConnectionManager.emit] 2026-09-09T21:04:06.262Z [32minfo[39m: Connecting to database cache [redis://localhost]...
+
+[ConnectionManager.emit] 2026-09-09T21:04:06.262Z [32minfo[39m: Connecting to database events [redis://localhost]...
+
+[ConnectionManager.emit] 2026-09-09T21:04:06.263Z [32minfo[39m: Connecting to database logs [redis://localhost]...
+
+[ConnectionManager.emit] 2026-09-09T21:04:06.263Z [32minfo[39m: Connecting to database acl [mongodb://localhost:9999/acls]...
+[ConnectionManager.emit] 2026-09-09T21:04:06.263Z [32minfo[39m: Connecting to database mongo [mongodb://localhost:9999/rrst_auth]...
+
+[ConnectionManager.emit] 2026-09-09T21:04:06.269Z [33mwarn[39m: Datastore &apos;acl&apos; is a standalone MongoDB instance and does not support multi-document transactions. @Transactional will run without a transaction for models on this datastore. Configure MongoDB as a replica set (or sharded cluster) to enable it.
+
+[ConnectionManager.emit] 2026-09-09T21:04:06.270Z [33mwarn[39m: Datastore &apos;mongo&apos; is a standalone MongoDB instance and does not support multi-document transactions. @Transactional will run without a transaction for models on this datastore. Configure MongoDB as a replica set (or sharded cluster) to enable it.
+
+[ConnectionManager.emit] 2026-09-09T21:04:06.282Z [32minfo[39m: Successfully connected to all configured databases.
+
+[DerivedLogger.emit] 2026-09-09T21:04:06.283Z [32minfo[39m: Starting background services...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:06.283Z [32minfo[39m: Starting service AttachmentExtractionJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:06.284Z [32minfo[39m: Starting service CalendarReminderJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:06.284Z [32minfo[39m: Starting service DomainVerificationJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:06.285Z [32minfo[39m: Starting service EasDeviceStateCleanupJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:06.285Z [32minfo[39m: Starting service ExternalShareExpirationJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:06.286Z [32minfo[39m: Starting service MailboxQuotaRecalcJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:06.287Z [32minfo[39m: Starting service MeetingSchedulingJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:06.287Z [32minfo[39m: Starting service QuarantineRetentionJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:06.288Z [32minfo[39m: Starting service ScanQueueJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:06.289Z [32minfo[39m: Starting service SearchIndexJobMongo...
+
+[DerivedLogger.emit] 2026-09-09T21:04:06.290Z [32minfo[39m: Initializing event manager...
+
+[DerivedLogger.emit] 2026-09-09T21:04:06.290Z [32minfo[39m: Scanning for routes...
+
+[RouteUtils.emit] 2026-09-09T21:04:06.290Z [32minfo[39m: Registered Route: HEAD /api/acls
+[RouteUtils.emit] 2026-09-09T21:04:06.291Z [32minfo[39m: Registered Route: POST /api/acls
+[RouteUtils.emit] 2026-09-09T21:04:06.291Z [32minfo[39m: Registered Route: DELETE /api/acls/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.291Z [32minfo[39m: Registered Route: HEAD /api/acls/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.291Z [32minfo[39m: Registered Route: GET /api/acls
+[RouteUtils.emit] 2026-09-09T21:04:06.292Z [32minfo[39m: Registered Route: GET /api/acls/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.292Z [32minfo[39m: Registered Route: DELETE /api/acls
+[RouteUtils.emit] 2026-09-09T21:04:06.292Z [32minfo[39m: Registered Route: PUT /api/acls/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.293Z [32minfo[39m: Registered Route: PUT /api/acls/:id/:property
+[RouteUtils.emit] 2026-09-09T21:04:06.293Z [32minfo[39m: Registered Route: PUT /api/acls
+
+[RouteUtils.emit] 2026-09-09T21:04:06.293Z [32minfo[39m: Registered Route: GET /admin/*
+[RouteUtils.emit] 2026-09-09T21:04:06.294Z [32minfo[39m: Registered Route: GET /admin
+
+[RouteUtils.emit] 2026-09-09T21:04:06.294Z [32minfo[39m: Registered Route: GET /api/admin/clear-cache
+[RouteUtils.emit] 2026-09-09T21:04:06.294Z [32minfo[39m: Registered Route: WS /api/admin/logs
+[RouteUtils.emit] 2026-09-09T21:04:06.295Z [32minfo[39m: Registered Route: GET /api/admin/release-notes
+[RouteUtils.emit] 2026-09-09T21:04:06.295Z [32minfo[39m: Registered Route: GET /api/admin/restart
+
+[RouteUtils.emit] 2026-09-09T21:04:06.295Z [32minfo[39m: Registered Route: POST /api/mail/attachments/upload
+[RouteUtils.emit] 2026-09-09T21:04:06.295Z [32minfo[39m: Registered Route: GET /api/mail/attachments/:id/content
+[RouteUtils.emit] 2026-09-09T21:04:06.296Z [32minfo[39m: Registered Route: HEAD /api/mail/attachments
+[RouteUtils.emit] 2026-09-09T21:04:06.296Z [32minfo[39m: Registered Route: POST /api/mail/attachments
+[RouteUtils.emit] 2026-09-09T21:04:06.296Z [32minfo[39m: Registered Route: DELETE /api/mail/attachments/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.297Z [32minfo[39m: Registered Route: HEAD /api/mail/attachments/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.297Z [32minfo[39m: Registered Route: GET /api/mail/attachments
+[RouteUtils.emit] 2026-09-09T21:04:06.297Z [32minfo[39m: Registered Route: GET /api/mail/attachments/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.298Z [32minfo[39m: Registered Route: DELETE /api/mail/attachments
+[RouteUtils.emit] 2026-09-09T21:04:06.298Z [32minfo[39m: Registered Route: PUT /api/mail/attachments/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.298Z [32minfo[39m: Registered Route: PUT /api/mail/attachments
+[RouteUtils.emit] 2026-09-09T21:04:06.299Z [32minfo[39m: Registered Route: PUT /api/mail/attachments/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:06.299Z [32minfo[39m: Registered Route: GET /api/mail/audit-log
+[RouteUtils.emit] 2026-09-09T21:04:06.300Z [32minfo[39m: Registered Route: HEAD /api/mail/audit-log
+[RouteUtils.emit] 2026-09-09T21:04:06.300Z [32minfo[39m: Registered Route: GET /api/mail/audit-log/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.300Z [32minfo[39m: Registered Route: POST /api/mail/audit-log
+[RouteUtils.emit] 2026-09-09T21:04:06.301Z [32minfo[39m: Registered Route: PUT /api/mail/audit-log/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.301Z [32minfo[39m: Registered Route: DELETE /api/mail/audit-log/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.301Z [32minfo[39m: Registered Route: DELETE /api/mail/audit-log
+[RouteUtils.emit] 2026-09-09T21:04:06.302Z [32minfo[39m: Registered Route: HEAD /api/mail/audit-log/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.302Z [32minfo[39m: Registered Route: PUT /api/mail/audit-log
+[RouteUtils.emit] 2026-09-09T21:04:06.302Z [32minfo[39m: Registered Route: PUT /api/mail/audit-log/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:06.303Z [32minfo[39m: Registered Route: GET /api/mail/bookings/types/:slug
+[RouteUtils.emit] 2026-09-09T21:04:06.303Z [32minfo[39m: Registered Route: GET /api/mail/bookings/types/:slug/slots
+[RouteUtils.emit] 2026-09-09T21:04:06.303Z [32minfo[39m: Registered Route: POST /api/mail/bookings/types/:slug
+[RouteUtils.emit] 2026-09-09T21:04:06.303Z [32minfo[39m: Registered Route: GET /api/mail/bookings/manage/:token
+[RouteUtils.emit] 2026-09-09T21:04:06.304Z [32minfo[39m: Registered Route: POST /api/mail/bookings/manage/:token/cancel
+[RouteUtils.emit] 2026-09-09T21:04:06.304Z [32minfo[39m: Registered Route: POST /api/mail/bookings/manage/:token/reschedule
+
+[RouteUtils.emit] 2026-09-09T21:04:06.304Z [32minfo[39m: Registered Route: POST /api/mail/booking-types
+[RouteUtils.emit] 2026-09-09T21:04:06.305Z [32minfo[39m: Registered Route: PUT /api/mail/booking-types/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.305Z [32minfo[39m: Registered Route: HEAD /api/mail/booking-types
+[RouteUtils.emit] 2026-09-09T21:04:06.305Z [32minfo[39m: Registered Route: DELETE /api/mail/booking-types/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.306Z [32minfo[39m: Registered Route: HEAD /api/mail/booking-types/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.306Z [32minfo[39m: Registered Route: GET /api/mail/booking-types
+[RouteUtils.emit] 2026-09-09T21:04:06.306Z [32minfo[39m: Registered Route: GET /api/mail/booking-types/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.306Z [32minfo[39m: Registered Route: DELETE /api/mail/booking-types
+[RouteUtils.emit] 2026-09-09T21:04:06.307Z [32minfo[39m: Registered Route: PUT /api/mail/booking-types
+[RouteUtils.emit] 2026-09-09T21:04:06.307Z [32minfo[39m: Registered Route: PUT /api/mail/booking-types/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:06.308Z [32minfo[39m: Registered Route: GET /book/*
+[RouteUtils.emit] 2026-09-09T21:04:06.308Z [32minfo[39m: Registered Route: GET /book
+
+[RouteUtils.emit] 2026-09-09T21:04:06.308Z [32minfo[39m: Registered Route: GET /api/mail/branding
+[RouteUtils.emit] 2026-09-09T21:04:06.309Z [32minfo[39m: Registered Route: PUT /api/mail/branding
+[RouteUtils.emit] 2026-09-09T21:04:06.309Z [32minfo[39m: Registered Route: POST /api/mail/branding/logo
+[RouteUtils.emit] 2026-09-09T21:04:06.309Z [32minfo[39m: Registered Route: GET /api/mail/branding/logo
+[RouteUtils.emit] 2026-09-09T21:04:06.310Z [32minfo[39m: Registered Route: DELETE /api/mail/branding/logo
+[RouteUtils.emit] 2026-09-09T21:04:06.310Z [32minfo[39m: Registered Route: POST /api/mail/branding/stylesheet
+[RouteUtils.emit] 2026-09-09T21:04:06.311Z [32minfo[39m: Registered Route: GET /api/mail/branding/stylesheet
+[RouteUtils.emit] 2026-09-09T21:04:06.311Z [32minfo[39m: Registered Route: DELETE /api/mail/branding/stylesheet
+
+[RouteUtils.emit] 2026-09-09T21:04:06.311Z [32minfo[39m: Registered Route: PUT /api/mail/calendar-events/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.312Z [32minfo[39m: Registered Route: POST /api/mail/calendar-events/:id/respond
+[RouteUtils.emit] 2026-09-09T21:04:06.312Z [32minfo[39m: Registered Route: HEAD /api/mail/calendar-events
+[RouteUtils.emit] 2026-09-09T21:04:06.312Z [32minfo[39m: Registered Route: POST /api/mail/calendar-events
+[RouteUtils.emit] 2026-09-09T21:04:06.312Z [32minfo[39m: Registered Route: DELETE /api/mail/calendar-events/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.313Z [32minfo[39m: Registered Route: HEAD /api/mail/calendar-events/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.313Z [32minfo[39m: Registered Route: GET /api/mail/calendar-events
+[RouteUtils.emit] 2026-09-09T21:04:06.313Z [32minfo[39m: Registered Route: GET /api/mail/calendar-events/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.314Z [32minfo[39m: Registered Route: DELETE /api/mail/calendar-events
+[RouteUtils.emit] 2026-09-09T21:04:06.314Z [32minfo[39m: Registered Route: PUT /api/mail/calendar-events
+[RouteUtils.emit] 2026-09-09T21:04:06.314Z [32minfo[39m: Registered Route: PUT /api/mail/calendar-events/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:06.315Z [32minfo[39m: Registered Route: POST /api/mail/calendar-share-links
+[RouteUtils.emit] 2026-09-09T21:04:06.315Z [32minfo[39m: Registered Route: PUT /api/mail/calendar-share-links/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.315Z [32minfo[39m: Registered Route: DELETE /api/mail/calendar-share-links/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.315Z [32minfo[39m: Registered Route: HEAD /api/mail/calendar-share-links
+[RouteUtils.emit] 2026-09-09T21:04:06.316Z [32minfo[39m: Registered Route: HEAD /api/mail/calendar-share-links/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.316Z [32minfo[39m: Registered Route: GET /api/mail/calendar-share-links
+[RouteUtils.emit] 2026-09-09T21:04:06.316Z [32minfo[39m: Registered Route: GET /api/mail/calendar-share-links/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.317Z [32minfo[39m: Registered Route: DELETE /api/mail/calendar-share-links
+[RouteUtils.emit] 2026-09-09T21:04:06.317Z [32minfo[39m: Registered Route: PUT /api/mail/calendar-share-links
+[RouteUtils.emit] 2026-09-09T21:04:06.317Z [32minfo[39m: Registered Route: PUT /api/mail/calendar-share-links/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:06.318Z [32minfo[39m: Registered Route: HEAD /api/mail/contact-lists
+[RouteUtils.emit] 2026-09-09T21:04:06.318Z [32minfo[39m: Registered Route: POST /api/mail/contact-lists
+[RouteUtils.emit] 2026-09-09T21:04:06.318Z [32minfo[39m: Registered Route: DELETE /api/mail/contact-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.319Z [32minfo[39m: Registered Route: HEAD /api/mail/contact-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.319Z [32minfo[39m: Registered Route: GET /api/mail/contact-lists
+[RouteUtils.emit] 2026-09-09T21:04:06.319Z [32minfo[39m: Registered Route: GET /api/mail/contact-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.320Z [32minfo[39m: Registered Route: DELETE /api/mail/contact-lists
+[RouteUtils.emit] 2026-09-09T21:04:06.320Z [32minfo[39m: Registered Route: PUT /api/mail/contact-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.321Z [32minfo[39m: Registered Route: PUT /api/mail/contact-lists
+[RouteUtils.emit] 2026-09-09T21:04:06.321Z [32minfo[39m: Registered Route: PUT /api/mail/contact-lists/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:06.322Z [32minfo[39m: Registered Route: HEAD /api/mail/contacts
+[RouteUtils.emit] 2026-09-09T21:04:06.322Z [32minfo[39m: Registered Route: POST /api/mail/contacts
+[RouteUtils.emit] 2026-09-09T21:04:06.322Z [32minfo[39m: Registered Route: DELETE /api/mail/contacts/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.323Z [32minfo[39m: Registered Route: HEAD /api/mail/contacts/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.323Z [32minfo[39m: Registered Route: GET /api/mail/contacts
+[RouteUtils.emit] 2026-09-09T21:04:06.323Z [32minfo[39m: Registered Route: GET /api/mail/contacts/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.324Z [32minfo[39m: Registered Route: DELETE /api/mail/contacts
+[RouteUtils.emit] 2026-09-09T21:04:06.324Z [32minfo[39m: Registered Route: PUT /api/mail/contacts/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.324Z [32minfo[39m: Registered Route: PUT /api/mail/contacts
+[RouteUtils.emit] 2026-09-09T21:04:06.325Z [32minfo[39m: Registered Route: PUT /api/mail/contacts/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:06.325Z [32minfo[39m: Registered Route: POST /api/mail/distribution-lists
+[RouteUtils.emit] 2026-09-09T21:04:06.325Z [32minfo[39m: Registered Route: PUT /api/mail/distribution-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.327Z [32minfo[39m: Registered Route: DELETE /api/mail/distribution-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.327Z [32minfo[39m: Registered Route: GET /api/mail/distribution-lists
+[RouteUtils.emit] 2026-09-09T21:04:06.327Z [32minfo[39m: Registered Route: HEAD /api/mail/distribution-lists
+[RouteUtils.emit] 2026-09-09T21:04:06.328Z [32minfo[39m: Registered Route: GET /api/mail/distribution-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.328Z [32minfo[39m: Registered Route: HEAD /api/mail/distribution-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.328Z [32minfo[39m: Registered Route: DELETE /api/mail/distribution-lists
+[RouteUtils.emit] 2026-09-09T21:04:06.328Z [32minfo[39m: Registered Route: PUT /api/mail/distribution-lists
+[RouteUtils.emit] 2026-09-09T21:04:06.329Z [32minfo[39m: Registered Route: PUT /api/mail/distribution-lists/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:06.329Z [32minfo[39m: Registered Route: POST /api/mail/domains
+[RouteUtils.emit] 2026-09-09T21:04:06.329Z [32minfo[39m: Registered Route: PUT /api/mail/domains/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.330Z [32minfo[39m: Registered Route: DELETE /api/mail/domains/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.330Z [32minfo[39m: Registered Route: GET /api/mail/domains
+[RouteUtils.emit] 2026-09-09T21:04:06.330Z [32minfo[39m: Registered Route: HEAD /api/mail/domains
+[RouteUtils.emit] 2026-09-09T21:04:06.330Z [32minfo[39m: Registered Route: GET /api/mail/domains/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.331Z [32minfo[39m: Registered Route: POST /api/mail/domains/:id/verify
+[RouteUtils.emit] 2026-09-09T21:04:06.331Z [32minfo[39m: Registered Route: GET /api/mail/domains/:id/dns-setup
+[RouteUtils.emit] 2026-09-09T21:04:06.331Z [32minfo[39m: Registered Route: HEAD /api/mail/domains/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.332Z [32minfo[39m: Registered Route: DELETE /api/mail/domains
+[RouteUtils.emit] 2026-09-09T21:04:06.332Z [32minfo[39m: Registered Route: PUT /api/mail/domains
+[RouteUtils.emit] 2026-09-09T21:04:06.332Z [32minfo[39m: Registered Route: PUT /api/mail/domains/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:06.332Z [32minfo[39m: Registered Route: HEAD /api/mail/focused-inbox-overrides
+[RouteUtils.emit] 2026-09-09T21:04:06.333Z [32minfo[39m: Registered Route: POST /api/mail/focused-inbox-overrides
+[RouteUtils.emit] 2026-09-09T21:04:06.333Z [32minfo[39m: Registered Route: DELETE /api/mail/focused-inbox-overrides/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.333Z [32minfo[39m: Registered Route: HEAD /api/mail/focused-inbox-overrides/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.334Z [32minfo[39m: Registered Route: GET /api/mail/focused-inbox-overrides
+[RouteUtils.emit] 2026-09-09T21:04:06.334Z [32minfo[39m: Registered Route: GET /api/mail/focused-inbox-overrides/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.334Z [32minfo[39m: Registered Route: DELETE /api/mail/focused-inbox-overrides
+[RouteUtils.emit] 2026-09-09T21:04:06.334Z [32minfo[39m: Registered Route: PUT /api/mail/focused-inbox-overrides/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.335Z [32minfo[39m: Registered Route: PUT /api/mail/focused-inbox-overrides
+[RouteUtils.emit] 2026-09-09T21:04:06.335Z [32minfo[39m: Registered Route: PUT /api/mail/focused-inbox-overrides/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:06.335Z [32minfo[39m: Registered Route: HEAD /api/mail/folders
+[RouteUtils.emit] 2026-09-09T21:04:06.336Z [32minfo[39m: Registered Route: POST /api/mail/folders
+[RouteUtils.emit] 2026-09-09T21:04:06.336Z [32minfo[39m: Registered Route: GET /api/mail/folders
+[RouteUtils.emit] 2026-09-09T21:04:06.336Z [32minfo[39m: Registered Route: HEAD /api/mail/folders/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.336Z [32minfo[39m: Registered Route: DELETE /api/mail/folders/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.337Z [32minfo[39m: Registered Route: GET /api/mail/folders/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.337Z [32minfo[39m: Registered Route: DELETE /api/mail/folders
+[RouteUtils.emit] 2026-09-09T21:04:06.337Z [32minfo[39m: Registered Route: PUT /api/mail/folders/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.337Z [32minfo[39m: Registered Route: PUT /api/mail/folders
+[RouteUtils.emit] 2026-09-09T21:04:06.338Z [32minfo[39m: Registered Route: PUT /api/mail/folders/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:06.338Z [32minfo[39m: Registered Route: GET /api/mail/giphy/search
+
+[RouteUtils.emit] 2026-09-09T21:04:06.338Z [32minfo[39m: Registered Route: HEAD /api/mail/ingest-queue
+[RouteUtils.emit] 2026-09-09T21:04:06.339Z [32minfo[39m: Registered Route: POST /api/mail/ingest-queue
+[RouteUtils.emit] 2026-09-09T21:04:06.339Z [32minfo[39m: Registered Route: DELETE /api/mail/ingest-queue/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.339Z [32minfo[39m: Registered Route: HEAD /api/mail/ingest-queue/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.340Z [32minfo[39m: Registered Route: GET /api/mail/ingest-queue
+[RouteUtils.emit] 2026-09-09T21:04:06.340Z [32minfo[39m: Registered Route: GET /api/mail/ingest-queue/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.340Z [32minfo[39m: Registered Route: DELETE /api/mail/ingest-queue
+[RouteUtils.emit] 2026-09-09T21:04:06.340Z [32minfo[39m: Registered Route: PUT /api/mail/ingest-queue/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.341Z [32minfo[39m: Registered Route: PUT /api/mail/ingest-queue
+[RouteUtils.emit] 2026-09-09T21:04:06.341Z [32minfo[39m: Registered Route: PUT /api/mail/ingest-queue/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:06.341Z [32minfo[39m: Registered Route: POST /api/mail/mailboxes
+[RouteUtils.emit] 2026-09-09T21:04:06.342Z [32minfo[39m: Registered Route: POST /api/mail/mailboxes/auto-provision
+[RouteUtils.emit] 2026-09-09T21:04:06.342Z [32minfo[39m: Registered Route: GET /api/mail/mailboxes/domains
+[RouteUtils.emit] 2026-09-09T21:04:06.342Z [32minfo[39m: Registered Route: GET /api/mail/mailboxes
+[RouteUtils.emit] 2026-09-09T21:04:06.342Z [32minfo[39m: Registered Route: HEAD /api/mail/mailboxes
+[RouteUtils.emit] 2026-09-09T21:04:06.343Z [32minfo[39m: Registered Route: HEAD /api/mail/mailboxes/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.343Z [32minfo[39m: Registered Route: DELETE /api/mail/mailboxes/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.343Z [32minfo[39m: Registered Route: GET /api/mail/mailboxes/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.343Z [32minfo[39m: Registered Route: DELETE /api/mail/mailboxes
+[RouteUtils.emit] 2026-09-09T21:04:06.344Z [32minfo[39m: Registered Route: PUT /api/mail/mailboxes/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.344Z [32minfo[39m: Registered Route: PUT /api/mail/mailboxes
+[RouteUtils.emit] 2026-09-09T21:04:06.344Z [32minfo[39m: Registered Route: PUT /api/mail/mailboxes/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:06.345Z [32minfo[39m: Registered Route: POST /api/mail/compose/:id/assemble
+
+[RouteUtils.emit] 2026-09-09T21:04:06.345Z [32minfo[39m: Registered Route: HEAD /api/mail/mail-filter-rules
+[RouteUtils.emit] 2026-09-09T21:04:06.345Z [32minfo[39m: Registered Route: POST /api/mail/mail-filter-rules
+[RouteUtils.emit] 2026-09-09T21:04:06.345Z [32minfo[39m: Registered Route: DELETE /api/mail/mail-filter-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.346Z [32minfo[39m: Registered Route: HEAD /api/mail/mail-filter-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.346Z [32minfo[39m: Registered Route: GET /api/mail/mail-filter-rules
+[RouteUtils.emit] 2026-09-09T21:04:06.346Z [32minfo[39m: Registered Route: GET /api/mail/mail-filter-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.347Z [32minfo[39m: Registered Route: DELETE /api/mail/mail-filter-rules
+[RouteUtils.emit] 2026-09-09T21:04:06.347Z [32minfo[39m: Registered Route: PUT /api/mail/mail-filter-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.347Z [32minfo[39m: Registered Route: PUT /api/mail/mail-filter-rules
+[RouteUtils.emit] 2026-09-09T21:04:06.347Z [32minfo[39m: Registered Route: PUT /api/mail/mail-filter-rules/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:06.348Z [32minfo[39m: Registered Route: GET /internal/mta/domain
+[RouteUtils.emit] 2026-09-09T21:04:06.348Z [32minfo[39m: Registered Route: GET /internal/mta/resolve
+[RouteUtils.emit] 2026-09-09T21:04:06.348Z [32minfo[39m: Registered Route: POST /internal/mta/deliver
+
+[RouteUtils.emit] 2026-09-09T21:04:06.349Z [32minfo[39m: Registered Route: HEAD /api/mail/mail-signatures
+[RouteUtils.emit] 2026-09-09T21:04:06.349Z [32minfo[39m: Registered Route: POST /api/mail/mail-signatures
+[RouteUtils.emit] 2026-09-09T21:04:06.349Z [32minfo[39m: Registered Route: DELETE /api/mail/mail-signatures/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.349Z [32minfo[39m: Registered Route: HEAD /api/mail/mail-signatures/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.350Z [32minfo[39m: Registered Route: GET /api/mail/mail-signatures
+[RouteUtils.emit] 2026-09-09T21:04:06.350Z [32minfo[39m: Registered Route: GET /api/mail/mail-signatures/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.350Z [32minfo[39m: Registered Route: DELETE /api/mail/mail-signatures
+[RouteUtils.emit] 2026-09-09T21:04:06.350Z [32minfo[39m: Registered Route: PUT /api/mail/mail-signatures/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.351Z [32minfo[39m: Registered Route: PUT /api/mail/mail-signatures
+[RouteUtils.emit] 2026-09-09T21:04:06.351Z [32minfo[39m: Registered Route: PUT /api/mail/mail-signatures/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:06.351Z [32minfo[39m: Registered Route: GET /api/mail/messages/conversations
+[RouteUtils.emit] 2026-09-09T21:04:06.352Z [32minfo[39m: Registered Route: POST /api/mail/messages/:id/send
+[RouteUtils.emit] 2026-09-09T21:04:06.352Z [32minfo[39m: Registered Route: POST /api/mail/messages/:id/recall
+[RouteUtils.emit] 2026-09-09T21:04:06.352Z [32minfo[39m: Registered Route: POST /api/mail/messages/:id/classify
+[RouteUtils.emit] 2026-09-09T21:04:06.352Z [32minfo[39m: Registered Route: PUT /api/mail/messages/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.353Z [32minfo[39m: Registered Route: POST /api/mail/messages/:id/receipt/approve
+[RouteUtils.emit] 2026-09-09T21:04:06.353Z [32minfo[39m: Registered Route: POST /api/mail/messages/:id/receipt/decline
+[RouteUtils.emit] 2026-09-09T21:04:06.353Z [32minfo[39m: Registered Route: DELETE /api/mail/messages/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.354Z [32minfo[39m: Registered Route: GET /api/mail/messages/:id/content
+[RouteUtils.emit] 2026-09-09T21:04:06.354Z [32minfo[39m: Registered Route: HEAD /api/mail/messages
+[RouteUtils.emit] 2026-09-09T21:04:06.354Z [32minfo[39m: Registered Route: POST /api/mail/messages
+[RouteUtils.emit] 2026-09-09T21:04:06.354Z [32minfo[39m: Registered Route: HEAD /api/mail/messages/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.355Z [32minfo[39m: Registered Route: GET /api/mail/messages
+[RouteUtils.emit] 2026-09-09T21:04:06.355Z [32minfo[39m: Registered Route: GET /api/mail/messages/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.355Z [32minfo[39m: Registered Route: DELETE /api/mail/messages
+[RouteUtils.emit] 2026-09-09T21:04:06.355Z [32minfo[39m: Registered Route: PUT /api/mail/messages
+[RouteUtils.emit] 2026-09-09T21:04:06.356Z [32minfo[39m: Registered Route: PUT /api/mail/messages/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:06.356Z [32minfo[39m: Registered Route: GET /api/metrics
+[RouteUtils.emit] 2026-09-09T21:04:06.356Z [32minfo[39m: Registered Route: GET /api/metrics/:metric
+
+[RouteUtils.emit] 2026-09-09T21:04:06.357Z [32minfo[39m: Registered Route: HEAD /api/mail/notes
+[RouteUtils.emit] 2026-09-09T21:04:06.357Z [32minfo[39m: Registered Route: POST /api/mail/notes
+[RouteUtils.emit] 2026-09-09T21:04:06.357Z [32minfo[39m: Registered Route: DELETE /api/mail/notes/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.357Z [32minfo[39m: Registered Route: HEAD /api/mail/notes/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.358Z [32minfo[39m: Registered Route: GET /api/mail/notes
+[RouteUtils.emit] 2026-09-09T21:04:06.358Z [32minfo[39m: Registered Route: GET /api/mail/notes/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.358Z [32minfo[39m: Registered Route: DELETE /api/mail/notes
+[RouteUtils.emit] 2026-09-09T21:04:06.358Z [32minfo[39m: Registered Route: PUT /api/mail/notes/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.359Z [32minfo[39m: Registered Route: PUT /api/mail/notes
+[RouteUtils.emit] 2026-09-09T21:04:06.359Z [32minfo[39m: Registered Route: PUT /api/mail/notes/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:06.359Z [32minfo[39m: Registered Route: GET /api/openapi
+[RouteUtils.emit] 2026-09-09T21:04:06.360Z [32minfo[39m: Registered Route: GET /api/openapi/json
+[RouteUtils.emit] 2026-09-09T21:04:06.360Z [32minfo[39m: Registered Route: GET /api/openapi/yaml
+
+[RouteUtils.emit] 2026-09-09T21:04:06.360Z [32minfo[39m: Registered Route: WS /push
+[RouteUtils.emit] 2026-09-09T21:04:06.360Z [32minfo[39m: Registered Route: POST /push/:id
+
+[RouteUtils.emit] 2026-09-09T21:04:06.361Z [32minfo[39m: Registered Route: HEAD /api/mail/quarantine
+[RouteUtils.emit] 2026-09-09T21:04:06.361Z [32minfo[39m: Registered Route: POST /api/mail/quarantine
+[RouteUtils.emit] 2026-09-09T21:04:06.361Z [32minfo[39m: Registered Route: DELETE /api/mail/quarantine/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.362Z [32minfo[39m: Registered Route: HEAD /api/mail/quarantine/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.362Z [32minfo[39m: Registered Route: GET /api/mail/quarantine
+[RouteUtils.emit] 2026-09-09T21:04:06.362Z [32minfo[39m: Registered Route: GET /api/mail/quarantine/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.362Z [32minfo[39m: Registered Route: DELETE /api/mail/quarantine
+[RouteUtils.emit] 2026-09-09T21:04:06.363Z [32minfo[39m: Registered Route: PUT /api/mail/quarantine/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.363Z [32minfo[39m: Registered Route: PUT /api/mail/quarantine
+[RouteUtils.emit] 2026-09-09T21:04:06.363Z [32minfo[39m: Registered Route: PUT /api/mail/quarantine/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:06.364Z [32minfo[39m: Registered Route: GET /api/mail/search
+
+[RouteUtils.emit] 2026-09-09T21:04:06.364Z [32minfo[39m: Registered Route: GET /api/status
+
+[RouteUtils.emit] 2026-09-09T21:04:06.364Z [32minfo[39m: Registered Route: HEAD /api/mail/task-lists
+[RouteUtils.emit] 2026-09-09T21:04:06.364Z [32minfo[39m: Registered Route: POST /api/mail/task-lists
+[RouteUtils.emit] 2026-09-09T21:04:06.365Z [32minfo[39m: Registered Route: DELETE /api/mail/task-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.365Z [32minfo[39m: Registered Route: HEAD /api/mail/task-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.365Z [32minfo[39m: Registered Route: GET /api/mail/task-lists
+[RouteUtils.emit] 2026-09-09T21:04:06.366Z [32minfo[39m: Registered Route: GET /api/mail/task-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.366Z [32minfo[39m: Registered Route: DELETE /api/mail/task-lists
+[RouteUtils.emit] 2026-09-09T21:04:06.366Z [32minfo[39m: Registered Route: PUT /api/mail/task-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.366Z [32minfo[39m: Registered Route: PUT /api/mail/task-lists
+[RouteUtils.emit] 2026-09-09T21:04:06.367Z [32minfo[39m: Registered Route: PUT /api/mail/task-lists/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:06.367Z [32minfo[39m: Registered Route: HEAD /api/mail/tasks
+[RouteUtils.emit] 2026-09-09T21:04:06.367Z [32minfo[39m: Registered Route: POST /api/mail/tasks
+[RouteUtils.emit] 2026-09-09T21:04:06.368Z [32minfo[39m: Registered Route: DELETE /api/mail/tasks/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.368Z [32minfo[39m: Registered Route: HEAD /api/mail/tasks/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.368Z [32minfo[39m: Registered Route: GET /api/mail/tasks
+[RouteUtils.emit] 2026-09-09T21:04:06.368Z [32minfo[39m: Registered Route: GET /api/mail/tasks/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.369Z [32minfo[39m: Registered Route: DELETE /api/mail/tasks
+[RouteUtils.emit] 2026-09-09T21:04:06.369Z [32minfo[39m: Registered Route: PUT /api/mail/tasks/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.369Z [32minfo[39m: Registered Route: PUT /api/mail/tasks
+[RouteUtils.emit] 2026-09-09T21:04:06.370Z [32minfo[39m: Registered Route: PUT /api/mail/tasks/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:06.370Z [32minfo[39m: Registered Route: POST /api/mail/transport-rules
+[RouteUtils.emit] 2026-09-09T21:04:06.371Z [32minfo[39m: Registered Route: PUT /api/mail/transport-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.371Z [32minfo[39m: Registered Route: DELETE /api/mail/transport-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.371Z [32minfo[39m: Registered Route: GET /api/mail/transport-rules
+[RouteUtils.emit] 2026-09-09T21:04:06.372Z [32minfo[39m: Registered Route: HEAD /api/mail/transport-rules
+[RouteUtils.emit] 2026-09-09T21:04:06.372Z [32minfo[39m: Registered Route: GET /api/mail/transport-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.372Z [32minfo[39m: Registered Route: HEAD /api/mail/transport-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:06.373Z [32minfo[39m: Registered Route: DELETE /api/mail/transport-rules
+[RouteUtils.emit] 2026-09-09T21:04:06.373Z [32minfo[39m: Registered Route: PUT /api/mail/transport-rules
+[RouteUtils.emit] 2026-09-09T21:04:06.373Z [32minfo[39m: Registered Route: PUT /api/mail/transport-rules/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:06.374Z [32minfo[39m: Registered Route: GET /*
+[RouteUtils.emit] 2026-09-09T21:04:06.374Z [32minfo[39m: Registered Route: GET /
+
+[DerivedLogger.emit] 2026-09-09T21:04:06.374Z [32minfo[39m: Listening on 0.0.0.0:3000...
+
+[DerivedLogger.emit] 2026-09-09T21:04:07.381Z [32minfo[39m: Stopping background services...
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.381Z [32minfo[39m: Stopping background service AttachmentExtractionJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.382Z [32minfo[39m: Stopping background service CalendarReminderJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.382Z [32minfo[39m: Stopping background service DomainVerificationJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.382Z [32minfo[39m: Stopping background service EasDeviceStateCleanupJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.383Z [32minfo[39m: Stopping background service ExternalShareExpirationJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.383Z [32minfo[39m: Stopping background service MailboxQuotaRecalcJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.383Z [32minfo[39m: Stopping background service MeetingSchedulingJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.383Z [32minfo[39m: Stopping background service QuarantineRetentionJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.384Z [32minfo[39m: Stopping background service ScanQueueJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.384Z [32minfo[39m: Stopping background service SearchIndexJobMongo...
+
+[DerivedLogger.emit] 2026-09-09T21:04:07.384Z [32minfo[39m: Stopping server...
+[DerivedLogger.emit] 2026-09-09T21:04:07.385Z [32minfo[39m: Closing database connections...
+
+[ConnectionManager.emit] 2026-09-09T21:04:07.386Z [32minfo[39m: Successfully disconnected from all configured databases.
+
+[DerivedLogger.emit] 2026-09-09T21:04:07.386Z [32minfo[39m: Starting server...
+
+[DerivedLogger.emit] 2026-09-09T21:04:07.386Z [32minfo[39m: Loading all service classes...
+
+[DerivedLogger.emit] 2026-09-09T21:04:07.405Z [32minfo[39m: Scanning for data models...
+[DerivedLogger.emit] 2026-09-09T21:04:07.405Z [32minfo[39m: Initializing database connection(s)...
+[ConnectionManager.emit] 2026-09-09T21:04:07.406Z [32minfo[39m: Connecting to database cache [redis://localhost]...
+
+[ConnectionManager.emit] 2026-09-09T21:04:07.406Z [32minfo[39m: Connecting to database events [redis://localhost]...
+
+[ConnectionManager.emit] 2026-09-09T21:04:07.406Z [32minfo[39m: Connecting to database logs [redis://localhost]...
+
+[ConnectionManager.emit] 2026-09-09T21:04:07.407Z [32minfo[39m: Connecting to database acl [mongodb://localhost:9999/acls]...
+[ConnectionManager.emit] 2026-09-09T21:04:07.407Z [32minfo[39m: Connecting to database mongo [mongodb://localhost:9999/rrst_auth]...
+
+[ConnectionManager.emit] 2026-09-09T21:04:07.413Z [33mwarn[39m: Datastore &apos;acl&apos; is a standalone MongoDB instance and does not support multi-document transactions. @Transactional will run without a transaction for models on this datastore. Configure MongoDB as a replica set (or sharded cluster) to enable it.
+
+[ConnectionManager.emit] 2026-09-09T21:04:07.413Z [33mwarn[39m: Datastore &apos;mongo&apos; is a standalone MongoDB instance and does not support multi-document transactions. @Transactional will run without a transaction for models on this datastore. Configure MongoDB as a replica set (or sharded cluster) to enable it.
+
+[ConnectionManager.emit] 2026-09-09T21:04:07.422Z [32minfo[39m: Successfully connected to all configured databases.
+
+[DerivedLogger.emit] 2026-09-09T21:04:07.423Z [32minfo[39m: Starting background services...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.423Z [32minfo[39m: Starting service AttachmentExtractionJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.424Z [32minfo[39m: Starting service CalendarReminderJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.425Z [32minfo[39m: Starting service DomainVerificationJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.425Z [32minfo[39m: Starting service EasDeviceStateCleanupJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.426Z [32minfo[39m: Starting service ExternalShareExpirationJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.426Z [32minfo[39m: Starting service MailboxQuotaRecalcJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.427Z [32minfo[39m: Starting service MeetingSchedulingJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.427Z [32minfo[39m: Starting service QuarantineRetentionJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.428Z [32minfo[39m: Starting service ScanQueueJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.428Z [32minfo[39m: Starting service SearchIndexJobMongo...
+
+[DerivedLogger.emit] 2026-09-09T21:04:07.429Z [32minfo[39m: Initializing event manager...
+
+[DerivedLogger.emit] 2026-09-09T21:04:07.429Z [32minfo[39m: Scanning for routes...
+
+[RouteUtils.emit] 2026-09-09T21:04:07.429Z [32minfo[39m: Registered Route: HEAD /api/acls
+[RouteUtils.emit] 2026-09-09T21:04:07.429Z [32minfo[39m: Registered Route: POST /api/acls
+[RouteUtils.emit] 2026-09-09T21:04:07.430Z [32minfo[39m: Registered Route: DELETE /api/acls/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.430Z [32minfo[39m: Registered Route: HEAD /api/acls/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.430Z [32minfo[39m: Registered Route: GET /api/acls
+[RouteUtils.emit] 2026-09-09T21:04:07.431Z [32minfo[39m: Registered Route: GET /api/acls/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.431Z [32minfo[39m: Registered Route: DELETE /api/acls
+[RouteUtils.emit] 2026-09-09T21:04:07.431Z [32minfo[39m: Registered Route: PUT /api/acls/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.432Z [32minfo[39m: Registered Route: PUT /api/acls/:id/:property
+[RouteUtils.emit] 2026-09-09T21:04:07.432Z [32minfo[39m: Registered Route: PUT /api/acls
+
+[RouteUtils.emit] 2026-09-09T21:04:07.433Z [32minfo[39m: Registered Route: GET /admin/*
+[RouteUtils.emit] 2026-09-09T21:04:07.433Z [32minfo[39m: Registered Route: GET /admin
+
+[RouteUtils.emit] 2026-09-09T21:04:07.433Z [32minfo[39m: Registered Route: GET /api/admin/clear-cache
+[RouteUtils.emit] 2026-09-09T21:04:07.434Z [32minfo[39m: Registered Route: WS /api/admin/logs
+[RouteUtils.emit] 2026-09-09T21:04:07.434Z [32minfo[39m: Registered Route: GET /api/admin/release-notes
+[RouteUtils.emit] 2026-09-09T21:04:07.434Z [32minfo[39m: Registered Route: GET /api/admin/restart
+
+[RouteUtils.emit] 2026-09-09T21:04:07.435Z [32minfo[39m: Registered Route: POST /api/mail/attachments/upload
+[RouteUtils.emit] 2026-09-09T21:04:07.435Z [32minfo[39m: Registered Route: GET /api/mail/attachments/:id/content
+[RouteUtils.emit] 2026-09-09T21:04:07.435Z [32minfo[39m: Registered Route: HEAD /api/mail/attachments
+[RouteUtils.emit] 2026-09-09T21:04:07.436Z [32minfo[39m: Registered Route: POST /api/mail/attachments
+[RouteUtils.emit] 2026-09-09T21:04:07.436Z [32minfo[39m: Registered Route: DELETE /api/mail/attachments/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.436Z [32minfo[39m: Registered Route: HEAD /api/mail/attachments/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.436Z [32minfo[39m: Registered Route: GET /api/mail/attachments
+[RouteUtils.emit] 2026-09-09T21:04:07.437Z [32minfo[39m: Registered Route: GET /api/mail/attachments/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.437Z [32minfo[39m: Registered Route: DELETE /api/mail/attachments
+[RouteUtils.emit] 2026-09-09T21:04:07.437Z [32minfo[39m: Registered Route: PUT /api/mail/attachments/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.437Z [32minfo[39m: Registered Route: PUT /api/mail/attachments
+[RouteUtils.emit] 2026-09-09T21:04:07.438Z [32minfo[39m: Registered Route: PUT /api/mail/attachments/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:07.438Z [32minfo[39m: Registered Route: GET /api/mail/audit-log
+[RouteUtils.emit] 2026-09-09T21:04:07.438Z [32minfo[39m: Registered Route: HEAD /api/mail/audit-log
+[RouteUtils.emit] 2026-09-09T21:04:07.439Z [32minfo[39m: Registered Route: GET /api/mail/audit-log/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.439Z [32minfo[39m: Registered Route: POST /api/mail/audit-log
+[RouteUtils.emit] 2026-09-09T21:04:07.439Z [32minfo[39m: Registered Route: PUT /api/mail/audit-log/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.439Z [32minfo[39m: Registered Route: DELETE /api/mail/audit-log/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.440Z [32minfo[39m: Registered Route: DELETE /api/mail/audit-log
+[RouteUtils.emit] 2026-09-09T21:04:07.440Z [32minfo[39m: Registered Route: HEAD /api/mail/audit-log/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.440Z [32minfo[39m: Registered Route: PUT /api/mail/audit-log
+[RouteUtils.emit] 2026-09-09T21:04:07.441Z [32minfo[39m: Registered Route: PUT /api/mail/audit-log/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:07.441Z [32minfo[39m: Registered Route: GET /api/mail/bookings/types/:slug
+[RouteUtils.emit] 2026-09-09T21:04:07.441Z [32minfo[39m: Registered Route: GET /api/mail/bookings/types/:slug/slots
+[RouteUtils.emit] 2026-09-09T21:04:07.441Z [32minfo[39m: Registered Route: POST /api/mail/bookings/types/:slug
+[RouteUtils.emit] 2026-09-09T21:04:07.442Z [32minfo[39m: Registered Route: GET /api/mail/bookings/manage/:token
+[RouteUtils.emit] 2026-09-09T21:04:07.442Z [32minfo[39m: Registered Route: POST /api/mail/bookings/manage/:token/cancel
+[RouteUtils.emit] 2026-09-09T21:04:07.442Z [32minfo[39m: Registered Route: POST /api/mail/bookings/manage/:token/reschedule
+
+[RouteUtils.emit] 2026-09-09T21:04:07.443Z [32minfo[39m: Registered Route: POST /api/mail/booking-types
+[RouteUtils.emit] 2026-09-09T21:04:07.443Z [32minfo[39m: Registered Route: PUT /api/mail/booking-types/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.444Z [32minfo[39m: Registered Route: HEAD /api/mail/booking-types
+[RouteUtils.emit] 2026-09-09T21:04:07.444Z [32minfo[39m: Registered Route: DELETE /api/mail/booking-types/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.445Z [32minfo[39m: Registered Route: HEAD /api/mail/booking-types/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.445Z [32minfo[39m: Registered Route: GET /api/mail/booking-types
+[RouteUtils.emit] 2026-09-09T21:04:07.445Z [32minfo[39m: Registered Route: GET /api/mail/booking-types/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.446Z [32minfo[39m: Registered Route: DELETE /api/mail/booking-types
+[RouteUtils.emit] 2026-09-09T21:04:07.446Z [32minfo[39m: Registered Route: PUT /api/mail/booking-types
+[RouteUtils.emit] 2026-09-09T21:04:07.446Z [32minfo[39m: Registered Route: PUT /api/mail/booking-types/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:07.446Z [32minfo[39m: Registered Route: GET /book/*
+[RouteUtils.emit] 2026-09-09T21:04:07.447Z [32minfo[39m: Registered Route: GET /book
+
+[RouteUtils.emit] 2026-09-09T21:04:07.447Z [32minfo[39m: Registered Route: GET /api/mail/branding
+[RouteUtils.emit] 2026-09-09T21:04:07.447Z [32minfo[39m: Registered Route: PUT /api/mail/branding
+[RouteUtils.emit] 2026-09-09T21:04:07.448Z [32minfo[39m: Registered Route: POST /api/mail/branding/logo
+[RouteUtils.emit] 2026-09-09T21:04:07.448Z [32minfo[39m: Registered Route: GET /api/mail/branding/logo
+[RouteUtils.emit] 2026-09-09T21:04:07.448Z [32minfo[39m: Registered Route: DELETE /api/mail/branding/logo
+[RouteUtils.emit] 2026-09-09T21:04:07.448Z [32minfo[39m: Registered Route: POST /api/mail/branding/stylesheet
+[RouteUtils.emit] 2026-09-09T21:04:07.449Z [32minfo[39m: Registered Route: GET /api/mail/branding/stylesheet
+[RouteUtils.emit] 2026-09-09T21:04:07.449Z [32minfo[39m: Registered Route: DELETE /api/mail/branding/stylesheet
+
+[RouteUtils.emit] 2026-09-09T21:04:07.449Z [32minfo[39m: Registered Route: PUT /api/mail/calendar-events/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.450Z [32minfo[39m: Registered Route: POST /api/mail/calendar-events/:id/respond
+[RouteUtils.emit] 2026-09-09T21:04:07.450Z [32minfo[39m: Registered Route: HEAD /api/mail/calendar-events
+[RouteUtils.emit] 2026-09-09T21:04:07.450Z [32minfo[39m: Registered Route: POST /api/mail/calendar-events
+[RouteUtils.emit] 2026-09-09T21:04:07.450Z [32minfo[39m: Registered Route: DELETE /api/mail/calendar-events/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.451Z [32minfo[39m: Registered Route: HEAD /api/mail/calendar-events/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.451Z [32minfo[39m: Registered Route: GET /api/mail/calendar-events
+[RouteUtils.emit] 2026-09-09T21:04:07.451Z [32minfo[39m: Registered Route: GET /api/mail/calendar-events/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.451Z [32minfo[39m: Registered Route: DELETE /api/mail/calendar-events
+[RouteUtils.emit] 2026-09-09T21:04:07.452Z [32minfo[39m: Registered Route: PUT /api/mail/calendar-events
+[RouteUtils.emit] 2026-09-09T21:04:07.452Z [32minfo[39m: Registered Route: PUT /api/mail/calendar-events/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:07.452Z [32minfo[39m: Registered Route: POST /api/mail/calendar-share-links
+[RouteUtils.emit] 2026-09-09T21:04:07.453Z [32minfo[39m: Registered Route: PUT /api/mail/calendar-share-links/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.453Z [32minfo[39m: Registered Route: DELETE /api/mail/calendar-share-links/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.453Z [32minfo[39m: Registered Route: HEAD /api/mail/calendar-share-links
+[RouteUtils.emit] 2026-09-09T21:04:07.454Z [32minfo[39m: Registered Route: HEAD /api/mail/calendar-share-links/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.454Z [32minfo[39m: Registered Route: GET /api/mail/calendar-share-links
+[RouteUtils.emit] 2026-09-09T21:04:07.454Z [32minfo[39m: Registered Route: GET /api/mail/calendar-share-links/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.455Z [32minfo[39m: Registered Route: DELETE /api/mail/calendar-share-links
+[RouteUtils.emit] 2026-09-09T21:04:07.455Z [32minfo[39m: Registered Route: PUT /api/mail/calendar-share-links
+[RouteUtils.emit] 2026-09-09T21:04:07.456Z [32minfo[39m: Registered Route: PUT /api/mail/calendar-share-links/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:07.456Z [32minfo[39m: Registered Route: HEAD /api/mail/contact-lists
+[RouteUtils.emit] 2026-09-09T21:04:07.456Z [32minfo[39m: Registered Route: POST /api/mail/contact-lists
+[RouteUtils.emit] 2026-09-09T21:04:07.457Z [32minfo[39m: Registered Route: DELETE /api/mail/contact-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.457Z [32minfo[39m: Registered Route: HEAD /api/mail/contact-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.457Z [32minfo[39m: Registered Route: GET /api/mail/contact-lists
+[RouteUtils.emit] 2026-09-09T21:04:07.457Z [32minfo[39m: Registered Route: GET /api/mail/contact-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.458Z [32minfo[39m: Registered Route: DELETE /api/mail/contact-lists
+[RouteUtils.emit] 2026-09-09T21:04:07.458Z [32minfo[39m: Registered Route: PUT /api/mail/contact-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.458Z [32minfo[39m: Registered Route: PUT /api/mail/contact-lists
+[RouteUtils.emit] 2026-09-09T21:04:07.458Z [32minfo[39m: Registered Route: PUT /api/mail/contact-lists/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:07.459Z [32minfo[39m: Registered Route: HEAD /api/mail/contacts
+[RouteUtils.emit] 2026-09-09T21:04:07.459Z [32minfo[39m: Registered Route: POST /api/mail/contacts
+[RouteUtils.emit] 2026-09-09T21:04:07.459Z [32minfo[39m: Registered Route: DELETE /api/mail/contacts/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.460Z [32minfo[39m: Registered Route: HEAD /api/mail/contacts/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.460Z [32minfo[39m: Registered Route: GET /api/mail/contacts
+[RouteUtils.emit] 2026-09-09T21:04:07.460Z [32minfo[39m: Registered Route: GET /api/mail/contacts/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.460Z [32minfo[39m: Registered Route: DELETE /api/mail/contacts
+[RouteUtils.emit] 2026-09-09T21:04:07.461Z [32minfo[39m: Registered Route: PUT /api/mail/contacts/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.461Z [32minfo[39m: Registered Route: PUT /api/mail/contacts
+[RouteUtils.emit] 2026-09-09T21:04:07.461Z [32minfo[39m: Registered Route: PUT /api/mail/contacts/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:07.461Z [32minfo[39m: Registered Route: POST /api/mail/distribution-lists
+[RouteUtils.emit] 2026-09-09T21:04:07.462Z [32minfo[39m: Registered Route: PUT /api/mail/distribution-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.462Z [32minfo[39m: Registered Route: DELETE /api/mail/distribution-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.462Z [32minfo[39m: Registered Route: GET /api/mail/distribution-lists
+[RouteUtils.emit] 2026-09-09T21:04:07.463Z [32minfo[39m: Registered Route: HEAD /api/mail/distribution-lists
+[RouteUtils.emit] 2026-09-09T21:04:07.463Z [32minfo[39m: Registered Route: GET /api/mail/distribution-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.463Z [32minfo[39m: Registered Route: HEAD /api/mail/distribution-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.463Z [32minfo[39m: Registered Route: DELETE /api/mail/distribution-lists
+[RouteUtils.emit] 2026-09-09T21:04:07.464Z [32minfo[39m: Registered Route: PUT /api/mail/distribution-lists
+[RouteUtils.emit] 2026-09-09T21:04:07.465Z [32minfo[39m: Registered Route: PUT /api/mail/distribution-lists/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:07.466Z [32minfo[39m: Registered Route: POST /api/mail/domains
+[RouteUtils.emit] 2026-09-09T21:04:07.466Z [32minfo[39m: Registered Route: PUT /api/mail/domains/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.466Z [32minfo[39m: Registered Route: DELETE /api/mail/domains/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.467Z [32minfo[39m: Registered Route: GET /api/mail/domains
+[RouteUtils.emit] 2026-09-09T21:04:07.467Z [32minfo[39m: Registered Route: HEAD /api/mail/domains
+[RouteUtils.emit] 2026-09-09T21:04:07.467Z [32minfo[39m: Registered Route: GET /api/mail/domains/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.468Z [32minfo[39m: Registered Route: POST /api/mail/domains/:id/verify
+[RouteUtils.emit] 2026-09-09T21:04:07.468Z [32minfo[39m: Registered Route: GET /api/mail/domains/:id/dns-setup
+[RouteUtils.emit] 2026-09-09T21:04:07.468Z [32minfo[39m: Registered Route: HEAD /api/mail/domains/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.468Z [32minfo[39m: Registered Route: DELETE /api/mail/domains
+[RouteUtils.emit] 2026-09-09T21:04:07.469Z [32minfo[39m: Registered Route: PUT /api/mail/domains
+[RouteUtils.emit] 2026-09-09T21:04:07.469Z [32minfo[39m: Registered Route: PUT /api/mail/domains/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:07.469Z [32minfo[39m: Registered Route: HEAD /api/mail/focused-inbox-overrides
+[RouteUtils.emit] 2026-09-09T21:04:07.470Z [32minfo[39m: Registered Route: POST /api/mail/focused-inbox-overrides
+[RouteUtils.emit] 2026-09-09T21:04:07.470Z [32minfo[39m: Registered Route: DELETE /api/mail/focused-inbox-overrides/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.470Z [32minfo[39m: Registered Route: HEAD /api/mail/focused-inbox-overrides/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.470Z [32minfo[39m: Registered Route: GET /api/mail/focused-inbox-overrides
+[RouteUtils.emit] 2026-09-09T21:04:07.471Z [32minfo[39m: Registered Route: GET /api/mail/focused-inbox-overrides/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.471Z [32minfo[39m: Registered Route: DELETE /api/mail/focused-inbox-overrides
+[RouteUtils.emit] 2026-09-09T21:04:07.471Z [32minfo[39m: Registered Route: PUT /api/mail/focused-inbox-overrides/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.471Z [32minfo[39m: Registered Route: PUT /api/mail/focused-inbox-overrides
+[RouteUtils.emit] 2026-09-09T21:04:07.472Z [32minfo[39m: Registered Route: PUT /api/mail/focused-inbox-overrides/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:07.472Z [32minfo[39m: Registered Route: HEAD /api/mail/folders
+[RouteUtils.emit] 2026-09-09T21:04:07.472Z [32minfo[39m: Registered Route: POST /api/mail/folders
+[RouteUtils.emit] 2026-09-09T21:04:07.473Z [32minfo[39m: Registered Route: GET /api/mail/folders
+[RouteUtils.emit] 2026-09-09T21:04:07.473Z [32minfo[39m: Registered Route: HEAD /api/mail/folders/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.473Z [32minfo[39m: Registered Route: DELETE /api/mail/folders/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.473Z [32minfo[39m: Registered Route: GET /api/mail/folders/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.474Z [32minfo[39m: Registered Route: DELETE /api/mail/folders
+[RouteUtils.emit] 2026-09-09T21:04:07.474Z [32minfo[39m: Registered Route: PUT /api/mail/folders/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.474Z [32minfo[39m: Registered Route: PUT /api/mail/folders
+[RouteUtils.emit] 2026-09-09T21:04:07.475Z [32minfo[39m: Registered Route: PUT /api/mail/folders/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:07.475Z [32minfo[39m: Registered Route: GET /api/mail/giphy/search
+
+[RouteUtils.emit] 2026-09-09T21:04:07.476Z [32minfo[39m: Registered Route: HEAD /api/mail/ingest-queue
+[RouteUtils.emit] 2026-09-09T21:04:07.476Z [32minfo[39m: Registered Route: POST /api/mail/ingest-queue
+[RouteUtils.emit] 2026-09-09T21:04:07.476Z [32minfo[39m: Registered Route: DELETE /api/mail/ingest-queue/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.477Z [32minfo[39m: Registered Route: HEAD /api/mail/ingest-queue/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.477Z [32minfo[39m: Registered Route: GET /api/mail/ingest-queue
+[RouteUtils.emit] 2026-09-09T21:04:07.477Z [32minfo[39m: Registered Route: GET /api/mail/ingest-queue/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.478Z [32minfo[39m: Registered Route: DELETE /api/mail/ingest-queue
+[RouteUtils.emit] 2026-09-09T21:04:07.478Z [32minfo[39m: Registered Route: PUT /api/mail/ingest-queue/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.478Z [32minfo[39m: Registered Route: PUT /api/mail/ingest-queue
+[RouteUtils.emit] 2026-09-09T21:04:07.479Z [32minfo[39m: Registered Route: PUT /api/mail/ingest-queue/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:07.479Z [32minfo[39m: Registered Route: POST /api/mail/mailboxes
+[RouteUtils.emit] 2026-09-09T21:04:07.479Z [32minfo[39m: Registered Route: POST /api/mail/mailboxes/auto-provision
+[RouteUtils.emit] 2026-09-09T21:04:07.479Z [32minfo[39m: Registered Route: GET /api/mail/mailboxes/domains
+[RouteUtils.emit] 2026-09-09T21:04:07.480Z [32minfo[39m: Registered Route: GET /api/mail/mailboxes
+[RouteUtils.emit] 2026-09-09T21:04:07.480Z [32minfo[39m: Registered Route: HEAD /api/mail/mailboxes
+[RouteUtils.emit] 2026-09-09T21:04:07.480Z [32minfo[39m: Registered Route: HEAD /api/mail/mailboxes/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.481Z [32minfo[39m: Registered Route: DELETE /api/mail/mailboxes/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.481Z [32minfo[39m: Registered Route: GET /api/mail/mailboxes/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.481Z [32minfo[39m: Registered Route: DELETE /api/mail/mailboxes
+[RouteUtils.emit] 2026-09-09T21:04:07.481Z [32minfo[39m: Registered Route: PUT /api/mail/mailboxes/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.482Z [32minfo[39m: Registered Route: PUT /api/mail/mailboxes
+[RouteUtils.emit] 2026-09-09T21:04:07.482Z [32minfo[39m: Registered Route: PUT /api/mail/mailboxes/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:07.482Z [32minfo[39m: Registered Route: POST /api/mail/compose/:id/assemble
+
+[RouteUtils.emit] 2026-09-09T21:04:07.483Z [32minfo[39m: Registered Route: HEAD /api/mail/mail-filter-rules
+[RouteUtils.emit] 2026-09-09T21:04:07.483Z [32minfo[39m: Registered Route: POST /api/mail/mail-filter-rules
+[RouteUtils.emit] 2026-09-09T21:04:07.483Z [32minfo[39m: Registered Route: DELETE /api/mail/mail-filter-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.483Z [32minfo[39m: Registered Route: HEAD /api/mail/mail-filter-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.484Z [32minfo[39m: Registered Route: GET /api/mail/mail-filter-rules
+[RouteUtils.emit] 2026-09-09T21:04:07.484Z [32minfo[39m: Registered Route: GET /api/mail/mail-filter-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.484Z [32minfo[39m: Registered Route: DELETE /api/mail/mail-filter-rules
+[RouteUtils.emit] 2026-09-09T21:04:07.485Z [32minfo[39m: Registered Route: PUT /api/mail/mail-filter-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.485Z [32minfo[39m: Registered Route: PUT /api/mail/mail-filter-rules
+[RouteUtils.emit] 2026-09-09T21:04:07.485Z [32minfo[39m: Registered Route: PUT /api/mail/mail-filter-rules/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:07.486Z [32minfo[39m: Registered Route: GET /internal/mta/domain
+[RouteUtils.emit] 2026-09-09T21:04:07.486Z [32minfo[39m: Registered Route: GET /internal/mta/resolve
+[RouteUtils.emit] 2026-09-09T21:04:07.486Z [32minfo[39m: Registered Route: POST /internal/mta/deliver
+
+[RouteUtils.emit] 2026-09-09T21:04:07.487Z [32minfo[39m: Registered Route: HEAD /api/mail/mail-signatures
+[RouteUtils.emit] 2026-09-09T21:04:07.487Z [32minfo[39m: Registered Route: POST /api/mail/mail-signatures
+[RouteUtils.emit] 2026-09-09T21:04:07.488Z [32minfo[39m: Registered Route: DELETE /api/mail/mail-signatures/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.488Z [32minfo[39m: Registered Route: HEAD /api/mail/mail-signatures/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.489Z [32minfo[39m: Registered Route: GET /api/mail/mail-signatures
+[RouteUtils.emit] 2026-09-09T21:04:07.489Z [32minfo[39m: Registered Route: GET /api/mail/mail-signatures/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.489Z [32minfo[39m: Registered Route: DELETE /api/mail/mail-signatures
+[RouteUtils.emit] 2026-09-09T21:04:07.489Z [32minfo[39m: Registered Route: PUT /api/mail/mail-signatures/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.490Z [32minfo[39m: Registered Route: PUT /api/mail/mail-signatures
+[RouteUtils.emit] 2026-09-09T21:04:07.490Z [32minfo[39m: Registered Route: PUT /api/mail/mail-signatures/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:07.490Z [32minfo[39m: Registered Route: GET /api/mail/messages/conversations
+[RouteUtils.emit] 2026-09-09T21:04:07.490Z [32minfo[39m: Registered Route: POST /api/mail/messages/:id/send
+[RouteUtils.emit] 2026-09-09T21:04:07.491Z [32minfo[39m: Registered Route: POST /api/mail/messages/:id/recall
+[RouteUtils.emit] 2026-09-09T21:04:07.491Z [32minfo[39m: Registered Route: POST /api/mail/messages/:id/classify
+[RouteUtils.emit] 2026-09-09T21:04:07.491Z [32minfo[39m: Registered Route: PUT /api/mail/messages/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.492Z [32minfo[39m: Registered Route: POST /api/mail/messages/:id/receipt/approve
+[RouteUtils.emit] 2026-09-09T21:04:07.492Z [32minfo[39m: Registered Route: POST /api/mail/messages/:id/receipt/decline
+[RouteUtils.emit] 2026-09-09T21:04:07.492Z [32minfo[39m: Registered Route: DELETE /api/mail/messages/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.492Z [32minfo[39m: Registered Route: GET /api/mail/messages/:id/content
+[RouteUtils.emit] 2026-09-09T21:04:07.493Z [32minfo[39m: Registered Route: HEAD /api/mail/messages
+[RouteUtils.emit] 2026-09-09T21:04:07.493Z [32minfo[39m: Registered Route: POST /api/mail/messages
+[RouteUtils.emit] 2026-09-09T21:04:07.493Z [32minfo[39m: Registered Route: HEAD /api/mail/messages/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.493Z [32minfo[39m: Registered Route: GET /api/mail/messages
+[RouteUtils.emit] 2026-09-09T21:04:07.494Z [32minfo[39m: Registered Route: GET /api/mail/messages/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.494Z [32minfo[39m: Registered Route: DELETE /api/mail/messages
+[RouteUtils.emit] 2026-09-09T21:04:07.494Z [32minfo[39m: Registered Route: PUT /api/mail/messages
+[RouteUtils.emit] 2026-09-09T21:04:07.495Z [32minfo[39m: Registered Route: PUT /api/mail/messages/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:07.495Z [32minfo[39m: Registered Route: GET /api/metrics
+[RouteUtils.emit] 2026-09-09T21:04:07.495Z [32minfo[39m: Registered Route: GET /api/metrics/:metric
+
+[RouteUtils.emit] 2026-09-09T21:04:07.496Z [32minfo[39m: Registered Route: HEAD /api/mail/notes
+[RouteUtils.emit] 2026-09-09T21:04:07.496Z [32minfo[39m: Registered Route: POST /api/mail/notes
+[RouteUtils.emit] 2026-09-09T21:04:07.496Z [32minfo[39m: Registered Route: DELETE /api/mail/notes/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.497Z [32minfo[39m: Registered Route: HEAD /api/mail/notes/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.497Z [32minfo[39m: Registered Route: GET /api/mail/notes
+[RouteUtils.emit] 2026-09-09T21:04:07.497Z [32minfo[39m: Registered Route: GET /api/mail/notes/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.498Z [32minfo[39m: Registered Route: DELETE /api/mail/notes
+[RouteUtils.emit] 2026-09-09T21:04:07.498Z [32minfo[39m: Registered Route: PUT /api/mail/notes/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.498Z [32minfo[39m: Registered Route: PUT /api/mail/notes
+[RouteUtils.emit] 2026-09-09T21:04:07.499Z [32minfo[39m: Registered Route: PUT /api/mail/notes/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:07.499Z [32minfo[39m: Registered Route: GET /api/openapi
+[RouteUtils.emit] 2026-09-09T21:04:07.500Z [32minfo[39m: Registered Route: GET /api/openapi/json
+[RouteUtils.emit] 2026-09-09T21:04:07.500Z [32minfo[39m: Registered Route: GET /api/openapi/yaml
+
+[RouteUtils.emit] 2026-09-09T21:04:07.500Z [32minfo[39m: Registered Route: WS /push
+[RouteUtils.emit] 2026-09-09T21:04:07.500Z [32minfo[39m: Registered Route: POST /push/:id
+
+[RouteUtils.emit] 2026-09-09T21:04:07.501Z [32minfo[39m: Registered Route: HEAD /api/mail/quarantine
+[RouteUtils.emit] 2026-09-09T21:04:07.501Z [32minfo[39m: Registered Route: POST /api/mail/quarantine
+[RouteUtils.emit] 2026-09-09T21:04:07.501Z [32minfo[39m: Registered Route: DELETE /api/mail/quarantine/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.502Z [32minfo[39m: Registered Route: HEAD /api/mail/quarantine/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.502Z [32minfo[39m: Registered Route: GET /api/mail/quarantine
+[RouteUtils.emit] 2026-09-09T21:04:07.502Z [32minfo[39m: Registered Route: GET /api/mail/quarantine/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.502Z [32minfo[39m: Registered Route: DELETE /api/mail/quarantine
+[RouteUtils.emit] 2026-09-09T21:04:07.503Z [32minfo[39m: Registered Route: PUT /api/mail/quarantine/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.503Z [32minfo[39m: Registered Route: PUT /api/mail/quarantine
+[RouteUtils.emit] 2026-09-09T21:04:07.503Z [32minfo[39m: Registered Route: PUT /api/mail/quarantine/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:07.503Z [32minfo[39m: Registered Route: GET /api/mail/search
+
+[RouteUtils.emit] 2026-09-09T21:04:07.504Z [32minfo[39m: Registered Route: GET /api/status
+
+[RouteUtils.emit] 2026-09-09T21:04:07.504Z [32minfo[39m: Registered Route: HEAD /api/mail/task-lists
+[RouteUtils.emit] 2026-09-09T21:04:07.504Z [32minfo[39m: Registered Route: POST /api/mail/task-lists
+[RouteUtils.emit] 2026-09-09T21:04:07.505Z [32minfo[39m: Registered Route: DELETE /api/mail/task-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.505Z [32minfo[39m: Registered Route: HEAD /api/mail/task-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.505Z [32minfo[39m: Registered Route: GET /api/mail/task-lists
+[RouteUtils.emit] 2026-09-09T21:04:07.506Z [32minfo[39m: Registered Route: GET /api/mail/task-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.506Z [32minfo[39m: Registered Route: DELETE /api/mail/task-lists
+[RouteUtils.emit] 2026-09-09T21:04:07.506Z [32minfo[39m: Registered Route: PUT /api/mail/task-lists/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.506Z [32minfo[39m: Registered Route: PUT /api/mail/task-lists
+[RouteUtils.emit] 2026-09-09T21:04:07.507Z [32minfo[39m: Registered Route: PUT /api/mail/task-lists/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:07.507Z [32minfo[39m: Registered Route: HEAD /api/mail/tasks
+[RouteUtils.emit] 2026-09-09T21:04:07.508Z [32minfo[39m: Registered Route: POST /api/mail/tasks
+[RouteUtils.emit] 2026-09-09T21:04:07.508Z [32minfo[39m: Registered Route: DELETE /api/mail/tasks/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.508Z [32minfo[39m: Registered Route: HEAD /api/mail/tasks/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.509Z [32minfo[39m: Registered Route: GET /api/mail/tasks
+[RouteUtils.emit] 2026-09-09T21:04:07.509Z [32minfo[39m: Registered Route: GET /api/mail/tasks/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.509Z [32minfo[39m: Registered Route: DELETE /api/mail/tasks
+[RouteUtils.emit] 2026-09-09T21:04:07.510Z [32minfo[39m: Registered Route: PUT /api/mail/tasks/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.510Z [32minfo[39m: Registered Route: PUT /api/mail/tasks
+[RouteUtils.emit] 2026-09-09T21:04:07.510Z [32minfo[39m: Registered Route: PUT /api/mail/tasks/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:07.511Z [32minfo[39m: Registered Route: POST /api/mail/transport-rules
+[RouteUtils.emit] 2026-09-09T21:04:07.511Z [32minfo[39m: Registered Route: PUT /api/mail/transport-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.511Z [32minfo[39m: Registered Route: DELETE /api/mail/transport-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.512Z [32minfo[39m: Registered Route: GET /api/mail/transport-rules
+[RouteUtils.emit] 2026-09-09T21:04:07.512Z [32minfo[39m: Registered Route: HEAD /api/mail/transport-rules
+[RouteUtils.emit] 2026-09-09T21:04:07.512Z [32minfo[39m: Registered Route: GET /api/mail/transport-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.512Z [32minfo[39m: Registered Route: HEAD /api/mail/transport-rules/:id
+[RouteUtils.emit] 2026-09-09T21:04:07.513Z [32minfo[39m: Registered Route: DELETE /api/mail/transport-rules
+[RouteUtils.emit] 2026-09-09T21:04:07.513Z [32minfo[39m: Registered Route: PUT /api/mail/transport-rules
+[RouteUtils.emit] 2026-09-09T21:04:07.513Z [32minfo[39m: Registered Route: PUT /api/mail/transport-rules/:id/:property
+
+[RouteUtils.emit] 2026-09-09T21:04:07.514Z [32minfo[39m: Registered Route: GET /*
+[RouteUtils.emit] 2026-09-09T21:04:07.514Z [32minfo[39m: Registered Route: GET /
+
+[DerivedLogger.emit] 2026-09-09T21:04:07.514Z [32minfo[39m: Listening on 0.0.0.0:3000...
+
+[DerivedLogger.emit] 2026-09-09T21:04:07.515Z [32minfo[39m: Stopping background services...
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.515Z [32minfo[39m: Stopping background service AttachmentExtractionJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.516Z [32minfo[39m: Stopping background service CalendarReminderJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.516Z [32minfo[39m: Stopping background service DomainVerificationJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.516Z [32minfo[39m: Stopping background service EasDeviceStateCleanupJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.516Z [32minfo[39m: Stopping background service ExternalShareExpirationJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.517Z [32minfo[39m: Stopping background service MailboxQuotaRecalcJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.517Z [32minfo[39m: Stopping background service MeetingSchedulingJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.517Z [32minfo[39m: Stopping background service QuarantineRetentionJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.518Z [32minfo[39m: Stopping background service ScanQueueJobMongo...
+
+[BackgroundServiceManager.emit] 2026-09-09T21:04:07.518Z [32minfo[39m: Stopping background service SearchIndexJobMongo...
+
+[DerivedLogger.emit] 2026-09-09T21:04:07.519Z [32minfo[39m: Stopping server...
+[DerivedLogger.emit] 2026-09-09T21:04:07.519Z [32minfo[39m: Closing database connections...
+
+[ConnectionManager.emit] 2026-09-09T21:04:07.521Z [32minfo[39m: Successfully disconnected from all configured databases.
+
+            </system-out>
+        </testcase>
+    </testsuite>
+</testsuites>
