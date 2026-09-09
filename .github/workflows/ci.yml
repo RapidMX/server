@@ -13,7 +13,7 @@ jobs:
     container:
       image: node:lts-trixie-slim
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Enable corepack
         run: corepack enable
@@ -28,6 +28,9 @@ jobs:
           key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
+
+      - name: Install system dependencies
+        run: apt update && apt install build-essential python3 -y
 
       - name: Install dependencies
         run: export REDISMS_DISABLE_POSTINSTALL=true && yarn install
@@ -47,7 +50,7 @@ jobs:
     container:
       image: node:lts-trixie-slim
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Enable corepack
         run: corepack enable
@@ -61,7 +64,7 @@ jobs:
             ${{ runner.os }}-yarn-
       
       - name: Install system dependencies
-        run: apt-get update && apt-get install -y libcurl4t64
+        run: apt-get update && apt-get install -y build-essential python3 libcurl4t64
       
       - name: Install dependencies
         run: export REDISMS_DISABLE_POSTINSTALL=true && yarn install --frozen-lockfile
@@ -80,7 +83,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       - name: Docker build test
         run: |
           docker build -t ${{ github.event.repository.name }} . --no-cache
@@ -91,7 +94,7 @@ jobs:
     needs: test
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Set up Helm
         uses: azure/setup-helm@v4
@@ -105,7 +108,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: test-docker-build
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       - name: Run test-run-mongo.sh
         run: bash ./scripts/test-run-mongo.sh
 
@@ -113,7 +116,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: test-docker-build
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       - name: Run test-run-sql.sh
         run: bash ./scripts/test-run-sql.sh
   validate:
@@ -123,7 +126,7 @@ jobs:
       image: node:lts-trixie-slim
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Run validation script
         run: |
@@ -139,15 +142,12 @@ jobs:
       packages: write
     environment: publish
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Extract package name
         id: pkg
         run: |
-          # package.json's "name" is the scoped npm name (@rapidmx/server) - strip the scope, since a
-          # literal "@" makes for an invalid Docker image reference ("docker build -t ghcr.io/<owner>/
-          # @rapidmx/server:latest" fails outright with "invalid reference format").
-          echo "name=$(yq '.name' package.json | sed -E 's|^@[^/]+/||')" >> "$GITHUB_OUTPUT"
+          echo "name=$(yq '.name' package.json)" >> "$GITHUB_OUTPUT"
 
       - name: Login to GHCR
         run: |
@@ -191,7 +191,7 @@ jobs:
     environment: publish
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Set up Helm
         uses: azure/setup-helm@v4
