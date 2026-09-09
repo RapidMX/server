@@ -138,21 +138,21 @@ describe("SettingsShell", () => {
         expect(link).toHaveAttribute("href", "/settings/auto-reply?mailboxUid=mb-a");
     });
 
-    it("does not highlight a section that isn't the active one", async () => {
-        // `SETTINGS_SECTIONS` has exactly one real entry until a later phase (Mail Filters) adds a
-        // second — `active` is cast to exercise the "not the active section" rendering branch now,
-        // ahead of that second real consumer, the same "future-reachable, genuinely tested" precedent
-        // this plan already established for `RuleBuilder.addAction`'s own guard.
+    it("highlights only the active section, not the other one", async () => {
         mockMailboxes([mailboxA]);
         render(
-            <SettingsShell active={"not-a-real-section" as any} userUid="u1">
+            <SettingsShell active="filters" userUid="u1">
                 content
             </SettingsShell>,
         );
 
-        const link = await screen.findByRole("link", { name: "Automatic Replies" });
-        expect(link).not.toHaveAttribute("aria-current");
-        expect(link.className).not.toContain("bg-primary/10");
+        const filtersLink = await screen.findByRole("link", { name: "Mail Filters" });
+        expect(filtersLink).toHaveAttribute("aria-current", "page");
+        expect(filtersLink.className).toContain("bg-primary/10");
+
+        const autoReplyLink = screen.getByRole("link", { name: "Automatic Replies" });
+        expect(autoReplyLink).not.toHaveAttribute("aria-current");
+        expect(autoReplyLink.className).not.toContain("bg-primary/10");
     });
 
     it("shows the mailbox switcher when more than one mailbox is accessible, marking a shared one", async () => {

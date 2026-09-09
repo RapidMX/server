@@ -9,12 +9,16 @@ const INPUT_CLASS =
     "flex-1 text-sm py-2 px-3 border border-border rounded-sm bg-surface text-text focus:outline-none focus:border-primary";
 
 /** One condition field this scope's `Conditions` shape supports — `"list"` renders an add/remove chip
- * editor for a `string[]` field, `"boolean"` a plain checkbox. */
+ * editor for a `string[]` field, `"boolean"` a plain checkbox, `"select"` a fixed-choice dropdown for a
+ * field with a small closed set of string values (e.g. `MailFilterConditions.importance`). */
 export interface ConditionFieldDef {
     key: string;
     label: string;
-    kind: "list" | "boolean";
+    kind: "list" | "boolean" | "select";
     placeholder?: string;
+    /** Required when `kind` is `"select"` — the fixed set of values this field may hold, plus an
+     * implicit "Any" option that clears the field entirely. */
+    options?: { value: string; label: string }[];
 }
 
 /** One action type this scope's `Action` union supports — the per-scope registry the shared condition
@@ -50,10 +54,13 @@ export interface RuleBuilderProps<C extends object, A extends { type: string }> 
  * conditions and runs actions in order — `TransportRule` (admin, org-wide) and `MailFilterRule`
  * (mailbox-scoped) both have this same `{enabled, sequence, stopProcessingRules, conditions, actions}`
  * shape. Conditions are driven by a declarative `conditionFields` list so both scopes share this one
- * editor despite their `Conditions` types not being identical; actions are driven by a small per-scope
- * `actionTypes` registry instead, since the two action vocabularies (reject/quarantine/add-header/
- * add-recipient vs. move/copy/delete/mark-read/forward) are different enough that one component
- * special-casing both would be worse than this split.
+ * editor despite their `Conditions` types not being identical — `MailFilterConditions.importance`
+ * (`MailFilterRule`'s one condition field `TransportRuleConditions` has no equivalent of) is what forced
+ * this list beyond `"list"`/`"boolean"` to add a third `"select"` kind for a small fixed-choice field,
+ * confirming the shared editor still generalizes rather than needing a fork; actions are driven by a
+ * small per-scope `actionTypes` registry instead, since the two action vocabularies (reject/quarantine/
+ * add-header/add-recipient vs. move/copy/delete/mark-read/forward) are different enough that one
+ * component special-casing both would be worse than this split.
  */
 export default function RuleBuilder<C extends object, A extends { type: string }>({
     value,
@@ -87,6 +94,10 @@ export default function RuleBuilder<C extends object, A extends { type: string }
         patch({ conditions: { ...conditions, [key]: !conditions[key] } as C });
     }
 
+    function setSelect(key: string, value: string) {
+        patch({ conditions: { ...conditions, [key]: value || undefined } as C });
+    }
+
     function addAction() {
         const def = actionTypes.find((t) => t.value === newActionType);
         if (!def) return;
@@ -106,17 +117,42 @@ export default function RuleBuilder<C extends object, A extends { type: string }
             <div className="bg-surface border border-border rounded-md p-6">
                 <h2 className="text-base font-bold uppercase tracking-wide mb-4">Conditions</h2>
                 <div className="flex flex-col gap-4">
-                    {conditionFields.map((field) =>
-                        field.kind === "boolean" ? (
-                            <label key={field.key} className="flex items-center gap-2 text-sm">
-                                <input
-                                    type="checkbox"
-                                    checked={!!conditions[field.key]}
-                                    onChange={() => toggleBoolean(field.key)}
-                                />
-                                {field.label}
-                            </label>
-                        ) : (
+                    {conditionFields.map((field) => {
+                        if (field.kind === "boolean") {
+                            return (
+                                <label key={field.key} className="flex items-center gap-2 text-sm">
+                                    <input
+                                        type="checkbox"
+                                        checked={!!conditions[field.key]}
+                                        onChange={() => toggleBoolean(field.key)}
+                                    />
+                                    {field.label}
+                                </label>
+                            );
+                        }
+                        if (field.kind === "select") {
+                            return (
+                                <div key={field.key}>
+                                    <label className="text-sm font-semibold mb-1.5 block" htmlFor={`condition-${field.key}`}>
+                                        {field.label}
+                                    </label>
+                                    <select
+                                        id={`condition-${field.key}`}
+                                        className={INPUT_CLASS}
+                                        value={(conditions[field.key] as string | undefined) ?? ""}
+                                        onChange={(e) => setSelect(field.key, e.target.value)}
+                                    >
+                                        <option value="">Any</option>
+                                        {(field.options ?? []).map((opt) => (
+                                            <option key={opt.value} value={opt.value}>
+                                                {opt.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            );
+                        }
+                        return (
                             <div key={field.key}>
                                 <div className="text-sm font-semibold mb-1.5">{field.label}</div>
                                 <div className="flex flex-wrap gap-2 mb-2">
@@ -162,8 +198,8 @@ export default function RuleBuilder<C extends object, A extends { type: string }
                                     </Button>
                                 </div>
                             </div>
-                        ),
-                    )}
+                        );
+                    })}
                 </div>
             </div>
 

@@ -2461,4 +2461,95 @@ out-of-office), and a small independent Automatic Reply toggle on calendar event
   the Phase 8 entry's own ending (a leftover trailing line an `Edit` call's `old_string` didn't quite
   reach) — no content lost, just a stray dangling line after Phase 9's own "Not yet committed" bullet,
   now cleaned up and that bullet updated to reflect Phase 9's real commit hash (`a34d5be`).
+- **Committed** as `a6cb8a1`.
+
+### 2026-09-08 — Wiring `@rapidmx/restapi`'s new features into `server`: Phase 11 (Mail filters, webmail
+Settings, reusing `RuleBuilder`)
+
+Eleventh slice of the same 15-phase plan (see the Phase 0–10 entries above for full context). Adds a
+second Settings section — mailbox-scoped inbox rules (MAPI/Outlook "Rules Wizard" equivalent) — and
+doubles as the plan's own stated test of whether Phase 4's `RuleBuilder` shared/per-scope split holds up
+under a second, genuinely different consumer.
+
+- **A brand-new backend route this phase, not just a client wrapper**: unlike every other entity wired
+  into this plan so far, `@rapidmx/restapi` ships `MailFilterRuleRouteMongo`/`...SQL` but `server` never
+  mounted them — confirmed via `grep`, no `src/{mongo,sql}/routes/MailFilterRuleRoute.ts` existed at
+  all. Added both, following the exact one-line-subclass + `@ApiRoute("mail/mail-filter-rules")`
+  pattern every other entity route already uses (`TransportRuleRoute.ts` was the closest template).
+  **Confirmed these trivial files don't need their own dedicated unit test**: `Server.mongo.test.ts`/
+  `Server.sql.test.ts` boot the real app (which scans/registers every route file), so the bare `class
+  X extends Y {}` declaration — its only "statement" — is naturally exercised the same way every
+  sibling route file already is, without a purpose-built test.
+- `apps/shared/lib/mailFilterRulesApi.ts` (new) — `MailFilterRule`/`MailFilterAction`/
+  `MailFilterConditions` types + full CRUD, directly mirroring `transportRulesApi.ts`'s shape except
+  mailbox-scoped: confirmed via reading `BaseScopedChildRoute` directly that `list()` requires
+  `mailboxUid` as a **query** param (400s without one — verified live) and `create()` requires it in
+  the **body**, so `listMailFilterRules(mailboxUid, params)` takes it as a required first argument
+  rather than folding it into `ListParams`. **Live, enforced feature, not a stub**: confirmed via
+  reading `ScanQueueJob`/`MailFilterUtils.ts` that this evaluates immediately after a message is
+  verdicted "deliver," before it reaches Inbox.
+- **`RuleBuilder.tsx` gains a third `ConditionFieldDef` kind, `"select"`** — `MailFilterConditions.
+  importance` (`"low"|"normal"|"high"`) has no `TransportRuleConditions` equivalent and doesn't fit
+  the existing `"list"`/`"boolean"` kinds. This is the real answer to the plan's own question about
+  whether the shared/per-scope split holds up under a second consumer: **it does**, via a small,
+  legitimate extension to the shared component (a new field kind any future scope's fixed-choice
+  condition can reuse) rather than a fork or a per-scope escape hatch — the per-scope split stays
+  exactly where it already was (`actionTypes`), and only the *shared* editor grew, in a way `TransportRule`
+  itself could adopt too if it ever needed a select field. Updated the component's own doc comment to
+  record this rather than leave the "why" to be rediscovered.
+- `apps/www/settings/filters/mailFilterRuleConfig.tsx` (new) — the mail-filter condition/action
+  vocabulary, direct sibling of `transportRuleConfig.tsx`. The two folder-taking actions
+  (`move_to_folder`/`copy_to_folder`) need a real folder `<select>`, but `RuleBuilder`'s own `render()`
+  contract is synchronous — resolved by having the *page* load `listFolders(mailboxUid)` once up front
+  (it already needs to, for the page's own loading state) and passing the resolved list into a new
+  `buildMailFilterActionTypes(folders)` factory that closes over it, rather than each action row
+  fetching independently. Excludes a mailbox's `calendar`/`contacts`/`tasks`/`notes` folders from the
+  destination picker — those hold a different entity type entirely, not messages.
+- `apps/www/settings/filters/{index,new/index,detail/index}.tsx` (new) — the same list/create/edit
+  three-page shape `apps/admin/transport-rules/` already established, adapted for `SettingsShell`
+  instead of `AdminShell` and for mailbox-scoping: every inter-page link explicitly carries
+  `?mailboxUid=` (unlike the org-wide admin pages, which have no such concept), since this framework
+  has no client router and `SettingsShell` itself would otherwise silently fall back to the caller's
+  *first* accessible mailbox on the next page load rather than preserving an explicitly-chosen one.
+  **A real bug caught by its own test, not shipped**: the detail page's initial `getMailFilterRule()`
+  `.then()` handler was missing the `if (loaded) { ... }` guard `TransportRuleDetailContent`'s own
+  identical loader has — copied the pattern but dropped the guard while simplifying, which meant a
+  `null` response (the deliberately-tested "malformed response" case, not a realistic one for this
+  particular route's real contract, but a genuine client-resilience concern regardless) crashed inside
+  `.then()` instead of falling through to the "not found" message. The "falls back to 'Mail filter not
+  found.'" test (mirroring the `TransportRule` precedent) caught this immediately on first run — fixed
+  by restoring the guard.
+- `SettingsShell.tsx`: `SETTINGS_SECTIONS` gains `filters` → `/settings/filters` ("Mail Filters"), the
+  second real entry. **This let a Phase-10 test get strictly more honest**: `SettingsShell.test.tsx`'s
+  "not the active section" branch test previously had to cast a synthetic `active` value through `as
+  any` (documented then as a deliberate, temporary "future-reachable" precedent, since only one real
+  section existed at Phase 10 time) — replaced with a real test using the genuine `active="filters"`
+  vs. `"auto-reply"` pair, no cast needed, now that a second section actually exists.
+- All new/touched files reached 100% coverage this phase (`mailFilterRulesApi.ts`, `RuleBuilder.tsx`'s
+  new `"select"` branch — including a genuine test for a select field's own `options` being omitted,
+  a real defensive-fallback case since `options` is TypeScript-optional even though the doc comment
+  says "required" for that kind — `mailFilterRuleConfig.tsx`, all three new pages), confirmed via
+  `lcov.info`. `RuleBuilder.tsx`'s one other pre-existing branch gap (`removeListEntry`'s `?? []`,
+  already accounted for in `apps/**`'s 99%-branches aggregate budget since Phase 4) is untouched by
+  this phase and remains exactly as it was.
+- Verification: `yarn tsc --noEmit`, client `tsc -p tsconfig.client.json --noEmit`, `yarn lint` all
+  clean. Full `yarn test`: 1123/1123 passing, coverage gate holds with no new carve-outs (`src/mongo/
+  routes`/`src/sql/routes` aggregate ticked up slightly, from the two new route files landing exactly
+  where every sibling route file already does). **Also cleaned up a real mess found along the way**:
+  four-plus orphaned `yarn dev`/`tsx --watch` process trees had accumulated across this session's
+  earlier restarts (killing only the port-owning child left the `tsx --watch` supervisor and its
+  `preflight.cjs` child alive as zombies each time) — killed every stray `server.ts`/`cli.mjs` node
+  process before starting this phase's dev server, confirmed no mongod/redis-memory-server processes
+  were left running independently either. Real `yarn dev` + `curl` (dev auto-auth, cookie jar) after a
+  clean restart (a brand-new backend route + three new page files both hit the standing "needs a
+  restart" gotcha): confirmed `/settings/filters`, `/settings/filters/new`, and `/settings/filters/
+  detail` all return `200`; created a real mailbox/folder, then a real `MailFilterRule` via `POST` with
+  a `move_to_folder` action referencing that folder — full CRUD cycle (`GET` scoped-list, `GET` by uid,
+  `PUT`, `DELETE`, confirmed `404` after) all behaved exactly as the client code assumes; confirmed
+  `GET .../mail-filter-rules` with no `mailboxUid` correctly `400`s (`BaseScopedChildRoute`'s own
+  contract, live-verified rather than just trusted from reading the source); confirmed the webmail
+  index/calendar/settings-auto-reply pages all still return `200` post-restart. **No interactive
+  browser click-through was done** — same standing limitation as every entry in this file; JP should
+  verify visually before relying on this, particularly the new `"select"` condition field's layout and
+  the folder-picker action rows.
 - Not yet committed — holding for JP's review/commit-authorization, same default as every entry above.

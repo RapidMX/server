@@ -3,7 +3,7 @@
 // Copyright (C) 2026 Jean-Philippe Steinmetz. All rights reserved.
 ///////////////////////////////////////////////////////////////////////////////
 import React, { useState } from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import RuleBuilder, {
@@ -15,6 +15,7 @@ import RuleBuilder, {
 interface TestConditions {
     fromContains?: string[];
     hasAttachment?: boolean;
+    importance?: string;
 }
 
 interface TestAction {
@@ -25,6 +26,15 @@ interface TestAction {
 const CONDITION_FIELDS: ConditionFieldDef[] = [
     { key: "fromContains", label: "From contains", kind: "list" },
     { key: "hasAttachment", label: "Has an attachment", kind: "boolean" },
+    {
+        key: "importance",
+        label: "Importance",
+        kind: "select",
+        options: [
+            { value: "low", label: "Low" },
+            { value: "high", label: "High" },
+        ],
+    },
 ];
 
 const ACTION_TYPES: ActionTypeDef<TestAction>[] = [
@@ -123,6 +133,44 @@ describe("RuleBuilder", () => {
         await user.click(screen.getByRole("button", { name: "Remove spam.example.com" }));
 
         expect(screen.queryByText("spam.example.com")).not.toBeInTheDocument();
+    });
+
+    it("renders a select condition field defaulting to 'Any', with its options", () => {
+        render(<ControlledRuleBuilder />);
+        const select = screen.getByLabelText("Importance");
+        expect(select).toHaveValue("");
+        expect(screen.getByRole("option", { name: "Any" })).toBeInTheDocument();
+        expect(screen.getByRole("option", { name: "Low" })).toBeInTheDocument();
+        expect(screen.getByRole("option", { name: "High" })).toBeInTheDocument();
+    });
+
+    it("renders just the 'Any' option, without crashing, when a select field's own options are omitted", () => {
+        // `options` is typed optional (only "required" by doc comment, for "select" fields) so a caller
+        // could still omit it by mistake — this proves that mistake degrades gracefully instead of
+        // throwing on `field.options.map(...)`.
+        render(
+            <RuleBuilder
+                value={EMPTY_VALUE}
+                onChange={vi.fn()}
+                conditionFields={[{ key: "importance", label: "Importance", kind: "select" }]}
+                actionTypes={ACTION_TYPES}
+            />,
+        );
+        expect(within(screen.getByLabelText("Importance")).getAllByRole("option")).toHaveLength(1);
+    });
+
+    it("sets a select condition's value, and clears it back to undefined via 'Any'", async () => {
+        const onChangeSpy = vi.fn();
+        const user = userEvent.setup();
+        render(<ControlledRuleBuilder onChangeSpy={onChangeSpy} />);
+
+        await user.selectOptions(screen.getByLabelText("Importance"), "high");
+        expect(screen.getByLabelText("Importance")).toHaveValue("high");
+        expect(onChangeSpy).toHaveBeenLastCalledWith(expect.objectContaining({ conditions: { importance: "high" } }));
+
+        await user.selectOptions(screen.getByLabelText("Importance"), "");
+        expect(screen.getByLabelText("Importance")).toHaveValue("");
+        expect(onChangeSpy).toHaveBeenLastCalledWith(expect.objectContaining({ conditions: { importance: undefined } }));
     });
 
     it("toggles a boolean condition", async () => {
