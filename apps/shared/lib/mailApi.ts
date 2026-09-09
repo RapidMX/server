@@ -55,6 +55,13 @@ export function getMailbox(uid: string): Promise<Mailbox> {
     return apiFetch(`/mail/mailboxes/${encodeURIComponent(uid)}`);
 }
 
+/** Lists bookable resource mailboxes (rooms/equipment) visible to the caller — same ACL scoping as
+ * `listMailboxes()`, just pre-filtered server-side to `isResource: true` so `ResourcePicker` doesn't
+ * need to fetch and filter the caller's entire mailbox list client-side. */
+export function listResourceMailboxes(params: ListParams = {}): Promise<Mailbox[]> {
+    return apiFetch(`/mail/mailboxes?${buildQuery(params, { isResource: "true" })}`);
+}
+
 export interface CreateMailboxInput {
     /** Omit entirely to create a true ownerless shared mailbox — trusted-role-only (see BaseMailboxRoute). */
     ownerUserUid?: string;

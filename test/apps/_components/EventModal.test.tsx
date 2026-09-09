@@ -9,6 +9,34 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { jsonResponse, mockFetch } from "../testUtils.js";
 import EventModal from "../../../apps/shared/components/calendar/EventModal.js";
 import { CalendarOccurrence } from "../../../apps/shared/lib/recurrence.js";
+import { Mailbox } from "../../../apps/shared/lib/mailApi.js";
+
+// `ResourcePicker`'s own loading/filtering/error rendering is tested in its own file — mocked here so
+// this file only exercises how `EventModal` opens it and reacts to a selection.
+vi.mock("../../../apps/shared/components/calendar/ResourcePicker.js", () => ({
+    default: ({
+        onSelect,
+        onClose,
+        excludeAddresses,
+    }: {
+        onSelect: (mailbox: Partial<Mailbox>) => void;
+        onClose: () => void;
+        excludeAddresses: string[];
+    }) => (
+        <div>
+            <button
+                type="button"
+                onClick={() => onSelect({ uid: "room-a@example.com", primarySmtpAddress: "room-a@example.com", displayName: "Room A" })}
+            >
+                fake-resource
+            </button>
+            <span data-testid="exclude-addresses">{excludeAddresses.join(",")}</span>
+            <button type="button" onClick={onClose}>
+                fake-resource-close
+            </button>
+        </div>
+    ),
+}));
 
 function occurrence(overrides: Partial<CalendarOccurrence> = {}): CalendarOccurrence {
     return {
@@ -935,6 +963,93 @@ describe("EventModal", () => {
             await user.click(screen.getByRole("button", { name: "Decline" }));
 
             expect(await screen.findByText("Could not send your response.")).toBeInTheDocument();
+        });
+    });
+
+    describe("resource picker", () => {
+        it("is closed until '+ Add room/equipment' is clicked", async () => {
+            const user = userEvent.setup();
+            render(
+                <EventModal
+                    open
+                    onClose={vi.fn()}
+                    mailboxUid="mb1"
+                    folderUid="f1"
+                    organizerAddress="jane@example.com"
+                    occurrence={null}
+                    onSaved={vi.fn()}
+                    onDeleted={vi.fn()}
+                />,
+            );
+
+            expect(screen.queryByText("fake-resource")).not.toBeInTheDocument();
+            await user.click(screen.getByRole("button", { name: "+ Add room/equipment" }));
+            expect(screen.getByText("fake-resource")).toBeInTheDocument();
+        });
+
+        it("closes via the picker's own onClose", async () => {
+            const user = userEvent.setup();
+            render(
+                <EventModal
+                    open
+                    onClose={vi.fn()}
+                    mailboxUid="mb1"
+                    folderUid="f1"
+                    organizerAddress="jane@example.com"
+                    occurrence={null}
+                    onSaved={vi.fn()}
+                    onDeleted={vi.fn()}
+                />,
+            );
+
+            await user.click(screen.getByRole("button", { name: "+ Add room/equipment" }));
+            await user.click(screen.getByText("fake-resource-close"));
+            expect(screen.queryByText("fake-resource")).not.toBeInTheDocument();
+        });
+
+        it("selecting a resource adds it as a 'resource' attendee and closes the picker", async () => {
+            const user = userEvent.setup();
+            render(
+                <EventModal
+                    open
+                    onClose={vi.fn()}
+                    mailboxUid="mb1"
+                    folderUid="f1"
+                    organizerAddress="jane@example.com"
+                    occurrence={null}
+                    onSaved={vi.fn()}
+                    onDeleted={vi.fn()}
+                />,
+            );
+
+            await user.click(screen.getByRole("button", { name: "+ Add room/equipment" }));
+            await user.click(screen.getByText("fake-resource"));
+
+            expect(screen.queryByText("fake-resource")).not.toBeInTheDocument();
+            expect(screen.getByLabelText("Attendee email 1")).toHaveValue("room-a@example.com");
+            expect(screen.getByLabelText("Attendee role 1")).toHaveValue("resource");
+        });
+
+        it("passes the current attendees' addresses (lowercased) as excludeAddresses", async () => {
+            const withAttendee = occurrence({
+                attendees: [{ address: "Bob@Example.com", role: "required", responseStatus: "needsAction", isOrganizer: false }],
+            });
+            const user = userEvent.setup();
+            render(
+                <EventModal
+                    open
+                    onClose={vi.fn()}
+                    mailboxUid="mb1"
+                    folderUid="f1"
+                    organizerAddress="jane@example.com"
+                    occurrence={withAttendee}
+                    onSaved={vi.fn()}
+                    onDeleted={vi.fn()}
+                />,
+            );
+
+            await user.click(screen.getByRole("button", { name: "+ Add room/equipment" }));
+            expect(screen.getByTestId("exclude-addresses")).toHaveTextContent("bob@example.com");
         });
     });
 });

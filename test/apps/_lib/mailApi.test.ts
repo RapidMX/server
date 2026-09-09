@@ -21,6 +21,7 @@ import {
     listIngestQueue,
     listMailboxes,
     listMessages,
+    listResourceMailboxes,
     listQuarantine,
     recallMessage,
     releaseQuarantineEntry,
@@ -63,6 +64,21 @@ describe("listMailboxes", () => {
         const fetchMock = mockFetch(() => jsonResponse(200, []));
         await listMailboxes({ page: 2, limit: 10 });
         expect(fetchMock).toHaveBeenCalledWith("/api/mail/mailboxes?limit=10&page=2", expect.anything());
+    });
+});
+
+describe("listResourceMailboxes", () => {
+    it("fetches with the isResource filter and default pagination", async () => {
+        const fetchMock = mockFetch(() => jsonResponse(200, [mailbox]));
+        const result = await listResourceMailboxes();
+        expect(fetchMock).toHaveBeenCalledWith("/api/mail/mailboxes?limit=25&page=0&isResource=true", expect.anything());
+        expect(result).toEqual([mailbox]);
+    });
+
+    it("forwards a custom page/limit alongside the isResource filter", async () => {
+        const fetchMock = mockFetch(() => jsonResponse(200, []));
+        await listResourceMailboxes({ page: 1, limit: 100 });
+        expect(fetchMock).toHaveBeenCalledWith("/api/mail/mailboxes?limit=100&page=1&isResource=true", expect.anything());
     });
 });
 

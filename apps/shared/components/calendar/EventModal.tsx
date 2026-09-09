@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Jean-Philippe Steinmetz
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
-import React, { FormEvent, useState } from "react";
+import React, { FormEvent, useRef, useState } from "react";
 import { ApiRequestError } from "../../lib/api.js";
 import {
     Attendee,
@@ -17,12 +17,14 @@ import {
     updateCalendarEvent,
 } from "../../lib/calendarApi.js";
 import { deleteEventOccurrence, deleteEventSeries, detachOccurrence, saveEventSeries } from "../../lib/calendarMutations.js";
+import { Mailbox } from "../../lib/mailApi.js";
 import { CalendarOccurrence } from "../../lib/recurrence.js";
 import Modal from "../../lib/Modal.js";
 import Alert from "../feedback/Alert.js";
 import Button from "../buttons/Button.js";
 import FormField from "../forms/FormField.js";
 import RecurrenceEditor from "./RecurrenceEditor.js";
+import ResourcePicker from "./ResourcePicker.js";
 
 const INPUT_CLASS =
     "w-full text-sm py-2 px-3 border border-border rounded-sm bg-surface text-text focus:outline-none focus:border-primary";
@@ -107,6 +109,8 @@ export default function EventModal({
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [responding, setResponding] = useState(false);
+    const [resourcePickerOpen, setResourcePickerOpen] = useState(false);
+    const addResourceButtonRef = useRef<HTMLButtonElement>(null);
 
     // The viewing mailbox can respond to an *existing* event it's invited to but doesn't organize —
     // `organizerAddress` is always this mailbox's own primary SMTP address (see `EventModalProps`), so
@@ -122,6 +126,13 @@ export default function EventModal({
     }
     function removeAttendee(index: number) {
         setAttendees((prev) => prev.filter((_, i) => i !== index));
+    }
+    function addResource(mailbox: Mailbox) {
+        setAttendees((prev) => [
+            ...prev,
+            { address: mailbox.primarySmtpAddress, displayName: mailbox.displayName, role: "resource", responseStatus: "needsAction", isOrganizer: false },
+        ]);
+        setResourcePickerOpen(false);
     }
 
     async function handleSubmit(e: FormEvent) {
@@ -301,13 +312,31 @@ export default function EventModal({
                                 </button>
                             </div>
                         ))}
-                        <button
-                            type="button"
-                            onClick={() => setAttendees((prev) => [...prev, { address: "", role: "required", responseStatus: "needsAction", isOrganizer: false }])}
-                            className="self-start text-xs font-medium text-primary-dark hover:underline"
-                        >
-                            + Add attendee
-                        </button>
+                        <div className="flex gap-3 items-center">
+                            <button
+                                type="button"
+                                onClick={() => setAttendees((prev) => [...prev, { address: "", role: "required", responseStatus: "needsAction", isOrganizer: false }])}
+                                className="self-start text-xs font-medium text-primary-dark hover:underline"
+                            >
+                                + Add attendee
+                            </button>
+                            <button
+                                ref={addResourceButtonRef}
+                                type="button"
+                                onClick={() => setResourcePickerOpen(true)}
+                                className="self-start text-xs font-medium text-primary-dark hover:underline"
+                            >
+                                + Add room/equipment
+                            </button>
+                        </div>
+                        {resourcePickerOpen && (
+                            <ResourcePicker
+                                anchorRef={addResourceButtonRef}
+                                onClose={() => setResourcePickerOpen(false)}
+                                onSelect={addResource}
+                                excludeAddresses={attendees.map((a) => a.address.toLowerCase())}
+                            />
+                        )}
                     </div>
                 </FormField>
 

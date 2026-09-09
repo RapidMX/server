@@ -2293,8 +2293,69 @@ regressions). Dev server restarted clean afterward with `RateLimiter`/routes reg
   standing limitation as every entry in this file; JP should verify visually before relying on this,
   particularly the responseStatus badges' layout inside the existing attendee row and the "Your
   response" block's placement/copy.
+- **Committed**: restapi's `IcsUtils.ts` fix landed as JP's own commit `9f494a7`
+  ("Changed `IcsUtils.formatDateUtc()` to take a `Date` or `string`..."); `server`'s Phase 8 changes
+  (feature + `package.json`/`yarn.lock`/patch-file changes) committed as `b99046a` after re-patching
+  `@rapidmx/restapi` against restapi's new committed HEAD (rebuilt, `yarn patch`/swap `dist/`/
+  `patch-commit` — same single-hop process, re-verified `tsc`/lint/full `yarn test` 1036/1036 clean
+  before committing).
+
+### 2026-09-08 — Wiring `@rapidmx/restapi`'s new features into `server`: Phase 9 (Resource mailboxes —
+calendar room/equipment picker)
+
+Ninth slice of the same 15-phase plan (see the Phase 0–8 entries above for full context). Adds a
+searchable dropdown to `EventModal` for adding a bookable room/equipment mailbox as an attendee, instead
+of typing its raw address — the last of the three resource-mailbox-facing phases (Phase 5 built
+admin-side creation/configuration, Phase 8's `"resource"` `AttendeeRole` already round-tripped correctly
+once added, this phase adds the actual picker UI on top of it).
+
+- `apps/shared/lib/mailApi.ts`: new `listResourceMailboxes(params)` — `GET /mail/mailboxes?...&
+  isResource=true`, mirroring `listQuarantine`'s existing `buildQuery(params, extra)` precedent rather
+  than widening `listMailboxes`'s own signature for a one-off filter. **Verified live, not assumed**,
+  that a plain string query param (`isResource=true`) actually filters a boolean-typed Mongo field
+  correctly (Mongoose casts query values against the schema's declared type) — created one resource and
+  one non-resource mailbox via `curl` and confirmed the filtered list returned exactly the resource one.
+- `apps/shared/components/calendar/ResourcePicker.tsx` (new) — fetches the caller's full visible
+  resource-mailbox list once on open (`listResourceMailboxes({ limit: 100 })`) and filters it
+  client-side by name/address as the reader types, the same "fetch-flat-list, filter-client-side"
+  contract every other list endpoint in this codebase already uses (no dedicated server-side mailbox
+  search endpoint exists, and a single org's resource-mailbox count is expected to be small). Built on
+  the existing `PopoverPortal.tsx` (already used by `EmojiPicker`/`GifPicker`) for positioning/dismissal
+  rather than a new popover primitive. Excludes addresses already present as attendees so the same room
+  can't be double-added.
+- `EventModal.tsx`: a "+ Add room/equipment" button next to "+ Add attendee", opening `ResourcePicker`
+  anchored to itself; selecting a resource appends `{ address, displayName, role: "resource",
+  responseStatus: "needsAction", isOrganizer: false }` to `attendees` via the exact same `setAttendees`
+  machinery the free-text attendee rows already use — no new save-path branching needed, confirming the
+  plan's own framing that this is "a picker UI on top of an attendee shape that already round-trips."
+- **Confirmed via reading restapi's `MailboxRouteMongo.findAccessibleMailboxUids()` directly**: mailbox
+  listing for a non-trusted caller is plain ACL-gated (mailboxes where the caller or one of their roles
+  has an ACL record) — there is no special-case bypass for `isResource`. This means a resource mailbox
+  is only visible to `ResourcePicker` if the calling user (or a role they hold) already has some ACL
+  grant on it; this phase's client work assumes whatever ACL setup makes a resource bookable org-wide is
+  already the admin's responsibility (e.g. a broad role grant at creation time) — not something this
+  phase's UI needs to create or manage, and out of scope for this plan's client-only mandate.
+- All new/touched files reached 100% coverage this phase (`mailApi.ts`'s new function, `ResourcePicker.
+  tsx`, `EventModal.tsx`'s resource-picker wiring), confirmed via `lcov.info`. `EventModal.test.tsx`
+  mocks `ResourcePicker` entirely (matching the established `EmojiPicker`/`GifPicker`-in-`ComposeToolbar`
+  consumer-test precedent) so this file only exercises how `EventModal` opens it and reacts to a
+  selection; `ResourcePicker`'s own loading/filtering/error states are tested in its own file.
+- Verification: `yarn tsc --noEmit`, client `tsc -p tsconfig.client.json --noEmit`, `yarn lint` (one
+  `no-unnecessary-type-assertion` catch on a first pass — an `as any` in a test fixture that TypeScript
+  already accepted without it, removed) all clean. Full `yarn test`: 1051/1051 passing, coverage gate
+  holds with no new carve-outs. Real `yarn dev` + `curl`: created a real resource mailbox
+  (`isResource:true, resourceType:"room", resourceCapacity:8`) and a non-resource one, confirmed
+  `GET /api/mail/mailboxes?limit=100&page=0&isResource=true` (the exact query `ResourcePicker` issues)
+  returns only the resource mailbox; confirmed the webmail calendar page still returns `200` and the
+  Vite dev server hot-rebuilt cleanly with the new component bundled in (no restart needed — no new page
+  files this phase). **Did not live-verify the actual auto-accept round trip** (booking a resource with
+  `autoAcceptBookings:true` and confirming its `responseStatus` flips to `accepted` via the real async
+  send→ingest→scan pipeline) — that's pre-existing, unmodified restapi backend behavior this phase's
+  diff never touches (confirmed restapi's own suite already has dedicated "Resource mailbox auto-accept/
+  decline" tests covering it), and triggering the real multi-job async round trip live was judged not
+  worth the time/timing-uncertainty cost for behavior this session isn't changing. **No interactive
+  browser click-through was done** — same standing limitation as every entry in this file; JP should
+  verify visually before relying on this, particularly the picker's popover positioning inside the
+  modal and the search/filter interaction.
 - Not yet committed — holding for JP's review/commit-authorization, same default as every entry above.
-  Note this phase's commit will need to include changes in **two repos**: `restapi` (the `IcsUtils.ts`
-  fix + its test) and `server` (the Phase 8 feature + the `package.json`/`yarn.lock`/patch-file changes
-  from the dependency bump) — restapi's own commit is independent of and should land before `server`'s,
   matching the precedent set by JP's own ACL fix commit in Phase 0.
