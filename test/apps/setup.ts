@@ -31,4 +31,14 @@ if (typeof document !== "undefined") {
                 dispatchEvent: vi.fn(() => false),
             }) as MediaQueryList;
     }
+
+    // jsdom doesn't implement `IntersectionObserver` at all — default to a no-op stub (never fires) so the
+    // many tests that don't care about infinite-scroll behavior keep passing unmodified; a test that needs
+    // to simulate a sentinel intersecting uses `mockIntersectionObserver()` (see `testUtils.ts`) to override
+    // this default and capture the real callback to invoke manually.
+    if (typeof (window as any).IntersectionObserver !== "function") {
+        (window as any).IntersectionObserver = vi.fn().mockImplementation(function () {
+            return { observe: vi.fn(), unobserve: vi.fn(), disconnect: vi.fn() };
+        });
+    }
 }

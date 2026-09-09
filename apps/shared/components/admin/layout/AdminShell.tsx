@@ -19,6 +19,7 @@ import { useRedirectIfUnauthenticated } from "../../../lib/session.js";
 import useBranding from "../../../lib/useBranding.js";
 import Alert from "../../feedback/Alert.js";
 import BottomTabBar, { NavItem } from "../../layout/BottomTabBar.js";
+import { BrandingFooter, BrandingHeader } from "../../layout/BrandingChrome.js";
 import UserMenu from "../../layout/UserMenu.js";
 
 export type AdminSection =
@@ -89,7 +90,7 @@ const ALL_ITEMS: NavItem[] = [...NAV_ITEMS, ...MAILBOX_SCOPED_ITEMS];
 export default function AdminShell({ active, userUid, authServerUrl, children }: PropsWithChildren<AdminShellProps>) {
     const [status, setStatus] = useState<Status>("checking");
     const [error, setError] = useState<string | null>(null);
-    const { logoSrc } = useBranding();
+    const { branding, logoSrc } = useBranding();
 
     useRedirectIfUnauthenticated(userUid, authServerUrl);
 
@@ -175,5 +176,11 @@ export default function AdminShell({ active, userUid, authServerUrl, children }:
         );
     }
 
-    return content;
+    return (
+        <>
+            <BrandingHeader branding={branding} />
+            {content}
+            <BrandingFooter branding={branding} />
+        </>
+    );
 }

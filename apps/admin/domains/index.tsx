@@ -9,6 +9,8 @@ import AdminShell, { AdminShellProps } from "../../shared/components/admin/layou
 import Alert from "../../shared/components/feedback/Alert.js";
 import Button from "../../shared/components/buttons/Button.js";
 
+const PAGE_SIZE = 25;
+
 export default function DomainsListPage(props: Omit<AdminShellProps, "active">) {
     return (
         <AdminShell {...props} active="domains">
@@ -18,16 +20,21 @@ export default function DomainsListPage(props: Omit<AdminShellProps, "active">) 
 }
 
 function DomainsListContent() {
+    const [page, setPage] = useState(0);
     const [domains, setDomains] = useState<Domain[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        listDomains()
+        setLoading(true);
+        setError(null);
+        listDomains({ page, limit: PAGE_SIZE })
             .then(setDomains)
             .catch((err) => setError(err instanceof ApiRequestError ? err.message : "Could not load domains."))
             .finally(() => setLoading(false));
-    }, []);
+    }, [page]);
+
+    const hasNextPage = domains.length === PAGE_SIZE;
 
     return (
         <>
@@ -91,6 +98,28 @@ function DomainsListContent() {
                     </table>
                 </div>
             )}
+
+            <div className="flex gap-3 items-center mt-4">
+                <Button
+                    variant="secondary"
+                    type="button"
+                    className="!w-auto"
+                    disabled={page === 0 || loading}
+                    onClick={() => setPage((p) => Math.max(0, p - 1))}
+                >
+                    Previous
+                </Button>
+                <span className="text-sm text-text-muted">Page {page + 1}</span>
+                <Button
+                    variant="secondary"
+                    type="button"
+                    className="!w-auto"
+                    disabled={!hasNextPage || loading}
+                    onClick={() => setPage((p) => p + 1)}
+                >
+                    Next
+                </Button>
+            </div>
         </>
     );
 }

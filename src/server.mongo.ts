@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 import { dirname } from "path";
 import { JWTUtils, EventUtils, Logger } from "@rapidrest/core";
 import { ObjectFactory, Server } from "@rapidrest/service-core";
-import { LocalFsBlobStore, PostfixSendmailTransport } from "@rapidmx/restapi";
+import { LocalFsBlobStore, NodeDnsResolver, PostfixSendmailTransport } from "@rapidmx/restapi";
 import { MongoTextSearchProvider } from "@rapidmx/restapi/search";
 import { ClamAvScanProvider, RspamdSpamScanProvider } from "@rapidmx/restapi/scan";
 import {
@@ -26,9 +26,11 @@ import { assertProductionSecretsAreSet } from "./config.defaults.js";
 const _filename = fileURLToPath(import.meta.url);
 const _dirname = dirname(_filename);
 
-assertProductionSecretsAreSet(config, process.env.environment);
+const environment: string = process.env.NODE_ENV || "production";
 
-const logLevel: string = config.get("logger:level") || (process.env.environment === "production" ? "info" : "debug");
+assertProductionSecretsAreSet(config, environment);
+
+const logLevel: string = config.get("logger:level") || (environment === "production" ? "info" : "debug");
 const logger = Logger(logLevel, config.get("logger:file"));
 console.log("Log Level=" + logLevel);
 
@@ -42,6 +44,7 @@ objectFactory.register(MongoTextSearchProvider, "SearchProvider");
 objectFactory.register(RspamdSpamScanProvider, "SpamScanProvider");
 objectFactory.register(ClamAvScanProvider, "AvScanProvider");
 objectFactory.register(PostfixSendmailTransport, "MailTransport");
+objectFactory.register(NodeDnsResolver, "DnsResolver");
 
 let server: any = undefined;
 

@@ -9,6 +9,8 @@ import AdminShell, { AdminShellProps } from "../../shared/components/admin/layou
 import Alert from "../../shared/components/feedback/Alert.js";
 import Button from "../../shared/components/buttons/Button.js";
 
+const PAGE_SIZE = 25;
+
 export function readMailboxUid(): string | null {
     if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("mailboxUid");
@@ -24,6 +26,7 @@ export default function QuarantinePage(props: Omit<AdminShellProps, "active"> & 
 
 function QuarantineContent({ userUid }: { userUid?: string }) {
     const [mailboxUid, setMailboxUid] = useState<string | null>(null);
+    const [page, setPage] = useState(0);
     const [entries, setEntries] = useState<QuarantineEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -36,7 +39,7 @@ function QuarantineContent({ userUid }: { userUid?: string }) {
     function reload(uid: string) {
         setLoading(true);
         setError(null);
-        listQuarantine(uid)
+        listQuarantine(uid, { page, limit: PAGE_SIZE })
             .then(setEntries)
             .catch((err) => setError(err instanceof ApiRequestError ? err.message : "Could not load quarantine."))
             .finally(() => setLoading(false));
@@ -46,7 +49,9 @@ function QuarantineContent({ userUid }: { userUid?: string }) {
         if (mailboxUid) {
             reload(mailboxUid);
         }
-    }, [mailboxUid]);
+    }, [mailboxUid, page]);
+
+    const hasNextPage = entries.length === PAGE_SIZE;
 
     // Only ever invoked from the "Release" button below, which itself only renders once `mailboxUid` is
     // known and `AdminShell` has already confirmed `userUid` (children only render once authorized) — both
@@ -139,6 +144,28 @@ function QuarantineContent({ userUid }: { userUid?: string }) {
                     </table>
                 </div>
             )}
+
+            <div className="flex gap-3 items-center mt-4">
+                <Button
+                    variant="secondary"
+                    type="button"
+                    className="!w-auto"
+                    disabled={page === 0 || loading}
+                    onClick={() => setPage((p) => Math.max(0, p - 1))}
+                >
+                    Previous
+                </Button>
+                <span className="text-sm text-text-muted">Page {page + 1}</span>
+                <Button
+                    variant="secondary"
+                    type="button"
+                    className="!w-auto"
+                    disabled={!hasNextPage || loading}
+                    onClick={() => setPage((p) => p + 1)}
+                >
+                    Next
+                </Button>
+            </div>
         </div>
     );
 }

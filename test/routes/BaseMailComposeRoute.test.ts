@@ -13,10 +13,11 @@ import { ObjectFactory } from "@rapidrest/service-core";
 import { Logger } from "@rapidrest/core";
 import { BaseMailComposeRoute, rewriteInlineImageSources, sanitizeComposeHtml } from "../../src/routes/BaseMailComposeRoute.js";
 
-class TestMailComposeRoute extends BaseMailComposeRoute<any, any, any> {
+class TestMailComposeRoute extends BaseMailComposeRoute<any, any, any, any> {
     protected messageClass: any = class {};
     protected attachmentClass: any = class {};
     protected mailboxClass: any = class {};
+    protected folderClass: any = class {};
 }
 
 describe("BaseMailComposeRoute Tests (dependency guard clause only)", () => {

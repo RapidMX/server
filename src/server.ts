@@ -25,9 +25,11 @@ import { assertProductionSecretsAreSet } from "./config.defaults.js";
 const _filename = fileURLToPath(import.meta.url);
 const _dirname = dirname(_filename);
 
-assertProductionSecretsAreSet(config, process.env.environment);
+const environment: string = process.env.NODE_ENV || "production";
 
-const logLevel: string = config.get("logger:level") || (process.env.environment === "production" ? "info" : "debug");
+assertProductionSecretsAreSet(config, environment);
+
+const logLevel: string = config.get("logger:level") || (environment === "production" ? "info" : "debug");
 const logger = Logger(logLevel, config.get("logger:file"));
 console.log("Log Level=" + logLevel);
 

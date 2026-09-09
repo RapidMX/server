@@ -6,7 +6,7 @@ import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { jsonResponse, mockFetch, mockLocation, mockMatchMedia } from "./testUtils.js";
+import { jsonResponse, mockFetch, mockIntersectionObserver, mockLocation, mockMatchMedia } from "./testUtils.js";
 import InboxPage from "../../apps/www/index.js";
 
 // `MessageDetailPane`'s own exhaustive rendering (header fields, attachments, back link, iframe,
@@ -153,11 +153,15 @@ function mockShellAndInbox(
         if (url.startsWith("/api/mail/messages/conversations")) return jsonResponse(200, conversations);
         if (url.startsWith("/api/mail/messages/")) {
             const method = init?.method ?? "GET";
+            const uid = url.split("/api/mail/messages/")[1];
             if (method === "PUT") {
-                const uid = url.split("/api/mail/messages/")[1];
                 const body = JSON.parse(init.body as string);
                 const existing = messages.find((m: any) => m.uid === uid) as any;
                 return jsonResponse(200, { ...existing, flags: { ...existing.flags, ...body.flags } });
+            }
+            if (method === "GET") {
+                const existing = messages.find((m: any) => m.uid === uid);
+                return existing ? jsonResponse(200, existing) : jsonResponse(404, { message: "not found" });
             }
         }
         if (url.startsWith("/api/mail/messages")) return jsonResponse(200, messages);
@@ -602,6 +606,302 @@ describe("InboxPage", () => {
 
             expect(await screen.findByTestId("detail-pane")).toHaveTextContent("no-message");
             expect(screen.queryByText(/Showing every conversation in this mailbox/)).not.toBeInTheDocument();
+        });
+    });
+
+    describe("search", () => {
+        function mockSearch(
+            messages: Record<string, unknown>[],
+            searchImpl: (url: string) => Response | Promise<Response> | undefined,
+        ) {
+            return mockFetch((url, init) => {
+                if (url.startsWith("/api/mail/search")) {
+                    const found = searchImpl(url);
+                    if (found) return found;
+                }
+                if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailbox]);
+                if (url.startsWith("/api/mail/folders")) return jsonResponse(200, [inboxFolder, sentItemsFolder]);
+                if (url.startsWith("/api/mail/messages/")) {
+                    const uid = url.split("/api/mail/messages/")[1].split("?")[0];
+                    const found = messages.find((m: any) => m.uid === uid);
+                    return found ? jsonResponse(200, found) : jsonResponse(404, { message: "not found" });
+                }
+                if (url.startsWith("/api/mail/messages")) {
+                    // Mirrors the real endpoint's `folderUid` scoping - this list is never mailbox-wide, unlike
+                    // `/mail/search`, so a message from another folder must not leak into the initial listing.
+                    const folderUid = new URL(url, "http://localhost").searchParams.get("folderUid");
+                    return jsonResponse(200, messages.filter((m: any) => m.folderUid === folderUid));
+                }
+                if (url.startsWith("/api/mail/attachments")) return jsonResponse(200, []);
+                throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
+            });
+        }
+
+        it("searches all mail and shows matching messages, hiding the Focused/Other sub-tabs", async () => {
+            const inboxMsg = messageFixture({ uid: "m1", subject: "Folder message" });
+            const hit = messageFixture({ uid: "m2", subject: "Matched message", folderUid: "f2" });
+            mockSearch([inboxMsg, hit], (url) =>
+                url.includes("q=budget") ? jsonResponse(200, { results: [{ entityType: "message", entityUid: "m2", score: 1 }] }) : undefined,
+            );
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+            await screen.findByText("Folder message");
+            expect(screen.getByRole("button", { name: "Focused" })).toBeInTheDocument();
+
+            await user.type(screen.getByPlaceholderText("Search all mail…"), "budget");
+
+            expect(await screen.findByText("Matched message")).toBeInTheDocument();
+            expect(screen.queryByText("Folder message")).not.toBeInTheDocument();
+            expect(screen.queryByRole("button", { name: "Focused" })).not.toBeInTheDocument();
+        });
+
+        it("uses a search hit's own folder, not the sidebar's selected folder, to resolve isSentItems", async () => {
+            const hit = messageFixture({ uid: "m2", subject: "Matched message", folderUid: "f2" });
+            mockSearch([hit], (url) =>
+                url.includes("q=budget") ? jsonResponse(200, { results: [{ entityType: "message", entityUid: "m2", score: 1 }] }) : undefined,
+            );
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+            await screen.findByPlaceholderText("Search all mail…");
+
+            await user.type(screen.getByPlaceholderText("Search all mail…"), "budget");
+            await user.click(await screen.findByText("Matched message"));
+
+            expect(screen.getByTestId("detail-pane")).toHaveTextContent("sentItems:true");
+        });
+
+        it("shows a not-found message distinct from the folder-empty state when a search has no hits", async () => {
+            mockSearch([messageFixture()], (url) => (url.includes("q=nothing") ? jsonResponse(200, { results: [] }) : undefined));
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+            await screen.findByText("Hello there");
+
+            await user.type(screen.getByPlaceholderText("Search all mail…"), "nothing");
+
+            expect(await screen.findByText('No messages match "nothing".')).toBeInTheDocument();
+        });
+
+        it("drops a search hit that no longer resolves to a real message", async () => {
+            mockSearch([messageFixture()], (url) =>
+                url.includes("q=stale")
+                    ? jsonResponse(200, { results: [{ entityType: "message", entityUid: "gone", score: 1 }] })
+                    : undefined,
+            );
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+            await screen.findByText("Hello there");
+
+            await user.type(screen.getByPlaceholderText("Search all mail…"), "stale");
+
+            expect(await screen.findByText('No messages match "stale".')).toBeInTheDocument();
+        });
+
+        it("shows an error message when the search itself fails", async () => {
+            mockSearch([messageFixture()], (url) => (url.includes("q=boom") ? jsonResponse(500, { message: "boom" }) : undefined));
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+            await screen.findByText("Hello there");
+
+            await user.type(screen.getByPlaceholderText("Search all mail…"), "boom");
+
+            expect(await screen.findByText("boom")).toBeInTheDocument();
+        });
+
+        it("shows a generic error message when the search itself fails with a non-API error", async () => {
+            mockSearch([messageFixture()], (url) => {
+                if (url.includes("q=boom")) throw new TypeError("network down");
+                return undefined;
+            });
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+            await screen.findByText("Hello there");
+
+            await user.type(screen.getByPlaceholderText("Search all mail…"), "boom");
+
+            expect(await screen.findByText("Search failed.")).toBeInTheDocument();
+        });
+
+        it("clearing the search box returns to the normal folder listing", async () => {
+            const inboxMsg = messageFixture({ uid: "m1", subject: "Folder message" });
+            const hit = messageFixture({ uid: "m2", subject: "Matched message", folderUid: "f2" });
+            mockSearch([inboxMsg, hit], (url) =>
+                url.includes("q=budget") ? jsonResponse(200, { results: [{ entityType: "message", entityUid: "m2", score: 1 }] }) : undefined,
+            );
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+            await screen.findByText("Folder message");
+
+            const searchBox = screen.getByPlaceholderText("Search all mail…");
+            await user.type(searchBox, "budget");
+            await screen.findByText("Matched message");
+
+            await user.clear(searchBox);
+
+            expect(await screen.findByText("Folder message")).toBeInTheDocument();
+            expect(screen.queryByText("Matched message")).not.toBeInTheDocument();
+        });
+    });
+
+    describe("infinite scroll", () => {
+        it("loads the next page of the folder listing when the sentinel intersects, appending to the list", async () => {
+            const firstPage = Array.from({ length: 50 }, (_, i) => messageFixture({ uid: `m${i}`, subject: `Message ${i}` }));
+            const io = mockIntersectionObserver();
+            mockFetch((url, init) => {
+                if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailbox]);
+                if (url.startsWith("/api/mail/folders")) return jsonResponse(200, [inboxFolder]);
+                if (url.startsWith("/api/mail/messages")) {
+                    if (url.includes("page=1")) return jsonResponse(200, [messageFixture({ uid: "m99", subject: "Message 99" })]);
+                    return jsonResponse(200, firstPage);
+                }
+                throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
+            });
+            render(<InboxPage userUid="u1" />);
+            await screen.findByText("Message 0");
+
+            io.trigger();
+
+            expect(await screen.findByText("Message 99")).toBeInTheDocument();
+            expect(screen.getByText("Message 0")).toBeInTheDocument();
+        });
+
+        it("ignores a second sentinel trigger while a page load is already in flight", async () => {
+            const firstPage = Array.from({ length: 50 }, (_, i) => messageFixture({ uid: `m${i}`, subject: `Message ${i}` }));
+            const io = mockIntersectionObserver();
+            let pageOneRequests = 0;
+            let resolvePageOne: ((value: Response) => void) | undefined;
+            mockFetch((url, init) => {
+                if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailbox]);
+                if (url.startsWith("/api/mail/folders")) return jsonResponse(200, [inboxFolder]);
+                if (url.startsWith("/api/mail/messages")) {
+                    if (url.includes("page=1")) {
+                        pageOneRequests += 1;
+                        return new Promise((resolve) => {
+                            resolvePageOne = resolve;
+                        });
+                    }
+                    return jsonResponse(200, firstPage);
+                }
+                throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
+            });
+            render(<InboxPage userUid="u1" />);
+            await screen.findByText("Message 0");
+
+            io.trigger();
+            // Waiting for the "Loading more…" sentinel text ensures a render has actually landed with
+            // `loadingMore: true` before the second trigger - `loadMoreRef` now points to a closure that
+            // observes that, which is what lets this second call hit the early-return guard at all (two
+            // triggers fired back-to-back in the same tick would both still close over the pre-render
+            // `loadingMore: false` and issue two real fetches, proving nothing about the guard itself).
+            await screen.findByText("Loading more…");
+            io.trigger();
+            resolvePageOne!(jsonResponse(200, [messageFixture({ uid: "m99", subject: "Message 99" })]));
+
+            expect(await screen.findByText("Message 99")).toBeInTheDocument();
+            expect(pageOneRequests).toBe(1);
+        });
+
+        it("shows an error message when loading more fails", async () => {
+            const firstPage = Array.from({ length: 50 }, (_, i) => messageFixture({ uid: `m${i}`, subject: `Message ${i}` }));
+            const io = mockIntersectionObserver();
+            mockFetch((url, init) => {
+                if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailbox]);
+                if (url.startsWith("/api/mail/folders")) return jsonResponse(200, [inboxFolder]);
+                if (url.startsWith("/api/mail/messages")) {
+                    if (url.includes("page=1")) return jsonResponse(500, { message: "boom" });
+                    return jsonResponse(200, firstPage);
+                }
+                throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
+            });
+            render(<InboxPage userUid="u1" />);
+            await screen.findByText("Message 0");
+
+            io.trigger();
+
+            expect(await screen.findByText("boom")).toBeInTheDocument();
+        });
+
+        it("shows a generic error message when loading more fails with a non-API error", async () => {
+            const firstPage = Array.from({ length: 50 }, (_, i) => messageFixture({ uid: `m${i}`, subject: `Message ${i}` }));
+            const io = mockIntersectionObserver();
+            mockFetch((url, init) => {
+                if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailbox]);
+                if (url.startsWith("/api/mail/folders")) return jsonResponse(200, [inboxFolder]);
+                if (url.startsWith("/api/mail/messages")) {
+                    if (url.includes("page=1")) throw new TypeError("network down");
+                    return jsonResponse(200, firstPage);
+                }
+                throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
+            });
+            render(<InboxPage userUid="u1" />);
+            await screen.findByText("Message 0");
+
+            io.trigger();
+
+            expect(await screen.findByText("Could not load more messages.")).toBeInTheDocument();
+        });
+
+        it("does nothing when the sentinel reports it is not intersecting", async () => {
+            const firstPage = Array.from({ length: 50 }, (_, i) => messageFixture({ uid: `m${i}`, subject: `Message ${i}` }));
+            const io = mockIntersectionObserver();
+            let pageOneRequests = 0;
+            mockFetch((url, init) => {
+                if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailbox]);
+                if (url.startsWith("/api/mail/folders")) return jsonResponse(200, [inboxFolder]);
+                if (url.startsWith("/api/mail/messages")) {
+                    if (url.includes("page=1")) {
+                        pageOneRequests += 1;
+                        return jsonResponse(200, [messageFixture({ uid: "m99", subject: "Message 99" })]);
+                    }
+                    return jsonResponse(200, firstPage);
+                }
+                throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
+            });
+            render(<InboxPage userUid="u1" />);
+            await screen.findByText("Message 0");
+
+            io.trigger(false);
+
+            // No `await` to wait on here, by design - asserting nothing ever loads is a "stays absent"
+            // check, so give the (would-be) fetch every chance to fire before checking it never did.
+            await new Promise((resolve) => setTimeout(resolve, 50));
+            expect(pageOneRequests).toBe(0);
+            expect(screen.queryByText("Message 99")).not.toBeInTheDocument();
+        });
+
+        it("loads the next page of search results via cursor when the sentinel intersects", async () => {
+            const messages = [
+                messageFixture({ uid: "m1", subject: "First hit" }),
+                messageFixture({ uid: "m2", subject: "Second hit" }),
+            ];
+            const io = mockIntersectionObserver();
+            mockFetch((url, init) => {
+                if (url.startsWith("/api/mail/search")) {
+                    if (url.includes("cursor=c1")) return jsonResponse(200, { results: [{ entityType: "message", entityUid: "m2", score: 1 }] });
+                    return jsonResponse(200, { results: [{ entityType: "message", entityUid: "m1", score: 1 }], nextCursor: "c1" });
+                }
+                if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailbox]);
+                if (url.startsWith("/api/mail/folders")) return jsonResponse(200, [inboxFolder]);
+                if (url.startsWith("/api/mail/messages/")) {
+                    const uid = url.split("/api/mail/messages/")[1].split("?")[0];
+                    const found = messages.find((m: any) => m.uid === uid);
+                    return found ? jsonResponse(200, found) : jsonResponse(404, { message: "not found" });
+                }
+                // The plain (non-search) folder listing is deliberately empty here, distinct from both search
+                // hits below - if it returned either "hit" fixture, the assertions after typing a search query
+                // could pass just from this initial load, without proving the search round-trip actually ran.
+                if (url.startsWith("/api/mail/messages")) return jsonResponse(200, []);
+                throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
+            });
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+            await screen.findByText("No messages in this folder.");
+
+            await user.type(screen.getByPlaceholderText("Search all mail…"), "hit");
+            await screen.findByText("First hit");
+
+            io.trigger();
+
+            expect(await screen.findByText("Second hit")).toBeInTheDocument();
         });
     });
 });

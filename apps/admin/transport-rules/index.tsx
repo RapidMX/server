@@ -9,6 +9,8 @@ import AdminShell, { AdminShellProps } from "../../shared/components/admin/layou
 import Alert from "../../shared/components/feedback/Alert.js";
 import Button from "../../shared/components/buttons/Button.js";
 
+const PAGE_SIZE = 25;
+
 export default function TransportRulesPage(props: Omit<AdminShellProps, "active">) {
     return (
         <AdminShell {...props} active="transportRules">
@@ -18,17 +20,21 @@ export default function TransportRulesPage(props: Omit<AdminShellProps, "active"
 }
 
 function TransportRulesContent() {
+    const [page, setPage] = useState(0);
     const [rules, setRules] = useState<TransportRule[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        listTransportRules()
+        setLoading(true);
+        setError(null);
+        listTransportRules({ page, limit: PAGE_SIZE })
             .then(setRules)
             .catch((err) => setError(err instanceof ApiRequestError ? err.message : "Could not load transport rules."))
             .finally(() => setLoading(false));
-    }, []);
+    }, [page]);
 
+    const hasNextPage = rules.length === PAGE_SIZE;
     const sorted = [...rules].sort((a, b) => a.sequence - b.sequence);
 
     return (
@@ -84,6 +90,28 @@ function TransportRulesContent() {
                     </table>
                 </div>
             )}
+
+            <div className="flex gap-3 items-center mt-4">
+                <Button
+                    variant="secondary"
+                    type="button"
+                    className="!w-auto"
+                    disabled={page === 0 || loading}
+                    onClick={() => setPage((p) => Math.max(0, p - 1))}
+                >
+                    Previous
+                </Button>
+                <span className="text-sm text-text-muted">Page {page + 1}</span>
+                <Button
+                    variant="secondary"
+                    type="button"
+                    className="!w-auto"
+                    disabled={!hasNextPage || loading}
+                    onClick={() => setPage((p) => p + 1)}
+                >
+                    Next
+                </Button>
+            </div>
         </>
     );
 }

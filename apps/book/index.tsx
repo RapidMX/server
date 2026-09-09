@@ -15,6 +15,7 @@ import {
 import useBranding from "../shared/lib/useBranding.js";
 import Alert from "../shared/components/feedback/Alert.js";
 import Button from "../shared/components/buttons/Button.js";
+import { BrandingFooter, BrandingHeader } from "../shared/components/layout/BrandingChrome.js";
 
 const INPUT_CLASS =
     "w-full text-sm py-2.5 px-3 border border-border rounded-sm bg-surface text-text focus:outline-none focus:border-primary";
@@ -50,20 +51,25 @@ function groupByLocalDate(slots: BookingSlot[]): Map<string, BookingSlot[]> {
 
 export default function PublicBookingPage() {
     const [slug, setSlug] = useState<string | null>(null);
-    const { logoSrc } = useBranding();
+    const { branding, logoSrc } = useBranding();
 
     useEffect(() => {
         setSlug(readSlug());
     }, []);
 
-    if (!slug) {
-        return (
-            <div className="min-h-screen flex items-center justify-center p-8">
-                <Alert>No booking link specified.</Alert>
-            </div>
-        );
-    }
-    return <BookingContent slug={slug} logoSrc={logoSrc} />;
+    return (
+        <>
+            <BrandingHeader branding={branding} />
+            {!slug ? (
+                <div className="min-h-screen flex items-center justify-center p-8">
+                    <Alert>No booking link specified.</Alert>
+                </div>
+            ) : (
+                <BookingContent slug={slug} logoSrc={logoSrc} />
+            )}
+            <BrandingFooter branding={branding} />
+        </>
+    );
 }
 
 function BookingContent({ slug, logoSrc }: { slug: string; logoSrc: string }) {

@@ -26,6 +26,7 @@ import {
 import useBranding from "../../shared/lib/useBranding.js";
 import Alert from "../../shared/components/feedback/Alert.js";
 import Button from "../../shared/components/buttons/Button.js";
+import { BrandingFooter, BrandingHeader } from "../../shared/components/layout/BrandingChrome.js";
 import Modal from "../../shared/lib/Modal.js";
 
 export function readToken(): string | null {
@@ -35,20 +36,25 @@ export function readToken(): string | null {
 
 export default function ManageBookingPage() {
     const [token, setToken] = useState<string | null>(null);
-    const { logoSrc } = useBranding();
+    const { branding, logoSrc } = useBranding();
 
     useEffect(() => {
         setToken(readToken());
     }, []);
 
-    if (!token) {
-        return (
-            <div className="min-h-screen flex items-center justify-center p-8">
-                <Alert>No booking specified.</Alert>
-            </div>
-        );
-    }
-    return <ManageBookingContent token={token} logoSrc={logoSrc} />;
+    return (
+        <>
+            <BrandingHeader branding={branding} />
+            {!token ? (
+                <div className="min-h-screen flex items-center justify-center p-8">
+                    <Alert>No booking specified.</Alert>
+                </div>
+            ) : (
+                <ManageBookingContent token={token} logoSrc={logoSrc} />
+            )}
+            <BrandingFooter branding={branding} />
+        </>
+    );
 }
 
 function ManageBookingContent({ token, logoSrc }: { token: string; logoSrc: string }) {

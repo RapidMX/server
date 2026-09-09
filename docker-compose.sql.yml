@@ -2,6 +2,7 @@ services:
     server:
         build:
             context: .
+        command: ["node", "dist/src/server.sql.js"]
         ports:
             - "3000:3000"
             - "9229:9229"

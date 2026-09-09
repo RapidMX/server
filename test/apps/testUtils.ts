@@ -66,6 +66,31 @@ export function mockMatchMedia(initialMatches = false): { setMatches: (matches: 
 }
 
 /**
+ * Stubs `window.IntersectionObserver` so a test can simulate a sentinel element intersecting its scroll
+ * container, overriding `test/apps/setup.ts`'s default no-op stub. Returns a controller whose `trigger()`
+ * invokes the most recently constructed observer's callback as if its observed element just became visible
+ * (mirroring an infinite-scroll sentinel entering the viewport).
+ */
+export function mockIntersectionObserver(): { trigger: (isIntersecting?: boolean) => void } {
+    let latestCallback: IntersectionObserverCallback | undefined;
+    // A plain `function`, not an arrow function: the component invokes this via `new IntersectionObserver(...)`,
+    // and arrow functions aren't constructible at all (`new` on one throws before the body ever runs) - vitest's
+    // mock wrapper swallows that, so an arrow-function implementation here would silently never set the callback.
+    vi.stubGlobal(
+        "IntersectionObserver",
+        vi.fn().mockImplementation(function (callback: IntersectionObserverCallback) {
+            latestCallback = callback;
+            return { observe: vi.fn(), unobserve: vi.fn(), disconnect: vi.fn() };
+        }),
+    );
+    return {
+        trigger(isIntersecting = true) {
+            latestCallback?.([{ isIntersecting } as IntersectionObserverEntry], {} as IntersectionObserver);
+        },
+    };
+}
+
+/**
  * Replaces `window.location` with a plain, fully-writable stub so `window.location.href = "..."`,
  * `window.location.replace(...)`, and `window.location.reload()` can be asserted on directly — jsdom's
  * real `Location` either throws "Not implemented: navigation" or actually attempts to navigate when touched.

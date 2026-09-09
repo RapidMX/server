@@ -122,6 +122,29 @@ describe("QuarantinePage", () => {
         expect(await screen.findByText("Could not release this message.")).toBeInTheDocument();
     });
 
+    it("paginates: Next fetches the following page, Previous returns to the first", async () => {
+        const fullPage = Array.from({ length: 25 }, (_, i) => ({ ...entry, uid: `q${i}`, reason: "infected" as const }));
+        mockFetch((url) => {
+            if (url === "/api/admin/release-notes") return jsonResponse(200, {});
+            if (!url.startsWith("/api/mail/quarantine")) throw new Error(`unexpected ${url}`);
+            if (url.includes("page=0")) return jsonResponse(200, fullPage);
+            if (url.includes("page=1")) return jsonResponse(200, [{ ...entry, uid: "q99", reason: "other" as const }]);
+            throw new Error(`unexpected ${url}`);
+        });
+        const user = userEvent.setup();
+        render(<QuarantinePage userUid="admin-1" authServerUrl="https://auth.example.com" />);
+
+        expect(await screen.findAllByText("infected")).toHaveLength(25);
+        expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
+
+        await user.click(screen.getByRole("button", { name: "Next" }));
+        expect(await screen.findByText("other")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
+
+        await user.click(screen.getByRole("button", { name: "Previous" }));
+        expect(await screen.findAllByText("infected")).toHaveLength(25);
+    });
+
     it("links back to the mailbox's detail page", async () => {
         mockFetch((url) => {
             if (url === "/api/admin/release-notes") return jsonResponse(200, {});

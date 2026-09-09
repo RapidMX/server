@@ -130,6 +130,38 @@ describe("BrandingPage", () => {
         expect(screen.queryByRole("button", { name: "Remove logo" })).not.toBeInTheDocument();
     });
 
+    it("rejects an oversized logo file client-side without ever calling the upload endpoint", async () => {
+        const user = userEvent.setup();
+        mockAdminFetch((url) => {
+            if (url === "/api/mail/branding") return jsonResponse(200, BRANDING);
+        });
+        render(<BrandingPage userUid="admin-1" authServerUrl="https://auth.example.com" />);
+        await screen.findByLabelText("Company name");
+
+        const bigFile = new File([new Uint8Array(5 * 1024 * 1024 + 1)], "huge.png", { type: "image/png" });
+        await user.upload(screen.getByLabelText("Upload logo"), bigFile);
+
+        expect(await screen.findByText('"huge.png" is too large — logos must be 5MB or smaller.')).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Remove logo" })).not.toBeInTheDocument();
+    });
+
+    it("rejects an oversized stylesheet file client-side without ever calling the upload endpoint", async () => {
+        const user = userEvent.setup();
+        mockAdminFetch((url) => {
+            if (url === "/api/mail/branding") return jsonResponse(200, BRANDING);
+        });
+        render(<BrandingPage userUid="admin-1" authServerUrl="https://auth.example.com" />);
+        await screen.findByLabelText("Company name");
+
+        const bigFile = new File([new Uint8Array(5 * 1024 * 1024 + 1)], "huge.css", { type: "text/css" });
+        await user.upload(screen.getByLabelText("Upload stylesheet"), bigFile);
+
+        expect(
+            await screen.findByText('"huge.css" is too large — stylesheets must be 5MB or smaller.'),
+        ).toBeInTheDocument();
+        expect(screen.getByText("None configured")).toBeInTheDocument();
+    });
+
     it("shows an error and does not select a file when the picker is dismissed with none chosen", async () => {
         mockAdminFetch((url) => {
             if (url === "/api/mail/branding") return jsonResponse(200, BRANDING);

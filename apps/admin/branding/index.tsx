@@ -20,6 +20,8 @@ import Button from "../../shared/components/buttons/Button.js";
 const INPUT_CLASS =
     "w-full text-sm py-2 px-3 border border-border rounded-sm bg-surface text-text focus:outline-none focus:border-primary";
 
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+
 export default function BrandingPage(props: Omit<AdminShellProps, "active">) {
     return (
         <AdminShell {...props} active="branding">
@@ -81,14 +83,22 @@ function BrandingForm({ branding, onChange }: { branding: Branding; onChange: (b
     function handleLogoFileChange(e: ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];
         if (!file) return;
-        void runAsset("logo-upload", () => uploadBrandingLogo(file));
+        if (file.size > MAX_UPLOAD_BYTES) {
+            setError(`"${file.name}" is too large — logos must be 5MB or smaller.`);
+        } else {
+            void runAsset("logo-upload", () => uploadBrandingLogo(file));
+        }
         e.target.value = "";
     }
 
     function handleStylesheetFileChange(e: ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];
         if (!file) return;
-        void runAsset("stylesheet-upload", () => uploadBrandingStylesheet(file));
+        if (file.size > MAX_UPLOAD_BYTES) {
+            setError(`"${file.name}" is too large — stylesheets must be 5MB or smaller.`);
+        } else {
+            void runAsset("stylesheet-upload", () => uploadBrandingStylesheet(file));
+        }
         e.target.value = "";
     }
 

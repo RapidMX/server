@@ -6,7 +6,13 @@ import { createRequire } from "module";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import nconf from "nconf";
-import { DEFAULT_AUTH_SECRET, DEFAULT_COOKIE_SECRET, DEFAULT_GIPHY_API_KEY, DEFAULT_MAIL_INGEST_SECRET } from "./config.defaults.js";
+import {
+    DEFAULT_AUTH_SECRET,
+    DEFAULT_COOKIE_SECRET,
+    DEFAULT_GIPHY_API_KEY,
+    DEFAULT_MAIL_INGEST_SECRET,
+    DEFAULT_MAX_COMPOSE_ATTACHMENT_BYTES,
+} from "./config.defaults.js";
 
 const _filename = fileURLToPath(import.meta.url);
 const _dirname = dirname(_filename);
@@ -110,6 +116,12 @@ conf.defaults({
                 // in any real deployment.
                 root: "./data/blobs",
             },
+        },
+        compose: {
+            // Caps the combined size of a draft's attachments `BaseMailComposeRoute.assemble()` will load into
+            // memory at once to build MIME — see `DEFAULT_MAX_COMPOSE_ATTACHMENT_BYTES` for the fallback used
+            // when this is unset.
+            max_attachment_bytes: DEFAULT_MAX_COMPOSE_ATTACHMENT_BYTES,
         },
         search: {
             mongo: {

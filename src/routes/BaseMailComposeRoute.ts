@@ -15,8 +15,9 @@ import {
     RepoUtils,
     RouteDecorators,
 } from "@rapidrest/service-core";
-import { Attachment, BlobStore, Mailbox, Message, Recipient, RecipientType } from "@rapidmx/restapi";
-const { Inject } = ObjectDecorators;
+import { Attachment, BlobStore, Folder, FolderType, Mailbox, Message, Recipient, RecipientType } from "@rapidmx/restapi";
+import { DEFAULT_MAX_COMPOSE_ATTACHMENT_BYTES } from "../config.defaults.js";
+const { Config, Inject } = ObjectDecorators;
 const { Description, Returns, Summary } = DocDecorators;
 const { Auth, Param, Post, User: AuthUser } = RouteDecorators;
 
@@ -152,10 +153,11 @@ function toPreview(html: string): string {
  *
  * `messageClass`/`attachmentClass`/`mailboxClass` are supplied by the Mongo/SQL concrete subclasses.
  */
-export abstract class BaseMailComposeRoute<M extends Message, A extends Attachment, X extends Mailbox> {
+export abstract class BaseMailComposeRoute<M extends Message, A extends Attachment, X extends Mailbox, F extends Folder> {
     protected abstract messageClass: any;
     protected abstract attachmentClass: any;
     protected abstract mailboxClass: any;
+    protected abstract folderClass: any;
 
     // Automatically injected by ObjectFactory on instantiation
     private _objectFactory?: ObjectFactory;
@@ -163,12 +165,16 @@ export abstract class BaseMailComposeRoute<M extends Message, A extends Attachme
     private messageRepo?: RepoUtils<M>;
     private attachmentRepo?: RepoUtils<A>;
     private mailboxRepo?: RepoUtils<X>;
+    private folderRepo?: RepoUtils<F>;
 
     @Inject("BlobStore")
     private blobStore?: BlobStore;
 
     @Inject(ACLUtils)
     private aclUtils?: ACLUtils;
+
+    @Config()
+    private config?: { get(key: string): unknown };
 
     private async init(): Promise<void> {
         if (!this.messageRepo) {
@@ -187,6 +193,12 @@ export abstract class BaseMailComposeRoute<M extends Message, A extends Attachme
             this.mailboxRepo = await this._objectFactory!.newInstance(RepoUtils, {
                 name: this.mailboxClass.name,
                 args: [this.mailboxClass],
+            });
+        }
+        if (!this.folderRepo) {
+            this.folderRepo = await this._objectFactory!.newInstance(RepoUtils, {
+                name: this.folderClass.name,
+                args: [this.folderClass],
             });
         }
     }
@@ -222,6 +234,11 @@ export abstract class BaseMailComposeRoute<M extends Message, A extends Attachme
             throw new ApiError(ApiErrors.AUTH_PERMISSION_FAILURE, 403, ApiErrorMessages.AUTH_PERMISSION_FAILURE);
         }
 
+        const folder: F | undefined = await this.folderRepo!.findOne(message.folderUid, { ignoreACL: true });
+        if (folder?.type !== FolderType.DRAFTS) {
+            throw new ApiError(ApiErrors.INVALID_REQUEST, 400, "Only a message in Drafts can be assembled.");
+        }
+
         const mailbox: X | undefined = await this.mailboxRepo!.findOne(message.mailboxUid, { ignoreACL: true });
         if (!mailbox) {
             throw new ApiError(ApiErrors.NOT_FOUND, 404, ApiErrorMessages.NOT_FOUND);
@@ -231,6 +248,21 @@ export abstract class BaseMailComposeRoute<M extends Message, A extends Attachme
             { messageUid: message.uid },
             { ignoreACL: true, limit: 1000 },
         );
+
+        // Checked against each attachment's already-known `sizeBytes` - deliberately before loading any blob
+        // content below, so an oversized draft is rejected without ever buffering its attachments into memory.
+        const maxAttachmentBytes =
+            (this.config?.get("mail:compose:max_attachment_bytes") as number | undefined) ??
+            DEFAULT_MAX_COMPOSE_ATTACHMENT_BYTES;
+        const totalAttachmentBytes = attachmentRecords.reduce((sum, a) => sum + (a.sizeBytes ?? 0), 0);
+        if (totalAttachmentBytes > maxAttachmentBytes) {
+            throw new ApiError(
+                ApiErrors.PAYLOAD_TOO_LARGE,
+                413,
+                `This draft's attachments total ${totalAttachmentBytes} bytes, exceeding the ${maxAttachmentBytes}-byte limit.`,
+            );
+        }
+
         const attachments = await Promise.all(
             attachmentRecords.map(async (attachment) => ({
                 filename: attachment.filename,

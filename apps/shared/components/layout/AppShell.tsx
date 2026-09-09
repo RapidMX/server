@@ -11,6 +11,7 @@ import { stopImpersonating } from "../../lib/mailApi.js";
 import useBranding from "../../lib/useBranding.js";
 import ComposeProvider from "../mail/compose/ComposeContext.js";
 import BottomTabBar from "./BottomTabBar.js";
+import { BrandingFooter, BrandingHeader } from "./BrandingChrome.js";
 import UserMenu from "./UserMenu.js";
 
 export type AppShellApp = "mail" | "calendar" | "contacts" | "tasks";
@@ -108,9 +109,7 @@ export default function AppShell({
     return (
         <ComposeProvider>
             <div className="min-h-screen flex flex-col bg-surface-alt">
-                {branding?.headerHtml && (
-                    <div dangerouslySetInnerHTML={{ __html: branding.headerHtml }} />
-                )}
+                <BrandingHeader branding={branding} />
                 {impersonating && (
                     <div className="h-10 shrink-0 bg-warning text-warning-contrast flex items-center justify-center gap-3 text-sm font-medium px-4">
                         <span>
@@ -159,9 +158,7 @@ export default function AppShell({
                         <div className="flex-1 flex min-h-0 pb-14 md:pb-0">{children}</div>
                     </div>
                 </div>
-                {branding?.footerHtml && (
-                    <div dangerouslySetInnerHTML={{ __html: branding.footerHtml }} />
-                )}
+                <BrandingFooter branding={branding} />
             </div>
         </ComposeProvider>
     );

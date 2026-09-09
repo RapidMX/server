@@ -33,6 +33,13 @@ export const DEFAULT_MAIL_INGEST_SECRET = "ChangeMeIngestSecret";
  * to enable the feature; leaving this placeholder in effect just means GIF search stays disabled.
  */
 export const DEFAULT_GIPHY_API_KEY = "ChangeMeGiphyApiKey";
+/**
+ * Default cap, in bytes, on the combined size of a draft's attachments `BaseMailComposeRoute.assemble()`
+ * will load into memory at once to build MIME (`mail:compose:max_attachment_bytes`) — 25MB, matching the
+ * common real-world mail provider limit (Gmail, Outlook). Shared here so both `config.mongo.ts`/
+ * `config.sql.ts` (the default value) and `BaseMailComposeRoute` (the fallback when unset) agree on it.
+ */
+export const DEFAULT_MAX_COMPOSE_ATTACHMENT_BYTES = 25_000_000;
 
 /** Minimal shape of the `nconf` config object this guard needs — matches `config.sql.ts`/`config.mongo.ts`'s export. */
 export interface SecretsConfig {
@@ -46,8 +53,8 @@ export interface SecretsConfig {
  * forge JWTs outright, or hit the internal MTA hand-off route directly.
  *
  * @param config The loaded runtime configuration to check.
- * @param environment The deployment environment (typically `process.env.environment`). A no-op unless
- * this is exactly `"production"`.
+ * @param environment The deployment environment (`process.env.NODE_ENV`, defaulting to `"production"`
+ * when unset — see the server entry points). A no-op unless this is exactly `"production"`.
  * @throws If any of the guarded secrets still hold its known default value in production.
  */
 export function assertProductionSecretsAreSet(config: SecretsConfig, environment: string | undefined): void {

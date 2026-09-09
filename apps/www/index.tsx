@@ -2,10 +2,11 @@
 // Copyright (C) 2026 Jean-Philippe Steinmetz
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ApiRequestError } from "../shared/lib/api.js";
-import { Message, MessageClassification, listMessages } from "../shared/lib/mailApi.js";
+import { Message, MessageClassification, getMessage, listMessages } from "../shared/lib/mailApi.js";
 import { ConversationSummary, listConversations } from "../shared/lib/conversationsApi.js";
+import { search as searchMailbox } from "../shared/lib/searchApi.js";
 import { useMarkMessageRead, useMessageAttachments } from "../shared/lib/mailDetailHooks.js";
 import useIsMobile from "../shared/lib/useIsMobile.js";
 import MailShell, { MailShellProps, useMailShell } from "../shared/components/mail/layout/MailShell.js";
@@ -15,6 +16,21 @@ import ConversationThreadPane from "../shared/components/mail/ConversationThread
 import Alert from "../shared/components/feedback/Alert.js";
 
 type ViewMode = "date" | "conversation";
+
+const MESSAGE_PAGE_SIZE = 50;
+const SEARCH_DEBOUNCE_MS = 300;
+
+/** Resolves one page of search hits (of type "message") into full `Message` records for display. */
+async function searchMessages(text: string, cursor?: string): Promise<{ messages: Message[]; nextCursor?: string }> {
+    const page = await searchMailbox(text, { types: ["message"], cursor, limit: MESSAGE_PAGE_SIZE });
+    const resolved = await Promise.all(
+        page.results.map((hit) => getMessage(hit.entityUid).catch(() => null)),
+    );
+    // A search hit can briefly outlive the message it points to (index updates are eventually consistent,
+    // and a message can be deleted after being indexed) - drop anything that no longer resolves rather than
+    // rendering a broken entry.
+    return { messages: resolved.filter((m): m is Message => m !== null), nextCursor: page.nextCursor };
+}
 
 export default function InboxPage(props: MailShellProps) {
     return (
@@ -31,10 +47,25 @@ function InboxContent() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [conversations, setConversations] = useState<ConversationSummary[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [selectedUid, setSelectedUid] = useState<string | null>(null);
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
     const [classificationFilter, setClassificationFilter] = useState<MessageClassification | "all">("all");
+    const [searchInput, setSearchInput] = useState("");
+    const [searchQuery, setSearchQuery] = useState("");
+    const isSearching = viewMode === "date" && searchQuery.length > 0;
+    const pageRef = useRef(0);
+    const cursorRef = useRef<string | undefined>(undefined);
+    const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+    const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+    // Debounce the raw input into the query actually searched, so every keystroke doesn't fire a request.
+    useEffect(() => {
+        const handle = setTimeout(() => setSearchQuery(searchInput.trim()), SEARCH_DEBOUNCE_MS);
+        return () => clearTimeout(handle);
+    }, [searchInput]);
 
     // Conversations are computed mailbox-wide (see `conversationsApi.ts`), not scoped to the selected
     // folder — switching into "By conversation" mode replaces the per-folder list entirely, and the
@@ -43,6 +74,9 @@ function InboxContent() {
         setSelectedUid(null);
         setSelectedConversationId(null);
         setClassificationFilter("all");
+        pageRef.current = 0;
+        cursorRef.current = undefined;
+        setHasMore(false);
 
         if (viewMode === "conversation") {
             // `mailboxUid` is always set by this point — `MailShell` only ever resolves `folderUid`
@@ -64,26 +98,98 @@ function InboxContent() {
         }
         setLoading(true);
         setError(null);
-        listMessages(folderUid, { limit: 50 })
-            .then(setMessages)
+
+        if (isSearching) {
+            searchMessages(searchQuery)
+                .then(({ messages: results, nextCursor }) => {
+                    setMessages(results);
+                    setHasMore(!!nextCursor);
+                    cursorRef.current = nextCursor;
+                })
+                .catch((err) => setError(err instanceof ApiRequestError ? err.message : "Search failed."))
+                .finally(() => setLoading(false));
+            return;
+        }
+
+        listMessages(folderUid, { limit: MESSAGE_PAGE_SIZE })
+            .then((results) => {
+                setMessages(results);
+                setHasMore(results.length === MESSAGE_PAGE_SIZE);
+            })
             .catch((err) => setError(err instanceof ApiRequestError ? err.message : "Could not load messages."))
             .finally(() => setLoading(false));
-    }, [viewMode, folderUid, mailboxUid]);
+    }, [viewMode, folderUid, mailboxUid, isSearching, searchQuery]);
+
+    const loadMore = useCallback(async () => {
+        if (loadingMore || !hasMore || loading || viewMode !== "date" || !folderUid) {
+            return;
+        }
+        setLoadingMore(true);
+        try {
+            if (isSearching) {
+                const { messages: more, nextCursor } = await searchMessages(searchQuery, cursorRef.current);
+                setMessages((prev) => [...prev, ...more]);
+                setHasMore(!!nextCursor);
+                cursorRef.current = nextCursor;
+            } else {
+                const nextPage = pageRef.current + 1;
+                const more = await listMessages(folderUid, { page: nextPage, limit: MESSAGE_PAGE_SIZE });
+                setMessages((prev) => [...prev, ...more]);
+                setHasMore(more.length === MESSAGE_PAGE_SIZE);
+                pageRef.current = nextPage;
+            }
+        } catch (err) {
+            setError(err instanceof ApiRequestError ? err.message : "Could not load more messages.");
+        } finally {
+            setLoadingMore(false);
+        }
+    }, [loadingMore, hasMore, loading, viewMode, folderUid, isSearching, searchQuery]);
+
+    // Always calls the latest `loadMore` closure so the effect below doesn't need `loadMore` itself in its
+    // dependency array (it changes on every keystroke/page load, which would otherwise mean nothing here).
+    const loadMoreRef = useRef(loadMore);
+    loadMoreRef.current = loadMore;
+
+    // `hasMore` is deliberately a dependency: the sentinel div only renders while `hasMore` is true (see
+    // the JSX below), so this effect must re-run when it flips - otherwise a run that fires before the
+    // first page of results has loaded (sentinel not in the DOM yet, `sentinelRef.current` still null)
+    // would bail out once and never attach an observer to the sentinel that appears moments later.
+    useEffect(() => {
+        const sentinel = sentinelRef.current;
+        if (!sentinel || viewMode !== "date") {
+            return;
+        }
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0]?.isIntersecting) {
+                    void loadMoreRef.current();
+                }
+            },
+            { root: scrollContainerRef.current, rootMargin: "200px" },
+        );
+        observer.observe(sentinel);
+        return () => observer.disconnect();
+    }, [viewMode, folderUid, isSearching, searchQuery, hasMore]);
 
     const selected = messages.find((m) => m.uid === selectedUid) ?? null;
     const selectedConversation = conversations.find((c) => c.conversationId === selectedConversationId) ?? null;
     const attachments = useMessageAttachments(selected);
     useMarkMessageRead(selected, (updated) => setMessages((prev) => prev.map((m) => (m.uid === updated.uid ? updated : m))));
-    const isSentItems = folders.find((f) => f.uid === folderUid)?.type === "sent_items";
-    const isOutbox = folders.find((f) => f.uid === folderUid)?.type === "outbox";
-    const isInbox = folders.find((f) => f.uid === folderUid)?.type === "inbox";
+    // Search results can span every folder in the mailbox, not just the one selected in the sidebar - a
+    // selected message's own folderUid is the only reliable source for its actual folder type once
+    // searching (outside search, every message in `messages` already comes from `folderUid` itself, so
+    // this falls back to the sidebar selection unchanged).
+    const selectedFolderUid = isSearching ? (selected?.folderUid ?? folderUid) : folderUid;
+    const isSentItems = folders.find((f) => f.uid === selectedFolderUid)?.type === "sent_items";
+    const isOutbox = folders.find((f) => f.uid === selectedFolderUid)?.type === "outbox";
+    const isInbox = folders.find((f) => f.uid === selectedFolderUid)?.type === "inbox";
     const draftsFolderUid = folders.find((f) => f.type === "drafts")?.uid;
 
     // Focused/Other is an Inbox-only concept (see `MessageDetailPane`'s own `isInbox` doc comment) — the
     // sub-tabs only ever render there, so a message with no `inferenceClassification` (the common case:
     // absent means Focused) or an explicit `"focused"` counts as Focused, everything else as Other.
     const visibleMessages =
-        isInbox && classificationFilter !== "all"
+        !isSearching && isInbox && classificationFilter !== "all"
             ? messages.filter((m) =>
                   classificationFilter === "other"
                       ? m.inferenceClassification === "other"
@@ -124,7 +230,7 @@ function InboxContent() {
 
     return (
         <div className="flex h-full min-h-0">
-            <div className="w-full md:w-96 shrink-0 md:border-r border-border overflow-y-auto">
+            <div ref={scrollContainerRef} className="w-full md:w-96 shrink-0 md:border-r border-border overflow-y-auto">
                 <div className="flex border-b border-border text-sm">
                     <button
                         type="button"
@@ -152,7 +258,19 @@ function InboxContent() {
                         Showing every conversation in this mailbox — the selected folder doesn&apos;t filter this view.
                     </p>
                 )}
-                {viewMode === "date" && isInbox && (
+                {viewMode === "date" && (
+                    <div className="p-2 border-b border-border">
+                        <input
+                            type="search"
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
+                            placeholder="Search all mail…"
+                            aria-label="Search all mail"
+                            className="w-full text-sm px-3 py-1.5 rounded-md border border-border bg-surface"
+                        />
+                    </div>
+                )}
+                {viewMode === "date" && isInbox && !isSearching && (
                     <div className="flex border-b border-border text-xs">
                         {(["all", "focused", "other"] as const).map((value) => (
                             <button
@@ -188,33 +306,44 @@ function InboxContent() {
                     />
                 ) : visibleMessages.length === 0 ? (
                     <p className="p-4 text-sm text-text-muted">
-                        {classificationFilter === "all" ? "No messages in this folder." : "No messages here."}
+                        {isSearching
+                            ? `No messages match "${searchQuery}".`
+                            : classificationFilter === "all"
+                              ? "No messages in this folder."
+                              : "No messages here."}
                     </p>
                 ) : (
-                    <ul>
-                        {visibleMessages.map((message) => (
-                            <li key={message.uid}>
-                                <button
-                                    type="button"
-                                    onClick={() => handleSelect(message)}
-                                    className={[
-                                        "w-full text-left px-4 py-3 border-b border-border",
-                                        message.uid === selectedUid ? "bg-primary/10" : "hover:bg-surface-alt",
-                                        message.flags.read ? "" : "font-semibold",
-                                    ].join(" ")}
-                                >
-                                    <div className="flex items-center justify-between gap-2 text-sm">
-                                        <span className="truncate">{message.from.displayName || message.from.address}</span>
-                                        <span className="text-xs text-text-muted shrink-0">
-                                            {new Date(message.receivedDate).toLocaleDateString()}
-                                        </span>
-                                    </div>
-                                    <div className="text-sm truncate">{message.subject || "(no subject)"}</div>
-                                    <div className="text-xs text-text-muted truncate font-normal">{message.bodyPreview}</div>
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
+                    <>
+                        <ul>
+                            {visibleMessages.map((message) => (
+                                <li key={message.uid}>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSelect(message)}
+                                        className={[
+                                            "w-full text-left px-4 py-3 border-b border-border",
+                                            message.uid === selectedUid ? "bg-primary/10" : "hover:bg-surface-alt",
+                                            message.flags.read ? "" : "font-semibold",
+                                        ].join(" ")}
+                                    >
+                                        <div className="flex items-center justify-between gap-2 text-sm">
+                                            <span className="truncate">{message.from.displayName || message.from.address}</span>
+                                            <span className="text-xs text-text-muted shrink-0">
+                                                {new Date(message.receivedDate).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                        <div className="text-sm truncate">{message.subject || "(no subject)"}</div>
+                                        <div className="text-xs text-text-muted truncate font-normal">{message.bodyPreview}</div>
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                        {hasMore && (
+                            <div ref={sentinelRef} className="p-4 text-center text-xs text-text-muted">
+                                {loadingMore ? "Loading more…" : ""}
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
             <div className="hidden md:flex flex-1 min-w-0">
