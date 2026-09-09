@@ -2134,7 +2134,7 @@ confirmed via `AskUserQuestion` during this plan's own planning phase.
   standing limitation as every entry in this file; JP should verify visually before relying on this,
   especially the merged-thread expand/collapse interaction and the view-mode toggle, which have no
   automated visual check.
-- Not yet committed — holding for JP's review/commit-authorization, same default as every entry above.
+- **Committed** as `fd353c7`.
 
 ### 2026-09-08 — Wiring `@rapidmx/restapi`'s new features into `server`: Phase 7 (Message recall, webmail)
 
@@ -2194,7 +2194,7 @@ Seventh slice of the same 15-phase plan (see the Phase 0–6 entries above for f
   existing pages, added no new page files. **No interactive browser click-through was done** — same
   standing limitation as every entry in this file; JP should verify visually before relying on this,
   particularly the confirmation modal's copy and the "Recall requested" indicator's placement.
-- Not yet committed — holding for JP's review/commit-authorization, same default as every entry above.
+- **Committed** as `ea56953`.
 
 ### 2026-09-08 — Wiring `@rapidmx/restapi`'s new features into `server`: Phase 8 (Meeting invites/iTIP
 accept-decline-tentative UI) + a real `@rapidmx/restapi` bug found and fixed + a stale `@rapidrest/
@@ -2657,4 +2657,87 @@ Reply All/Forward from nothing, since no such entry point existed anywhere in th
   in this file; JP should verify visually before relying on this, particularly the Reply/Reply All/
   Forward buttons' placement in the reading pane, the quoted-content formatting, and the Signatures
   editor's layout.
+- **Committed** as `1fa4c9c`.
+
+### 2026-09-08 — Wiring `@rapidmx/restapi`'s new features into `server`: Phase 13 (Scheduled send,
+Compose + Outbox)
+
+Thirteenth slice of the same 15-phase plan (see the Phase 0–12 entries above for full context). Adds a
+"Send later" option to Compose and a cancel affordance for messages sitting in Outbox awaiting their
+scheduled time.
+
+- **No new backend route** — confirmed via reading `BaseMessageRoute.send()` directly that scheduling is
+  entirely a side effect of an ordinary `PUT` (setting `scheduledSendTime` on a draft) followed by the
+  existing `send()` call, which itself branches internally: if the field is set to a future time, the
+  message moves into a lazily-created `outbox`-type folder instead of relaying, and a background
+  `ScheduledSendJob` (cron `*/30 * * * * *`) later relays it, moves it to Sent Items, and clears the
+  field. **Canceling is also just another ordinary `PUT`, confirmed the same way**: restapi's own source
+  comment states clearing `scheduledSendTime` alone does *not* move the message back out of Outbox — that
+  part is a manual client responsibility, so `cancelScheduledSend()` sends both `scheduledSendTime: null`
+  and a `folderUid` pointing at Drafts in the same request. `null`, not an omitted key, since
+  `BaseScopedChildRoute.update()`/the message `PUT` handler merges only fields present in the body.
+- `apps/shared/lib/mailApi.ts`: `Message` gains `scheduledSendTime?: string`; new
+  `setMessageScheduledSendTime(message, scheduledSendTime)` and
+  `cancelScheduledSend(message, draftsFolderUid)`, both plain `PUT`s against the existing
+  `/mail/messages/:id` route.
+- `ScheduleSendPicker.tsx` (new) — a `PopoverPortal`-based popover (same pattern as
+  `EmojiPicker`/`GifPicker`/`ResourcePicker`) with a single `datetime-local` input, validating non-empty
+  and strictly-future before calling back with a UTC ISO string.
+- `ComposeWindow.tsx`: the plain "Send" button becomes a split button — the existing Send action plus a
+  caret that opens `ScheduleSendPicker`. `handleScheduleSend()` assembles the draft exactly like a normal
+  send, then calls `setMessageScheduledSendTime()` before `sendMessage()` — reusing `sendMessage()`
+  unchanged, since the backend is what decides whether that call relays immediately or defers.
+- `MessageDetailPane.tsx`: new `isOutbox?`/`draftsFolderUid?`/`onScheduledSendCanceled?` props, mirroring
+  Phase 7's `isSentItems`/`onRecalled` shape exactly. When `isOutbox` and `message.scheduledSendTime` are
+  both set, shows a "Scheduled for `<time>`" pill plus a "Cancel" button; canceling calls
+  `cancelScheduledSend()` and hands the server's updated copy (now back in Drafts) to the caller via
+  `onScheduledSendCanceled`. Kept its own `cancelError` state separate from Recall's `error` state since
+  this renders inline in the header rather than inside a confirmation modal — the two flows never need to
+  share one message, matching how `canceling`/`recalling` are already two separate booleans.
+- All three places a message can be read compute `isOutbox`/`draftsFolderUid` the same way they already
+  compute `isSentItems` (from the mailbox's own already-loaded folder list, not a new fetch), and pass a
+  matching `onScheduledSendCanceled`: `apps/www/index.tsx` (desktop inline pane — removes the message
+  from the list and clears selection, since it moved folders, unlike Recall's in-place patch),
+  `apps/www/messages/detail/index.tsx` (mobile detail page — `setMessage` directly), and
+  `ConversationThreadPane.tsx` (patches the per-uid `messages` record in place, documented inline as
+  differing from the desktop list's removal behavior since `conversation.messageUids` is parent-owned).
+- One real, deliberate simplification, not an oversight: `RichTextEditor`'s own doc comment confirms
+  `value` only seeds the editor's *initial* content and never re-syncs from a later prop change (TipTap
+  owns its document once created) — this was already handled by Phase 12's `contentReady` gate, not
+  something this phase had to add, but it directly explains why `ComposeWindow`'s scheduled-send flow
+  reads `html` from state at send time rather than needing any special handling of its own.
+- All new/touched files reached 100% coverage this phase, confirmed via `lcov.info` (`mailApi.ts`'s two
+  new functions, `ScheduleSendPicker.tsx`, `ComposeWindow.tsx`'s split-button/scheduling flow,
+  `MessageDetailPane.tsx`'s Outbox banner/cancel flow, and all three call sites). Two coverage gaps
+  worth naming, both closed with genuine tests: `ScheduleSendPicker`'s `onClose` prop (fired only by an
+  actual outside click) was never exercised — every scheduled-send test up to that point closed the
+  picker via the normal `handleScheduleSend` flow's own explicit `setSchedulePickerOpen(false)`; added a
+  dedicated "closes the picker on an outside click, without scheduling anything" test. Separately,
+  `apps/www/messages/detail/index.tsx` and `ConversationThreadPane.tsx` had the new props wired into
+  their JSX but no test exercising them at all — caught during this phase's own coverage sweep (not
+  shipped and discovered later), fixed with new `outboxFolder`/`draftsFolder` fixtures and, for
+  `ConversationThreadPane.test.tsx`, an extended `MessageDetailPane` mock exposing `isOutbox`/
+  `draftsFolderUid`/`onScheduledSendCanceled` plus a `simulate-cancel-scheduled-send-<uid>` button,
+  mirroring the existing `simulate-recall-<uid>` convention. `ComposeWindow.tsx`'s one remaining branch
+  gap (line 227) is the same already-documented, pre-existing v8-tool-limitation carve-out from the
+  "Floating Compose window" entry, confirmed untouched by this phase's diff.
+- Verification: `yarn tsc --noEmit`, client `tsc -p tsconfig.client.json --noEmit`, `yarn lint` all
+  clean. Full `yarn test`: 1210/1210 passing, coverage gate holds with no new carve-outs. No dev-server
+  restart needed — this phase reuses the existing `/mail/messages/:id` `PUT`/`/mail/messages/:id/send`
+  routes and adds no new page file, confirmed rather than assumed (the already-running dev server picked
+  up every change live). Real `yarn dev` + `curl` (dev auto-auth, cookie jar): created a real draft,
+  assembled it, `PUT` a future `scheduledSendTime` — round-tripped back exactly as sent; the cancel `PUT`
+  (`scheduledSendTime: null` + `folderUid` back to Drafts) also round-tripped correctly, clearing the
+  field. **Could not verify the actual Outbox-move-on-send or the background `ScheduledSendJob` end to
+  end**: calling `POST .../send` 500s in this dev environment regardless of scheduling — confirmed by
+  also calling it on an ordinary, non-scheduled draft, which failed identically. This is the same
+  pre-existing, already-documented `PostfixSendmailTransport`/`sendmail`-binary gap from the Phase 0-era
+  `docker-compose.mail.yml` entry above (outbound relay was never wired up in this dev image), not a
+  regression from this phase's code — the parts of the contract this app's own code is responsible for
+  (setting/clearing `scheduledSendTime`, moving `folderUid` back to Drafts on cancel) are real,
+  server-verified round trips; the parts owned entirely by restapi's internal `send()`/`ScheduledSendJob`
+  logic could only be confirmed by reading its source, not exercised live. **No interactive browser
+  click-through was done** — same standing limitation as every entry in this file; JP should verify
+  visually before relying on this, particularly the split Send/"Send later" button and the Outbox
+  "Scheduled for.../Cancel" banner's placement.
 - Not yet committed — holding for JP's review/commit-authorization, same default as every entry above.

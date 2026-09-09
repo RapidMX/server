@@ -155,6 +155,13 @@ export default function ConversationThreadPane({ conversation, folders }: Conver
                             attachments={attachmentsByUid[uid] ?? []}
                             isSentItems={folders.find((f) => f.uid === message.folderUid)?.type === "sent_items"}
                             onRecalled={(updated) => setMessages((prev) => ({ ...prev, [uid]: updated }))}
+                            isOutbox={folders.find((f) => f.uid === message.folderUid)?.type === "outbox"}
+                            draftsFolderUid={folders.find((f) => f.type === "drafts")?.uid}
+                            // Unlike `apps/www/index.tsx`'s list-removal behavior, this patches the
+                            // message in place (same as `onRecalled` above) rather than removing it from
+                            // the conversation — `conversation.messageUids` is owned by the parent, not
+                            // this component, so there's no membership list here to remove it from.
+                            onScheduledSendCanceled={(updated) => setMessages((prev) => ({ ...prev, [uid]: updated }))}
                         />
                     </div>
                 );

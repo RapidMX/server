@@ -73,6 +73,8 @@ function InboxContent() {
     const attachments = useMessageAttachments(selected);
     useMarkMessageRead(selected, (updated) => setMessages((prev) => prev.map((m) => (m.uid === updated.uid ? updated : m))));
     const isSentItems = folders.find((f) => f.uid === folderUid)?.type === "sent_items";
+    const isOutbox = folders.find((f) => f.uid === folderUid)?.type === "outbox";
+    const draftsFolderUid = folders.find((f) => f.type === "drafts")?.uid;
 
     function handleSelect(message: Message) {
         if (isMobile) {
@@ -188,6 +190,15 @@ function InboxContent() {
                         attachments={attachments}
                         isSentItems={isSentItems}
                         onRecalled={(updated) => setMessages((prev) => prev.map((m) => (m.uid === updated.uid ? updated : m)))}
+                        isOutbox={isOutbox}
+                        draftsFolderUid={draftsFolderUid}
+                        onScheduledSendCanceled={(updated) => {
+                            // The message moved out of the currently-viewed Outbox folder (into Drafts)
+                            // — unlike a recall, which patches a message in place, this removes it from
+                            // the list entirely, matching what a real folder switch would show.
+                            setMessages((prev) => prev.filter((m) => m.uid !== updated.uid));
+                            setSelectedUid(null);
+                        }}
                     />
                 )}
             </div>

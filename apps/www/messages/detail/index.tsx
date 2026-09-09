@@ -67,6 +67,8 @@ function MessageDetailContent() {
 
     const backHref = `/?mailboxUid=${encodeURIComponent(message.mailboxUid)}&folderUid=${encodeURIComponent(message.folderUid)}`;
     const isSentItems = folders.find((f) => f.uid === message.folderUid)?.type === "sent_items";
+    const isOutbox = folders.find((f) => f.uid === message.folderUid)?.type === "outbox";
+    const draftsFolderUid = folders.find((f) => f.type === "drafts")?.uid;
     return (
         <MessageDetailPane
             message={message}
@@ -74,6 +76,9 @@ function MessageDetailContent() {
             backHref={backHref}
             isSentItems={isSentItems}
             onRecalled={setMessage}
+            isOutbox={isOutbox}
+            draftsFolderUid={draftsFolderUid}
+            onScheduledSendCanceled={setMessage}
         />
     );
 }

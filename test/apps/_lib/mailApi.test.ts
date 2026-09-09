@@ -7,6 +7,7 @@ import { emptyResponse, jsonResponse, mockFetch } from "../testUtils.js";
 import {
     assembleDraft,
     attachmentContentUrl,
+    cancelScheduledSend,
     createDraft,
     createFolder,
     createMailbox,
@@ -28,6 +29,7 @@ import {
     revokeMailboxAccess,
     sendMessage,
     setMessageRead,
+    setMessageScheduledSendTime,
     stopImpersonating,
     updateFolder,
     updateMailbox,
@@ -381,6 +383,34 @@ describe("setMessageRead", () => {
                     version: 0,
                     flags: { read: true, flagged: false, answered: false, forwarded: false },
                 }),
+            }),
+        );
+    });
+});
+
+describe("setMessageScheduledSendTime", () => {
+    it("PUTs the message's uid/version with the scheduled time", async () => {
+        const fetchMock = mockFetch(() => jsonResponse(200, { ...message, scheduledSendTime: "2026-06-01T09:00:00.000Z" }));
+        await setMessageScheduledSendTime(message, "2026-06-01T09:00:00.000Z");
+        expect(fetchMock).toHaveBeenCalledWith(
+            "/api/mail/messages/m1",
+            expect.objectContaining({
+                method: "PUT",
+                body: JSON.stringify({ uid: "m1", version: 0, scheduledSendTime: "2026-06-01T09:00:00.000Z" }),
+            }),
+        );
+    });
+});
+
+describe("cancelScheduledSend", () => {
+    it("PUTs the message's uid/version, clearing scheduledSendTime and moving it into the given Drafts folder", async () => {
+        const fetchMock = mockFetch(() => jsonResponse(200, { ...message, folderUid: "f-drafts", scheduledSendTime: undefined }));
+        await cancelScheduledSend(message, "f-drafts");
+        expect(fetchMock).toHaveBeenCalledWith(
+            "/api/mail/messages/m1",
+            expect.objectContaining({
+                method: "PUT",
+                body: JSON.stringify({ uid: "m1", version: 0, scheduledSendTime: null, folderUid: "f-drafts" }),
             }),
         );
     });

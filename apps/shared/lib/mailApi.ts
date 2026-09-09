@@ -358,6 +358,12 @@ export interface Message {
      * best-effort (see that function's own doc comment), so this is the only signal a caller gets;
      * there is no separate "recalled successfully"/"failed" outcome synced onto the record itself. */
     recallRequestedAt?: string;
+    /** When set to a future time, `sendMessage()` defers relay until then instead of sending
+     * immediately — mirrors Outlook's "Do not deliver before". The message sits in the mailbox's
+     * `outbox` folder (lazily created on the first scheduled send — never eagerly provisioned the way
+     * Drafts/Sent Items are) until `@rapidmx/restapi`'s own `ScheduledSendJob` relays it and clears
+     * this field. */
+    scheduledSendTime?: string;
 }
 
 /** Lists messages in a folder, newest first. */
@@ -391,6 +397,35 @@ export function setMessageRead(message: Message, read: boolean): Promise<Message
     return apiFetch(`/mail/messages/${encodeURIComponent(message.uid)}`, {
         method: "PUT",
         body: JSON.stringify({ uid: message.uid, version: message.version, flags: { ...message.flags, read } }),
+    });
+}
+
+/**
+ * Sets a draft's `scheduledSendTime` ahead of calling `sendMessage()` — `send()` itself is what actually
+ * checks the field and defers relay (moving the message into Outbox) instead of sending immediately,
+ * per `@rapidmx/restapi`'s own `BaseMessageRoute.send()`; this is an ordinary `PUT`, no dedicated
+ * "schedule" endpoint exists.
+ */
+export function setMessageScheduledSendTime(message: Message, scheduledSendTime: string): Promise<Message> {
+    return apiFetch(`/mail/messages/${encodeURIComponent(message.uid)}`, {
+        method: "PUT",
+        body: JSON.stringify({ uid: message.uid, version: message.version, scheduledSendTime }),
+    });
+}
+
+/**
+ * Cancels a scheduled send — clears `scheduledSendTime` and moves the message back into `folderUid`
+ * (the mailbox's Drafts folder) in the same `PUT`. Clearing the field alone does not revert the earlier
+ * move into Outbox — that only ever happened as a side effect of `send()`'s own deferred branch, never
+ * automatically undone (confirmed directly in restapi's own source, not assumed) — so the caller must
+ * resolve the Drafts folder uid itself and include it here. `scheduledSendTime` is sent as `null`, not
+ * omitted: this framework's `PUT` merges only the fields present in the body, so an absent field would
+ * leave the old value in place instead of clearing it.
+ */
+export function cancelScheduledSend(message: Message, draftsFolderUid: string): Promise<Message> {
+    return apiFetch(`/mail/messages/${encodeURIComponent(message.uid)}`, {
+        method: "PUT",
+        body: JSON.stringify({ uid: message.uid, version: message.version, scheduledSendTime: null, folderUid: draftsFolderUid }),
     });
 }
 

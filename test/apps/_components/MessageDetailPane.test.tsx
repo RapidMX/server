@@ -329,4 +329,100 @@ describe("MessageDetailPane", () => {
             expect(await screen.findByRole("dialog", { name: "Re: Hello there" })).toBeInTheDocument();
         });
     });
+
+    describe("scheduled send cancellation", () => {
+        it("shows neither the pill nor Cancel when isOutbox is not set", () => {
+            render(
+                <MessageDetailPane
+                    message={messageFixture({ scheduledSendTime: "2026-06-01T09:00:00.000Z" }) as any}
+                    attachments={[]}
+                />,
+            );
+            expect(screen.queryByText(/Scheduled for/)).not.toBeInTheDocument();
+            expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+        });
+
+        it("shows neither when isOutbox is true but scheduledSendTime is unset", () => {
+            render(<MessageDetailPane message={messageFixture() as any} attachments={[]} isOutbox />);
+            expect(screen.queryByText(/Scheduled for/)).not.toBeInTheDocument();
+            expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+        });
+
+        it("shows the scheduled-time pill and a Cancel button when both isOutbox and scheduledSendTime are set", () => {
+            render(
+                <MessageDetailPane
+                    message={messageFixture({ scheduledSendTime: "2026-06-01T09:00:00.000Z" }) as any}
+                    attachments={[]}
+                    isOutbox
+                    draftsFolderUid="f-drafts"
+                />,
+            );
+            expect(screen.getByText(/Scheduled for/)).toBeInTheDocument();
+            expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+        });
+
+        it("cancels the scheduled send and calls onScheduledSendCanceled with the server's updated copy", async () => {
+            const updated = messageFixture({ folderUid: "f-drafts", scheduledSendTime: undefined });
+            const fetchMock = mockFetch(() => jsonResponse(200, updated));
+            const onScheduledSendCanceled = vi.fn();
+            const user = userEvent.setup();
+            render(
+                <MessageDetailPane
+                    message={messageFixture({ scheduledSendTime: "2026-06-01T09:00:00.000Z" }) as any}
+                    attachments={[]}
+                    isOutbox
+                    draftsFolderUid="f-drafts"
+                    onScheduledSendCanceled={onScheduledSendCanceled}
+                />,
+            );
+
+            await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+            expect(fetchMock).toHaveBeenCalledWith(
+                "/api/mail/messages/m1",
+                expect.objectContaining({
+                    method: "PUT",
+                    body: JSON.stringify({ uid: "m1", version: 0, scheduledSendTime: null, folderUid: "f-drafts" }),
+                }),
+            );
+            await vi.waitFor(() => expect(onScheduledSendCanceled).toHaveBeenCalledWith(updated));
+        });
+
+        it("shows an error message and keeps the pill/button when canceling fails", async () => {
+            mockFetch(() => jsonResponse(500, { message: "boom" }));
+            const user = userEvent.setup();
+            render(
+                <MessageDetailPane
+                    message={messageFixture({ scheduledSendTime: "2026-06-01T09:00:00.000Z" }) as any}
+                    attachments={[]}
+                    isOutbox
+                    draftsFolderUid="f-drafts"
+                />,
+            );
+
+            await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+            expect(await screen.findByText("boom")).toBeInTheDocument();
+            expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+        });
+
+        it("shows a generic error message when canceling fails with a non-API error", async () => {
+            mockFetch(() => {
+                throw new TypeError("network down");
+            });
+            const user = userEvent.setup();
+            render(
+                <MessageDetailPane
+                    message={messageFixture({ scheduledSendTime: "2026-06-01T09:00:00.000Z" }) as any}
+                    attachments={[]}
+                    isOutbox
+                    draftsFolderUid="f-drafts"
+                />,
+            );
+
+            await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+            expect(await screen.findByText("Could not cancel this scheduled send.")).toBeInTheDocument();
+        });
+    });
 });

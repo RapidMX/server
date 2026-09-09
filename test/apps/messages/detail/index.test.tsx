@@ -34,6 +34,8 @@ const inboxFolder = {
     totalCount: 1,
 };
 const sentItemsFolder = { ...inboxFolder, uid: "f2", name: "Sent Items", type: "sent_items" as const };
+const outboxFolder = { ...inboxFolder, uid: "f3", name: "Outbox", type: "outbox" as const };
+const draftsFolder = { ...inboxFolder, uid: "f4", name: "Drafts", type: "drafts" as const };
 const message = {
     uid: "m1",
     version: 0,
@@ -178,6 +180,46 @@ describe("MessageDetailPage", () => {
 
             expect(await screen.findByText("Recall requested")).toBeInTheDocument();
             expect(screen.queryByRole("button", { name: "Recall this message" })).not.toBeInTheDocument();
+        });
+    });
+
+    describe("scheduled send cancel", () => {
+        it("does not show the Scheduled banner for a message outside Outbox", async () => {
+            mockShell((url) => (url === "/api/mail/messages/m1" ? jsonResponse(200, message) : undefined));
+            render(<MessageDetailPage userUid="u1" />);
+
+            await screen.findByRole("heading", { name: "Hello there" });
+            expect(screen.queryByText(/Scheduled for/)).not.toBeInTheDocument();
+        });
+
+        it("shows the Scheduled banner for a message in Outbox, and canceling it updates the page's own state", async () => {
+            // Already read, so `useMarkMessageRead` is a no-op — isolates this test to the cancel flow.
+            const scheduledMessage = {
+                ...message,
+                folderUid: "f3",
+                flags: { ...message.flags, read: true },
+                scheduledSendTime: "2026-02-01T00:00:00.000Z",
+            };
+            mockFetch((url, init) => {
+                if (url.startsWith("/api/mail/mailboxes/auto-provision")) return jsonResponse(404, { message: "not enabled" });
+                if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailbox]);
+                if (url.startsWith("/api/mail/folders")) return jsonResponse(200, [inboxFolder, outboxFolder, draftsFolder]);
+                if (url === "/api/mail/messages/m1" && (init?.method ?? "GET") === "GET") {
+                    return jsonResponse(200, scheduledMessage);
+                }
+                if (url === "/api/mail/messages/m1" && init?.method === "PUT") {
+                    const { scheduledSendTime, ...rest } = scheduledMessage;
+                    return jsonResponse(200, { ...rest, folderUid: "f4" });
+                }
+                throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
+            });
+            const user = userEvent.setup();
+            render(<MessageDetailPage userUid="u1" />);
+
+            expect(await screen.findByText(/Scheduled for/)).toBeInTheDocument();
+            await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+            await waitFor(() => expect(screen.queryByText(/Scheduled for/)).not.toBeInTheDocument());
         });
     });
 });

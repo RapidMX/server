@@ -6,6 +6,7 @@ import React, { ChangeEvent, useEffect, useRef, useState } from "react";
 import {
     HiOutlineArrowsPointingIn,
     HiOutlineArrowsPointingOut,
+    HiOutlineChevronDown,
     HiOutlineMinus,
     HiOutlinePaperClip,
     HiOutlineTrash,
@@ -21,12 +22,14 @@ import {
     createDraft,
     listFolders,
     sendMessage,
+    setMessageScheduledSendTime,
     uploadAttachment,
 } from "../../../lib/mailApi.js";
 import { listMailSignatures } from "../../../lib/mailSignaturesApi.js";
 import useIsMobile from "../../../lib/useIsMobile.js";
 import type { ComposeSession } from "./ComposeContext.js";
 import RichTextEditor from "./RichTextEditor.js";
+import ScheduleSendPicker from "./ScheduleSendPicker.js";
 import Alert from "../../feedback/Alert.js";
 
 export interface ComposeWindowProps {
@@ -113,6 +116,8 @@ export default function ComposeWindow({ session, onClose, onToggleMinimize }: Co
     const [attachError, setAttachError] = useState<string | null>(null);
     const [sendError, setSendError] = useState<string | null>(null);
     const [sending, setSending] = useState(false);
+    const [schedulePickerOpen, setSchedulePickerOpen] = useState(false);
+    const scheduleButtonRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
         listFolders(mailboxUid)
@@ -258,6 +263,39 @@ export default function ComposeWindow({ session, onClose, onToggleMinimize }: Co
             onClose();
         } catch (err) {
             setSendError(err instanceof ApiRequestError ? err.message : "Could not send this message.");
+        } finally {
+            setSending(false);
+        }
+    }
+
+    // Same reasoning as `handleSend` above (and the "Send later" caret is itself `disabled` alongside
+    // Send until `draft` resolves) — never reachable with a null `draft`. Assembles the draft first
+    // (same as an immediate send), then sets `scheduledSendTime` on the *freshly assembled* copy before
+    // calling `sendMessage()` — `send()` itself is what reads the field and defers relay into Outbox
+    // instead of sending immediately (see `mailApi.ts`'s own doc comment on `setMessageScheduledSendTime`).
+    async function handleScheduleSend(scheduledSendTimeIso: string) {
+        const toRecipients = parseAddresses(to);
+        setSchedulePickerOpen(false);
+        if (toRecipients.length === 0) {
+            setSendError("At least one recipient is required.");
+            return;
+        }
+
+        setSending(true);
+        setSendError(null);
+        try {
+            const assembled = await assembleDraft(draft!.uid, {
+                to: toRecipients,
+                cc: parseAddresses(cc),
+                bcc: parseAddresses(bcc),
+                subject,
+                html,
+            });
+            const scheduled = await setMessageScheduledSendTime(assembled, scheduledSendTimeIso);
+            await sendMessage(scheduled.uid);
+            onClose();
+        } catch (err) {
+            setSendError(err instanceof ApiRequestError ? err.message : "Could not schedule this message.");
         } finally {
             setSending(false);
         }
@@ -416,14 +454,35 @@ export default function ComposeWindow({ session, onClose, onToggleMinimize }: Co
                 )}
 
                 <div className="shrink-0 flex items-center gap-1 px-3 py-2 border-t border-border">
-                    <button
-                        type="button"
-                        onClick={handleSend}
-                        disabled={!draft || sending}
-                        className="py-1.5 px-5 rounded-pill font-semibold text-sm bg-primary text-white hover:not-disabled:bg-primary-dark disabled:opacity-55 disabled:cursor-not-allowed"
-                    >
-                        {sending ? "Sending…" : "Send"}
-                    </button>
+                    <div className="flex items-center rounded-pill bg-primary text-white overflow-hidden">
+                        <button
+                            type="button"
+                            onClick={handleSend}
+                            disabled={!draft || sending}
+                            className="py-1.5 pl-5 pr-3 font-semibold text-sm hover:not-disabled:bg-primary-dark disabled:opacity-55 disabled:cursor-not-allowed"
+                        >
+                            {sending ? "Sending…" : "Send"}
+                        </button>
+                        <button
+                            ref={scheduleButtonRef}
+                            type="button"
+                            aria-label="Send later"
+                            aria-haspopup="true"
+                            aria-expanded={schedulePickerOpen}
+                            disabled={!draft || sending}
+                            onClick={() => setSchedulePickerOpen((o) => !o)}
+                            className="py-1.5 px-2 border-l border-white/30 hover:not-disabled:bg-primary-dark disabled:opacity-55 disabled:cursor-not-allowed"
+                        >
+                            <HiOutlineChevronDown size={14} />
+                        </button>
+                    </div>
+                    {schedulePickerOpen && (
+                        <ScheduleSendPicker
+                            anchorRef={scheduleButtonRef}
+                            onClose={() => setSchedulePickerOpen(false)}
+                            onSchedule={handleScheduleSend}
+                        />
+                    )}
 
                     <label
                         aria-label="Attach files"

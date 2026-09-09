@@ -18,16 +18,31 @@ vi.mock("../../apps/shared/components/mail/MessageDetailPane.js", () => ({
         message,
         isSentItems,
         onRecalled,
+        isOutbox,
+        draftsFolderUid,
+        onScheduledSendCanceled,
     }: {
         message: Record<string, unknown> | null;
         isSentItems?: boolean;
         onRecalled?: (updated: Record<string, unknown>) => void;
+        isOutbox?: boolean;
+        draftsFolderUid?: string;
+        onScheduledSendCanceled?: (updated: Record<string, unknown>) => void;
     }) => (
         <div data-testid="detail-pane">
-            {message ? `message:${message.uid}` : "no-message"} sentItems:{String(!!isSentItems)}
+            {message ? `message:${message.uid}` : "no-message"} sentItems:{String(!!isSentItems)} outbox:{String(!!isOutbox)}{" "}
+            draftsFolderUid:{draftsFolderUid ?? "unset"}
             {message && onRecalled && (
                 <button type="button" onClick={() => onRecalled({ ...message, recallRequestedAt: "2026-01-02T00:00:00.000Z" })}>
                     simulate-recall
+                </button>
+            )}
+            {message && onScheduledSendCanceled && (
+                <button
+                    type="button"
+                    onClick={() => onScheduledSendCanceled({ ...message, folderUid: draftsFolderUid, scheduledSendTime: undefined })}
+                >
+                    simulate-cancel-scheduled-send
                 </button>
             )}
         </div>
@@ -69,6 +84,8 @@ const inboxFolder = {
     totalCount: 2,
 };
 const sentItemsFolder = { ...inboxFolder, uid: "f2", name: "Sent Items", type: "sent_items" as const };
+const outboxFolder = { ...inboxFolder, uid: "f3", name: "Outbox", type: "outbox" as const };
+const draftsFolder = { ...inboxFolder, uid: "f4", name: "Drafts", type: "drafts" as const };
 
 function messageFixture(overrides: Record<string, unknown> = {}) {
     return {
@@ -282,6 +299,49 @@ describe("InboxPage", () => {
             // non-matching message alone — the same class of gap the mark-as-read patch above already
             // guards against, for this separate update path.
             expect(screen.getByText("Second")).toBeInTheDocument();
+        });
+
+        it("passes isOutbox=false and no draftsFolderUid for a message in a non-Outbox folder", async () => {
+            const msg = messageFixture();
+            mockShellAndInbox([msg]);
+            render(<InboxPage userUid="u1" />);
+
+            await screen.findByText("Hello there");
+            expect(screen.getByTestId("detail-pane")).toHaveTextContent("outbox:false");
+        });
+
+        it("passes isOutbox=true and the resolved Drafts folder uid for a message in the selected Outbox folder", async () => {
+            window.history.pushState(null, "", "/?mailboxUid=mb1&folderUid=f3");
+            const msg = messageFixture({ folderUid: "f3" });
+            mockFetch((url) => {
+                if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailbox]);
+                if (url.startsWith("/api/mail/folders")) return jsonResponse(200, [inboxFolder, outboxFolder, draftsFolder]);
+                if (url.startsWith("/api/mail/messages")) return jsonResponse(200, [msg]);
+                throw new Error(`unexpected ${url}`);
+            });
+            render(<InboxPage userUid="u1" />);
+
+            await screen.findByText("Hello there");
+            expect(screen.getByTestId("detail-pane")).toHaveTextContent("outbox:true");
+            expect(screen.getByTestId("detail-pane")).toHaveTextContent("draftsFolderUid:f4");
+            window.history.pushState(null, "", "/");
+        });
+
+        it("removes the message from the list and clears the selection when a scheduled send is canceled", async () => {
+            const first = messageFixture({ uid: "m1", subject: "First" });
+            const second = messageFixture({ uid: "m2", subject: "Second" });
+            mockShellAndInbox([first, second]);
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+
+            await user.click(await screen.findByText("First"));
+            await user.click(await screen.findByRole("button", { name: "simulate-cancel-scheduled-send" }));
+
+            // The canceled message moved out of the currently-viewed folder — unlike a recall, it's
+            // removed from the list entirely, matching what a real folder switch would show.
+            expect(screen.queryByText("First")).not.toBeInTheDocument();
+            expect(screen.getByText("Second")).toBeInTheDocument();
+            expect(screen.getByTestId("detail-pane")).toHaveTextContent("no-message");
         });
 
         it("leaves other messages in the list untouched when marking one of several read", async () => {

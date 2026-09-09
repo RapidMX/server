@@ -18,18 +18,33 @@ vi.mock("../../../apps/shared/components/mail/MessageDetailPane.js", () => ({
         attachments,
         isSentItems,
         onRecalled,
+        isOutbox,
+        draftsFolderUid,
+        onScheduledSendCanceled,
     }: {
-        message: { uid: string; recallRequestedAt?: string } | null;
+        message: { uid: string; recallRequestedAt?: string; scheduledSendTime?: string } | null;
         attachments: { filename: string }[];
         isSentItems?: boolean;
         onRecalled?: (updated: Record<string, unknown>) => void;
+        isOutbox?: boolean;
+        draftsFolderUid?: string;
+        onScheduledSendCanceled?: (updated: Record<string, unknown>) => void;
     }) => (
         <div data-testid={`detail-${message?.uid}`}>
             {message ? `message:${message.uid}` : "no-message"} attachments:{attachments.map((a) => a.filename).join(",")}{" "}
-            sentItems:{String(!!isSentItems)} recallRequestedAt:{message?.recallRequestedAt ?? "unset"}
+            sentItems:{String(!!isSentItems)} recallRequestedAt:{message?.recallRequestedAt ?? "unset"} outbox:
+            {String(!!isOutbox)} draftsFolderUid:{draftsFolderUid ?? "unset"}
             {message && onRecalled && (
                 <button type="button" onClick={() => onRecalled({ ...message, recallRequestedAt: "2026-01-02T00:00:00.000Z" })}>
                     simulate-recall-{message.uid}
+                </button>
+            )}
+            {message && onScheduledSendCanceled && (
+                <button
+                    type="button"
+                    onClick={() => onScheduledSendCanceled({ ...message, scheduledSendTime: undefined, folderUid: draftsFolderUid })}
+                >
+                    simulate-cancel-scheduled-send-{message.uid}
                 </button>
             )}
         </div>
@@ -48,6 +63,8 @@ const inboxFolder = {
     totalCount: 1,
 };
 const sentItemsFolder = { ...inboxFolder, uid: "f2", name: "Sent Items", type: "sent_items" as const };
+const outboxFolder = { ...inboxFolder, uid: "f3", name: "Outbox", type: "outbox" as const };
+const draftsFolder = { ...inboxFolder, uid: "f4", name: "Drafts", type: "drafts" as const };
 
 function messageFixture(overrides: Record<string, unknown> = {}) {
     return {
@@ -372,6 +389,49 @@ describe("ConversationThreadPane", () => {
             expect(screen.getByTestId("detail-m1")).toHaveTextContent("recallRequestedAt:2026-01-02T00:00:00.000Z");
             // m2 stays mounted/unaffected by m1's patch.
             expect(screen.getByTestId("detail-m2")).toHaveTextContent("recallRequestedAt:unset");
+        });
+    });
+
+    describe("scheduled send cancel", () => {
+        it("computes isOutbox/draftsFolderUid per-message from the message's own folderUid, not a single conversation-wide value", async () => {
+            mockFetch((url) => {
+                const uid = url.split("/").pop();
+                const overrides: Record<string, unknown> = { uid, flags: { read: true, flagged: false, answered: false, forwarded: false } };
+                if (uid === "m1") {
+                    overrides.folderUid = "f3"; // Outbox
+                }
+                return jsonResponse(200, messageFixture(overrides));
+            });
+            const user = userEvent.setup();
+            render(
+                <ConversationThreadPane
+                    conversation={conversationFixture({ folderUids: ["f1", "f3"] })}
+                    folders={[inboxFolder, outboxFolder, draftsFolder]}
+                />,
+            );
+
+            expect(await screen.findByTestId("detail-m2")).toHaveTextContent("outbox:false");
+            await user.click(screen.getByText("Sender One")); // expand m1, the Outbox copy
+            expect(await screen.findByTestId("detail-m1")).toHaveTextContent("outbox:true draftsFolderUid:f4");
+        });
+
+        it("patches the canceled message into state via onScheduledSendCanceled without disturbing other messages", async () => {
+            mockFetch((url) => {
+                const uid = url.split("/").pop();
+                return jsonResponse(200, messageFixture({ uid, flags: { read: true, flagged: false, answered: false, forwarded: false } }));
+            });
+            const user = userEvent.setup();
+            render(<ConversationThreadPane conversation={conversationFixture()} folders={[inboxFolder, outboxFolder, draftsFolder]} />);
+
+            await screen.findByTestId("detail-m2");
+            await user.click(screen.getByText("Sender One")); // expand m1
+            await screen.findByTestId("detail-m1");
+
+            await user.click(screen.getByRole("button", { name: "simulate-cancel-scheduled-send-m1" }));
+
+            // m2 stays mounted/unaffected by m1's patch.
+            expect(screen.getByTestId("detail-m2")).toHaveTextContent("recallRequestedAt:unset");
+            expect(await screen.findByTestId("detail-m1")).toBeInTheDocument();
         });
     });
 });

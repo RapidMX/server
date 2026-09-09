@@ -4,7 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 import React, { useState } from "react";
 import { ApiRequestError } from "../../lib/api.js";
-import { Attachment, Message, attachmentContentUrl, recallMessage } from "../../lib/mailApi.js";
+import { Attachment, Message, attachmentContentUrl, cancelScheduledSend, recallMessage } from "../../lib/mailApi.js";
 import { buildForwardQuote, buildReplyQuote, forwardSubject, replySubject } from "../../lib/composeQuoting.js";
 import { useCompose } from "./compose/ComposeContext.js";
 import Modal from "../../lib/Modal.js";
@@ -27,6 +27,16 @@ export interface MessageDetailPaneProps {
      * the caller can patch its own in-memory message/list state — mirrors `mailDetailHooks.ts`'s
      * `useMarkMessageRead`'s identical `onUpdated` callback. */
     onRecalled?: (updated: Message) => void;
+    /** Whether `message` currently lives in Outbox — the only folder a scheduled send can be canceled
+     * from. Each caller computes this the same way it computes `isSentItems`. */
+    isOutbox?: boolean;
+    /** The mailbox's Drafts folder uid — required when `isOutbox` is `true`, since canceling a
+     * scheduled send moves the message back into Drafts (see `cancelScheduledSend()`'s own doc comment
+     * on why clearing `scheduledSendTime` alone doesn't do that). */
+    draftsFolderUid?: string;
+    /** Called with the server's updated copy (now back in Drafts, `scheduledSendTime` cleared) after
+     * successfully canceling a scheduled send. */
+    onScheduledSendCanceled?: (updated: Message) => void;
 }
 
 function formatBytes(bytes: number): string {
@@ -42,11 +52,24 @@ function formatBytes(bytes: number): string {
  * a message row), and `ConversationThreadPane` (one per expanded message in a thread) — see each call
  * site for how `message`/`attachments`/`isSentItems` are sourced.
  */
-export default function MessageDetailPane({ message, attachments, backHref, isSentItems, onRecalled }: MessageDetailPaneProps) {
+export default function MessageDetailPane({
+    message,
+    attachments,
+    backHref,
+    isSentItems,
+    onRecalled,
+    isOutbox,
+    draftsFolderUid,
+    onScheduledSendCanceled,
+}: MessageDetailPaneProps) {
     const { openCompose } = useCompose();
     const [confirming, setConfirming] = useState(false);
     const [recalling, setRecalling] = useState(false);
+    const [canceling, setCanceling] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    // Kept separate from `error` (the Recall flow's own state) since this renders inline in the main
+    // pane rather than inside a confirmation modal — the two flows never need to share one message.
+    const [cancelError, setCancelError] = useState<string | null>(null);
 
     if (!message) {
         return <p className="p-8 text-sm text-text-muted">Select a message to read it.</p>;
@@ -104,6 +127,23 @@ export default function MessageDetailPane({ message, attachments, backHref, isSe
         }
     }
 
+    // Only ever invoked from the "Cancel" button below, which itself only renders once `message` is
+    // loaded and `isOutbox`/`message.scheduledSendTime` are both truthy — `draftsFolderUid` is required
+    // by that same rendering guard (see the prop's own doc comment), so the non-null assertion reflects
+    // a real invariant, matching `handleRecall`'s identical pattern just above.
+    async function handleCancelScheduledSend() {
+        setCanceling(true);
+        setCancelError(null);
+        try {
+            const updated = await cancelScheduledSend(message!, draftsFolderUid!);
+            onScheduledSendCanceled?.(updated);
+        } catch (err) {
+            setCancelError(err instanceof ApiRequestError ? err.message : "Could not cancel this scheduled send.");
+        } finally {
+            setCanceling(false);
+        }
+    }
+
     return (
         <div className="flex-1 min-w-0 flex flex-col">
             <div className="border-b border-border p-4">
@@ -129,7 +169,29 @@ export default function MessageDetailPane({ message, attachments, backHref, isSe
                                 Recall this message
                             </Button>
                         ))}
+                    {isOutbox && message.scheduledSendTime && (
+                        <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-xs font-medium text-text-muted py-1 px-2.5 rounded-pill bg-surface-alt">
+                                Scheduled for {new Date(message.scheduledSendTime).toLocaleString()}
+                            </span>
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                className="!w-auto"
+                                loading={canceling}
+                                disabled={canceling}
+                                onClick={handleCancelScheduledSend}
+                            >
+                                Cancel
+                            </Button>
+                        </div>
+                    )}
                 </div>
+                {cancelError && (
+                    <div className="mt-2">
+                        <Alert>{cancelError}</Alert>
+                    </div>
+                )}
                 <p className="text-sm text-text-muted mt-1">
                     From {message.from.displayName || message.from.address} &middot;{" "}
                     {new Date(message.receivedDate).toLocaleString()}

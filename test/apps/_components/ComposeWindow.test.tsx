@@ -628,6 +628,123 @@ describe("ComposeWindow", () => {
         });
     });
 
+    describe("scheduled send", () => {
+        function futureLocalValue(hoursFromNow = 24): string {
+            const future = new Date(Date.now() + hoursFromNow * 60 * 60 * 1000);
+            return new Date(future.getTime() - future.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+        }
+
+        it("opens the schedule picker via the 'Send later' caret, closed by default", async () => {
+            mockCompose();
+            const user = userEvent.setup();
+            render(<ComposeWindow session={session()} onClose={vi.fn()} onToggleMinimize={vi.fn()} />);
+            await waitFor(() => expect(screen.getByRole("button", { name: "Send later" })).not.toBeDisabled());
+
+            expect(screen.queryByLabelText("Send at")).not.toBeInTheDocument();
+            await user.click(screen.getByRole("button", { name: "Send later" }));
+            expect(screen.getByLabelText("Send at")).toBeInTheDocument();
+        });
+
+        it("closes the picker on an outside click, without scheduling anything", async () => {
+            const fetchMock = mockCompose();
+            const user = userEvent.setup();
+            render(<ComposeWindow session={session()} onClose={vi.fn()} onToggleMinimize={vi.fn()} />);
+            await waitFor(() => expect(screen.getByRole("button", { name: "Send later" })).not.toBeDisabled());
+
+            await user.click(screen.getByRole("button", { name: "Send later" }));
+            expect(screen.getByLabelText("Send at")).toBeInTheDocument();
+
+            await user.click(document.body);
+            expect(screen.queryByLabelText("Send at")).not.toBeInTheDocument();
+            expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/send"))).toBe(false);
+        });
+
+        it("requires at least one recipient before scheduling, and closes the picker either way", async () => {
+            mockCompose();
+            const user = userEvent.setup();
+            render(<ComposeWindow session={session()} onClose={vi.fn()} onToggleMinimize={vi.fn()} />);
+            await waitFor(() => expect(screen.getByRole("button", { name: "Send later" })).not.toBeDisabled());
+
+            await user.click(screen.getByRole("button", { name: "Send later" }));
+            await user.type(screen.getByLabelText("Send at"), futureLocalValue());
+            await user.click(screen.getAllByRole("button", { name: "Send later" })[1]);
+
+            expect(await screen.findByText("At least one recipient is required.")).toBeInTheDocument();
+            expect(screen.queryByLabelText("Send at")).not.toBeInTheDocument();
+        });
+
+        it("assembles the draft, sets scheduledSendTime, sends it, and closes the window", async () => {
+            const fetchMock = mockCompose((url, init) => {
+                const method = init?.method ?? "GET";
+                if (url === "/api/mail/compose/m1/assemble" && method === "POST") return jsonResponse(200, draft);
+                if (url === "/api/mail/messages/m1" && method === "PUT") {
+                    const body = JSON.parse(init!.body as string);
+                    return jsonResponse(200, { ...draft, scheduledSendTime: body.scheduledSendTime });
+                }
+                if (url === "/api/mail/messages/m1/send" && method === "POST") return jsonResponse(200, draft);
+                return undefined;
+            });
+            const onClose = vi.fn();
+            const user = userEvent.setup();
+            render(<ComposeWindow session={session()} onClose={onClose} onToggleMinimize={vi.fn()} />);
+            await waitFor(() => expect(screen.getByRole("button", { name: "Send later" })).not.toBeDisabled());
+
+            await user.type(screen.getByLabelText("To"), "b@example.com");
+            await user.click(screen.getByRole("button", { name: "Send later" }));
+            await user.type(screen.getByLabelText("Send at"), futureLocalValue());
+            await user.click(screen.getAllByRole("button", { name: "Send later" })[1]);
+
+            await waitFor(() =>
+                expect(fetchMock).toHaveBeenCalledWith("/api/mail/compose/m1/assemble", expect.objectContaining({ method: "POST" })),
+            );
+            const putCall = fetchMock.mock.calls.find((call) => call[0] === "/api/mail/messages/m1" && (call[1] as RequestInit)?.method === "PUT")!;
+            const putBody = JSON.parse((putCall[1] as RequestInit).body as string);
+            expect(putBody.uid).toBe("m1");
+            expect(new Date(putBody.scheduledSendTime).getTime()).toBeGreaterThan(Date.now());
+            await waitFor(() =>
+                expect(fetchMock).toHaveBeenCalledWith("/api/mail/messages/m1/send", expect.objectContaining({ method: "POST" })),
+            );
+            await waitFor(() => expect(onClose).toHaveBeenCalled());
+        });
+
+        it("shows an error message when assembling fails", async () => {
+            mockCompose((url, init) =>
+                url === "/api/mail/compose/m1/assemble" && (init?.method ?? "GET") === "POST"
+                    ? jsonResponse(500, { message: "assemble failed" })
+                    : undefined,
+            );
+            const user = userEvent.setup();
+            render(<ComposeWindow session={session()} onClose={vi.fn()} onToggleMinimize={vi.fn()} />);
+            await waitFor(() => expect(screen.getByRole("button", { name: "Send later" })).not.toBeDisabled());
+
+            await user.type(screen.getByLabelText("To"), "b@example.com");
+            await user.click(screen.getByRole("button", { name: "Send later" }));
+            await user.type(screen.getByLabelText("Send at"), futureLocalValue());
+            await user.click(screen.getAllByRole("button", { name: "Send later" })[1]);
+
+            expect(await screen.findByText("assemble failed")).toBeInTheDocument();
+        });
+
+        it("shows a generic error message when setting scheduledSendTime fails with a non-API error", async () => {
+            mockCompose((url, init) => {
+                const method = init?.method ?? "GET";
+                if (url === "/api/mail/compose/m1/assemble" && method === "POST") return jsonResponse(200, draft);
+                if (url === "/api/mail/messages/m1" && method === "PUT") throw new TypeError("network down");
+                return undefined;
+            });
+            const user = userEvent.setup();
+            render(<ComposeWindow session={session()} onClose={vi.fn()} onToggleMinimize={vi.fn()} />);
+            await waitFor(() => expect(screen.getByRole("button", { name: "Send later" })).not.toBeDisabled());
+
+            await user.type(screen.getByLabelText("To"), "b@example.com");
+            await user.click(screen.getByRole("button", { name: "Send later" }));
+            await user.type(screen.getByLabelText("Send at"), futureLocalValue());
+            await user.click(screen.getAllByRole("button", { name: "Send later" })[1]);
+
+            expect(await screen.findByText("Could not schedule this message.")).toBeInTheDocument();
+        });
+    });
+
     describe("signature resolution", () => {
         it("seeds the editor with the mailbox's isDefaultForNewMessages signature for a fresh compose", async () => {
             mockCompose((url) =>
