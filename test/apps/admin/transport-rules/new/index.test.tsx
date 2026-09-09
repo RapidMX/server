@@ -46,7 +46,7 @@ describe("NewTransportRulePage", () => {
         await user.type(screen.getByLabelText("Header name"), "X-External");
         await user.click(screen.getByRole("button", { name: "Create transport rule" }));
 
-        await vi.waitFor(() => expect(location.href).toBe("/admin/transport-rules/detail?uid=tr1"));
+        await vi.waitFor(() => expect(location.href).toBe("/admin/transport-rules/tr1"));
         expect(requestBody.name).toBe("Flag external senders");
         expect(requestBody.conditions).toEqual({ anyRecipientExternal: true });
         expect(requestBody.actions).toEqual([{ type: "add_header", headerName: "X-External", headerValue: "" }]);

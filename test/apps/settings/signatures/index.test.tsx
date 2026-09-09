@@ -78,7 +78,7 @@ describe("SettingsSignaturesPage", () => {
         );
         expect(screen.getAllByRole("link", { name: "Edit" })[0]).toHaveAttribute(
             "href",
-            "/settings/signatures/detail?uid=sig1&mailboxUid=mb1",
+            "/settings/signatures/sig1?mailboxUid=mb1",
         );
     });
 

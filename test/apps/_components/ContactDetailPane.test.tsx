@@ -5,7 +5,7 @@
 // The bulk of this component's rendering logic (every optional field, Edit/Delete callbacks) is already
 // exercised end-to-end via `test/apps/contacts/index.test.tsx` (ContactsContent renders this component,
 // unmocked, for the desktop selected-contact pane). This file only covers what that one doesn't: the
-// `backHref` prop, which only the mobile detail route (`apps/www/contacts/detail/index.tsx`) ever passes.
+// `backHref` prop, which only the mobile detail route (`apps/www/contacts/[uid].tsx`) ever passes.
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";

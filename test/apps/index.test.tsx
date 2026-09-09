@@ -513,7 +513,7 @@ describe("InboxPage", () => {
 
             await user.click(await screen.findByText("Hello there"));
 
-            expect(location.href).toBe("/messages/detail?uid=m1");
+            expect(location.href).toBe("/messages/m1");
             expect(screen.getByTestId("detail-pane")).toHaveTextContent("no-message");
             expect(fetchMock.mock.calls.some((call) => (call[1] as RequestInit)?.method === "PUT")).toBe(false);
         });
@@ -553,7 +553,7 @@ describe("InboxPage", () => {
             await user.click(await screen.findByRole("button", { name: "By conversation" }));
             await user.click(await screen.findByText("Hello there"));
 
-            expect(location.href).toBe("/messages/detail?uid=m2");
+            expect(location.href).toBe("/messages/m2");
             expect(screen.getByTestId("thread-pane")).toHaveTextContent("no-conversation");
         });
 

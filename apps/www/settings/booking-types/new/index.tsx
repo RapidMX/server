@@ -87,7 +87,7 @@ function NewBookingTypeForm() {
                 bookingWindowDays,
                 requiresApproval,
             });
-            window.location.href = `/settings/booking-types/detail?uid=${encodeURIComponent(created.uid)}&mailboxUid=${encodeURIComponent(mailboxUid!)}`;
+            window.location.href = `/settings/booking-types/${encodeURIComponent(created.uid)}?mailboxUid=${encodeURIComponent(mailboxUid!)}`;
         } catch (err) {
             setError(err instanceof ApiRequestError ? err.message : "Could not create this booking link.");
         } finally {

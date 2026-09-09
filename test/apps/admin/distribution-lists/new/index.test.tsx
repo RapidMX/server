@@ -48,7 +48,7 @@ describe("NewDistributionListPage", () => {
         await user.type(screen.getByLabelText("Description (optional)"), "Everyone");
         await user.click(screen.getByRole("button", { name: "Create distribution list" }));
 
-        await vi.waitFor(() => expect(location.href).toBe("/admin/distribution-lists/detail?uid=team%40example.com"));
+        await vi.waitFor(() => expect(location.href).toBe("/admin/distribution-lists/team%40example.com"));
         expect(requestBody.description).toBe("Everyone");
     });
 

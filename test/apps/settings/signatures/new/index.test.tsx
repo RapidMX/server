@@ -88,7 +88,7 @@ describe("NewSignaturePage", () => {
         await user.type(screen.getByTestId("html-editor"), "<p>Best</p>");
         await user.click(screen.getByRole("button", { name: "Create signature" }));
 
-        await vi.waitFor(() => expect(location.href).toBe("/settings/signatures/detail?uid=sig1&mailboxUid=mb1"));
+        await vi.waitFor(() => expect(location.href).toBe("/settings/signatures/sig1?mailboxUid=mb1"));
         expect(requestBody.mailboxUid).toBe("mb1");
         expect(requestBody.name).toBe("Work signature");
         expect(requestBody.contentHtml).toBe("<p>Best</p>");

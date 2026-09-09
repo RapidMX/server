@@ -122,6 +122,13 @@ conf.defaults({
                 root: "./data/blobs",
             },
         },
+        booking: {
+            // `BaseBookingRoute.manageUrl()` builds the link mailed to a booker as
+            // `${public_url}/manage/${token}` — must land on `apps/book/manage/[token].tsx`, so this needs
+            // the same externally-reachable base URL as `cluster_url` below, with `/book` appended (the
+            // mount point of `BookRoute`). Keep the two in sync in a real deployment.
+            public_url: "http://localhost/book",
+        },
         compose: {
             // Caps the combined size of a draft's attachments `BaseMailComposeRoute.assemble()` will load into
             // memory at once to build MIME — see `DEFAULT_MAX_COMPOSE_ATTACHMENT_BYTES` for the fallback used

@@ -63,7 +63,7 @@ function NewSignatureForm() {
                 isDefaultForNewMessages,
                 isDefaultForReplyForward,
             });
-            window.location.href = `/settings/signatures/detail?uid=${encodeURIComponent(created.uid)}&mailboxUid=${encodeURIComponent(mailboxUid!)}`;
+            window.location.href = `/settings/signatures/${encodeURIComponent(created.uid)}?mailboxUid=${encodeURIComponent(mailboxUid!)}`;
         } catch (err) {
             setError(err instanceof ApiRequestError ? err.message : "Could not create the signature.");
         } finally {

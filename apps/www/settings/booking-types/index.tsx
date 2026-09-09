@@ -75,12 +75,12 @@ function BookingTypesContent() {
                                 {bookingTypes.map((bookingType) => (
                                     <tr key={bookingType.uid}>
                                         <td className="py-2.5 px-2.5 border-b border-border">{bookingType.name}</td>
-                                        <td className="py-2.5 px-2.5 border-b border-border">/book?slug={bookingType.slug}</td>
+                                        <td className="py-2.5 px-2.5 border-b border-border">/book/{bookingType.slug}</td>
                                         <td className="py-2.5 px-2.5 border-b border-border">{bookingType.durationMinutes} min</td>
                                         <td className="py-2.5 px-2.5 border-b border-border">{bookingType.enabled ? "Yes" : "No"}</td>
                                         <td className="py-2.5 px-2.5 border-b border-border text-right">
                                             <a
-                                                href={`/settings/booking-types/detail?uid=${encodeURIComponent(bookingType.uid)}&mailboxUid=${encodeURIComponent(mailboxUid!)}`}
+                                                href={`/settings/booking-types/${encodeURIComponent(bookingType.uid)}?mailboxUid=${encodeURIComponent(mailboxUid!)}`}
                                                 className="text-primary-dark hover:underline font-medium"
                                             >
                                                 View

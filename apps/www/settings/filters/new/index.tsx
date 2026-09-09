@@ -12,7 +12,7 @@ import {
 } from "../../../../shared/lib/mailFilterRulesApi.js";
 import SettingsShell, { SettingsShellProps, useSettingsShell } from "../../../../shared/components/settings/layout/SettingsShell.js";
 import RuleBuilder, { RuleBuilderValue } from "../../../../shared/components/rules/RuleBuilder.js";
-import { MAIL_FILTER_CONDITION_FIELDS, buildMailFilterActionTypes } from "../mailFilterRuleConfig.js";
+import { MAIL_FILTER_CONDITION_FIELDS, buildMailFilterActionTypes } from "../_mailFilterRuleConfig.js";
 import Alert from "../../../../shared/components/feedback/Alert.js";
 import Button from "../../../../shared/components/buttons/Button.js";
 import FormField from "../../../../shared/components/forms/FormField.js";
@@ -65,7 +65,7 @@ function NewMailFilterForm() {
         setSaving(true);
         try {
             const created = await createMailFilterRule({ mailboxUid: mailboxUid!, name: name.trim(), ...rule });
-            window.location.href = `/settings/filters/detail?uid=${encodeURIComponent(created.uid)}&mailboxUid=${encodeURIComponent(mailboxUid!)}`;
+            window.location.href = `/settings/filters/${encodeURIComponent(created.uid)}?mailboxUid=${encodeURIComponent(mailboxUid!)}`;
         } catch (err) {
             setError(err instanceof ApiRequestError ? err.message : "Could not create the mail filter.");
         } finally {

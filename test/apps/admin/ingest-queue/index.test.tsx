@@ -102,7 +102,7 @@ describe("IngestQueuePage", () => {
         render(<IngestQueuePage userUid="admin-1" authServerUrl="https://auth.example.com" />);
         expect(await screen.findByRole("link", { name: /Back to mailbox/ })).toHaveAttribute(
             "href",
-            "/admin/mailboxes/detail?uid=mb1",
+            "/admin/mailboxes/mb1",
         );
     });
 });

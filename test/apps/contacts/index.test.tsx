@@ -989,7 +989,7 @@ describe("ContactsPage — sidebar views, sorting, and toolbar bulk actions", ()
 
             await user.click(await screen.findByText("Jane Doe"));
 
-            expect(location.href).toBe("/contacts/detail?uid=c1");
+            expect(location.href).toBe("/contacts/c1");
             expect(screen.queryByRole("region", { name: "Contact details" })).not.toBeInTheDocument();
         });
 

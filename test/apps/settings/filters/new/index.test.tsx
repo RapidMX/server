@@ -115,7 +115,7 @@ describe("NewMailFilterPage", () => {
         await user.selectOptions(screen.getByLabelText("Destination folder"), "f2");
         await user.click(screen.getByRole("button", { name: "Create filter" }));
 
-        await vi.waitFor(() => expect(location.href).toBe("/settings/filters/detail?uid=mfr1&mailboxUid=mb1"));
+        await vi.waitFor(() => expect(location.href).toBe("/settings/filters/mfr1?mailboxUid=mb1"));
         expect(requestBody.mailboxUid).toBe("mb1");
         expect(requestBody.name).toBe("File newsletters");
         expect(requestBody.conditions).toEqual({ hasAttachment: true });

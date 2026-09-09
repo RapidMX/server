@@ -86,7 +86,7 @@ function DomainsListContent() {
                                     </td>
                                     <td className="py-2.5 px-2.5 border-b border-border text-right">
                                         <a
-                                            href={`/admin/domains/detail?uid=${encodeURIComponent(domain.uid)}`}
+                                            href={`/admin/domains/${encodeURIComponent(domain.uid)}`}
                                             className="text-primary-dark hover:underline font-medium"
                                         >
                                             View

@@ -52,7 +52,7 @@ type Status = "checking" | "denied" | "error" | "authorized";
 /** Sections shown in the persistent icon rail / mobile tab bar — every admin area reachable from
  * anywhere in the console. Deliberately excludes `quarantine`/`ingestQueue`: those are scoped to a
  * single mailbox and only ever reached via links on that mailbox's own detail page (see
- * `apps/admin/mailboxes/detail/index.tsx`), not global navigation destinations. */
+ * `apps/admin/mailboxes/[uid].tsx`), not global navigation destinations. */
 const NAV_ITEMS: NavItem[] = [
     { id: "mailboxes", href: "/admin", label: "Mailboxes", icon: HiOutlineInboxStack },
     { id: "domains", href: "/admin/domains", label: "Domains", icon: HiOutlineGlobeAlt },

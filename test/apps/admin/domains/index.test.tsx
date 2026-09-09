@@ -58,7 +58,7 @@ describe("DomainsListPage", () => {
         expect(screen.getByRole("link", { name: "+ New domain" })).toHaveAttribute("href", "/admin/domains/new");
         expect(screen.getAllByRole("link", { name: "View" })[0]).toHaveAttribute(
             "href",
-            "/admin/domains/detail?uid=example.com",
+            "/admin/domains/example.com",
         );
     });
 

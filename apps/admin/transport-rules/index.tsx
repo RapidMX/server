@@ -78,7 +78,7 @@ function TransportRulesContent() {
                                     <td className="py-2.5 px-2.5 border-b border-border">{rule.actions.length}</td>
                                     <td className="py-2.5 px-2.5 border-b border-border text-right">
                                         <a
-                                            href={`/admin/transport-rules/detail?uid=${encodeURIComponent(rule.uid)}`}
+                                            href={`/admin/transport-rules/${encodeURIComponent(rule.uid)}`}
                                             className="text-primary-dark hover:underline font-medium"
                                         >
                                             View

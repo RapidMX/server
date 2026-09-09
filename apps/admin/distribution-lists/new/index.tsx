@@ -48,7 +48,7 @@ function NewDistributionListForm() {
                 name: name.trim(),
                 description: description.trim() || undefined,
             });
-            window.location.href = `/admin/distribution-lists/detail?uid=${encodeURIComponent(list.uid)}`;
+            window.location.href = `/admin/distribution-lists/${encodeURIComponent(list.uid)}`;
         } catch (err) {
             setError(err instanceof ApiRequestError ? err.message : "Could not create the distribution list.");
         } finally {

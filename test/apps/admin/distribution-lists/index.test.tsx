@@ -51,7 +51,7 @@ describe("DistributionListsPage", () => {
         );
         expect(screen.getByRole("link", { name: "View" })).toHaveAttribute(
             "href",
-            "/admin/distribution-lists/detail?uid=team%40example.com",
+            "/admin/distribution-lists/team%40example.com",
         );
     });
 

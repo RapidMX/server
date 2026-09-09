@@ -235,6 +235,6 @@ describe("rescheduleBooking", () => {
 
 describe("bookingManageUrl", () => {
     it("builds a same-origin manage URL from the token", () => {
-        expect(bookingManageUrl("abc def")).toBe("/book/manage?token=abc%20def");
+        expect(bookingManageUrl("abc def")).toBe("/book/manage/abc%20def");
     });
 });

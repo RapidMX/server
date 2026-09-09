@@ -58,7 +58,7 @@ export default function MailboxTable({ mailboxes }: MailboxTableProps) {
                             </td>
                             <td className="py-2.5 px-2.5 border-b border-border align-middle text-right">
                                 <a
-                                    href={`/admin/mailboxes/detail?uid=${encodeURIComponent(mailbox.uid)}`}
+                                    href={`/admin/mailboxes/${encodeURIComponent(mailbox.uid)}`}
                                     className="text-primary-dark font-medium hover:underline"
                                 >
                                     View

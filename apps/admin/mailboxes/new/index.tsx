@@ -93,7 +93,7 @@ function NewMailboxForm() {
                     maxDurationMinutes: maxDurationMinutes ? Number(maxDurationMinutes) : undefined,
                 }),
             });
-            window.location.href = `/admin/mailboxes/detail?uid=${encodeURIComponent(mailbox.uid)}`;
+            window.location.href = `/admin/mailboxes/${encodeURIComponent(mailbox.uid)}`;
         } catch (err) {
             setError(err instanceof ApiRequestError ? err.message : "Could not create the mailbox.");
         } finally {

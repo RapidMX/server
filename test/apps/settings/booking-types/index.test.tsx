@@ -76,7 +76,7 @@ describe("SettingsBookingTypesPage", () => {
         render(<SettingsBookingTypesPage userUid="u1" />);
 
         expect(await screen.findByText("Intro Call 1")).toBeInTheDocument();
-        expect(screen.getByText("/book?slug=intro-1")).toBeInTheDocument();
+        expect(screen.getByText("/book/intro-1")).toBeInTheDocument();
         expect(screen.getAllByText("30 min")).toHaveLength(2);
         expect(screen.getByText("Yes")).toBeInTheDocument();
         expect(screen.getByText("No")).toBeInTheDocument();
@@ -86,7 +86,7 @@ describe("SettingsBookingTypesPage", () => {
         );
         expect(screen.getAllByRole("link", { name: "View" })[0]).toHaveAttribute(
             "href",
-            "/settings/booking-types/detail?uid=bt1&mailboxUid=mb1",
+            "/settings/booking-types/bt1?mailboxUid=mb1",
         );
     });
 

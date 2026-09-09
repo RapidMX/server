@@ -38,7 +38,7 @@ function NewDomainForm() {
         setSaving(true);
         try {
             const domain = await createDomain({ name: name.trim() });
-            window.location.href = `/admin/domains/detail?uid=${encodeURIComponent(domain.uid)}`;
+            window.location.href = `/admin/domains/${encodeURIComponent(domain.uid)}`;
         } catch (err) {
             setError(err instanceof ApiRequestError ? err.message : "Could not create the domain.");
         } finally {

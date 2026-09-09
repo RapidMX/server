@@ -55,7 +55,7 @@ describe("NewMailboxPage", () => {
         await user.type(screen.getByLabelText("Quota (GB)"), "10");
         await user.click(screen.getByRole("button", { name: "Create mailbox" }));
 
-        await vi.waitFor(() => expect(location.href).toBe("/admin/mailboxes/detail?uid=mb1"));
+        await vi.waitFor(() => expect(location.href).toBe("/admin/mailboxes/mb1"));
         expect(requestBody.timezone).toBe("America/Los_Angeles");
         expect(requestBody.quotaBytes).toBe(10_000_000_000);
         expect(requestBody.ownerUserUid).toBeUndefined();
@@ -82,7 +82,7 @@ describe("NewMailboxPage", () => {
         await user.type(screen.getByLabelText("Owner user uid (optional)"), "jdoe");
         await user.click(screen.getByRole("button", { name: "Create mailbox" }));
 
-        await vi.waitFor(() => expect(location.href).toBe("/admin/mailboxes/detail?uid=mb2"));
+        await vi.waitFor(() => expect(location.href).toBe("/admin/mailboxes/mb2"));
         expect(requestBody.ownerUserUid).toBe("jdoe");
     });
 
@@ -146,7 +146,7 @@ describe("NewMailboxPage", () => {
         await user.type(screen.getByLabelText("Display name"), "Support");
         await user.click(screen.getByRole("button", { name: "Create mailbox" }));
 
-        await vi.waitFor(() => expect(location.href).toBe("/admin/mailboxes/detail?uid=mb3"));
+        await vi.waitFor(() => expect(location.href).toBe("/admin/mailboxes/mb3"));
         expect(requestBody.primarySmtpAddress).toBe("support@example.org");
     });
 
@@ -205,7 +205,7 @@ describe("NewMailboxPage", () => {
         await user.click(screen.getByRole("checkbox", { name: "Automatically accept booking requests" }));
         await user.click(screen.getByRole("button", { name: "Create mailbox" }));
 
-        await vi.waitFor(() => expect(location.href).toBe("/admin/mailboxes/detail?uid=room1"));
+        await vi.waitFor(() => expect(location.href).toBe("/admin/mailboxes/room1"));
         expect(requestBody.isResource).toBe(true);
         expect(requestBody.resourceType).toBe("equipment");
         expect(requestBody.resourceCapacity).toBe(4);

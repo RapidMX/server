@@ -132,7 +132,7 @@ describe("NewBookingTypePage", () => {
         );
         const body = JSON.parse((fetchMock.mock.calls.find(([u]) => u === "/api/mail/booking-types")![1] as RequestInit).body as string);
         expect(body.calendarFolderUid).toBe("f-cal");
-        await vi.waitFor(() => expect(location.href).toBe("/settings/booking-types/detail?uid=bt1&mailboxUid=mb1"));
+        await vi.waitFor(() => expect(location.href).toBe("/settings/booking-types/bt1?mailboxUid=mb1"));
     });
 
     it("shows an error message when creation fails", async () => {

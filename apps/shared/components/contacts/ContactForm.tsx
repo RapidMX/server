@@ -34,7 +34,7 @@ const ADDRESS_KINDS: ContactAddressKind[] = ["home", "work", "other"];
 
 /**
  * A contact's create/edit form. Shared by the desktop inline pane (`apps/www/contacts/index.tsx`) and the
- * mobile detail route's own edit mode (`apps/www/contacts/detail/index.tsx`) — creation itself stays
+ * mobile detail route's own edit mode (`apps/www/contacts/[uid].tsx`) — creation itself stays
  * desktop-and-mobile-inline (see that route's own doc comment on why "new" never gets a dedicated route).
  */
 export default function ContactForm({ contact, mailboxUid, folderUid, onSaved, onCancel }: ContactFormProps) {

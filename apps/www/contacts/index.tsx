@@ -179,7 +179,7 @@ function ContactsContent() {
 
     function handleSelectRow(contact: Contact) {
         if (isMobile) {
-            window.location.href = `/contacts/detail?uid=${encodeURIComponent(contact.uid)}`;
+            window.location.href = `/contacts/${encodeURIComponent(contact.uid)}`;
             return;
         }
         setSelectedUid(contact.uid);
@@ -417,7 +417,7 @@ function ContactsContent() {
                     </div>
                 )}
             </div>
-            {/* On mobile, "selected"/"edit" are unreachable (row taps navigate to /contacts/detail instead —
+            {/* On mobile, "selected"/"edit" are unreachable (row taps navigate to /contacts/:uid instead —
                 see handleSelectRow), so this pane only needs to show there for "new", which stays in-place
                 on every device (an unsaved contact has no uid for a route). Always visible on desktop. */}
             <div className={["flex-1 min-w-0 overflow-y-auto p-6 md:block", mode === "new" ? "block" : "hidden"].join(" ")}>

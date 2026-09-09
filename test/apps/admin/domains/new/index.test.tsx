@@ -42,7 +42,7 @@ describe("NewDomainPage", () => {
         await user.type(screen.getByLabelText("Domain name"), "example.com");
         await user.click(screen.getByRole("button", { name: "Create domain" }));
 
-        await vi.waitFor(() => expect(location.href).toBe("/admin/domains/detail?uid=example.com"));
+        await vi.waitFor(() => expect(location.href).toBe("/admin/domains/example.com"));
         expect(requestBody).toEqual({ enabled: true, name: "example.com" });
     });
 

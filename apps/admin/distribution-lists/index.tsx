@@ -76,7 +76,7 @@ function DistributionListsContent() {
                                     <td className="py-2.5 px-2.5 border-b border-border">{list.memberAddresses.length}</td>
                                     <td className="py-2.5 px-2.5 border-b border-border text-right">
                                         <a
-                                            href={`/admin/distribution-lists/detail?uid=${encodeURIComponent(list.uid)}`}
+                                            href={`/admin/distribution-lists/${encodeURIComponent(list.uid)}`}
                                             className="text-primary-dark hover:underline font-medium"
                                         >
                                             View

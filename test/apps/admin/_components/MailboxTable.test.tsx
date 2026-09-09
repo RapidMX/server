@@ -46,7 +46,7 @@ describe("MailboxTable", () => {
         expect(screen.getByText("2.5 GB / 5.0 GB")).toBeInTheDocument();
         expect(screen.getByRole("link", { name: "View" })).toHaveAttribute(
             "href",
-            "/admin/mailboxes/detail?uid=mb1",
+            "/admin/mailboxes/mb1",
         );
     });
 

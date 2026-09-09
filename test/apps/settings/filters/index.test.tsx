@@ -80,7 +80,7 @@ describe("SettingsFiltersPage", () => {
         );
         expect(screen.getAllByRole("link", { name: "View" })[0]).toHaveAttribute(
             "href",
-            "/settings/filters/detail?uid=mfr1&mailboxUid=mb1",
+            "/settings/filters/mfr1?mailboxUid=mb1",
         );
         expect(fetchMock.mock.calls.some(([url]) => String(url).startsWith("/api/mail/mail-filter-rules?limit=25&page=0&mailboxUid=mb1"))).toBe(
             true,

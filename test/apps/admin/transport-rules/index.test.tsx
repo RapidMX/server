@@ -60,7 +60,7 @@ describe("TransportRulesPage", () => {
         );
         expect(screen.getAllByRole("link", { name: "View" })[0]).toHaveAttribute(
             "href",
-            "/admin/transport-rules/detail?uid=tr1",
+            "/admin/transport-rules/tr1",
         );
     });
 

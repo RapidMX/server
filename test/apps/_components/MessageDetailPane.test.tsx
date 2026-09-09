@@ -88,7 +88,7 @@ afterEach(() => {
 
 describe("MessageDetailPane", () => {
     it("shows a placeholder and no back link when no message is given", () => {
-        render(<MessageDetailPane message={null} attachments={[]} backHref="/messages/detail?uid=m1" />);
+        render(<MessageDetailPane message={null} attachments={[]} backHref="/messages/m1" />);
         expect(screen.getByText("Select a message to read it.")).toBeInTheDocument();
         expect(screen.queryByRole("link", { name: /Back to messages/ })).not.toBeInTheDocument();
     });

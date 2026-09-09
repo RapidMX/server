@@ -8,7 +8,7 @@ const { Route } = RouteDecorators;
 
 /**
  * The public, entirely unauthenticated booking pages (`apps/book/**`) — a visitor with nothing but a
- * `/book?slug=...` link picks a slot and books it, or later manages it via `/book/manage?token=...`. No
+ * `/book/:slug` link picks a slot and books it, or later manages it via `/book/manage/:token`. No
  * `fetchProps` override: unlike `WwwRoute`/`AdminConsoleRoute`, this app never redirects an unauthenticated
  * visitor anywhere and needs no `authServerUrl`/impersonation wiring at all.
  */

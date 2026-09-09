@@ -11,7 +11,7 @@ import {
 } from "../../../shared/lib/transportRulesApi.js";
 import AdminShell, { AdminShellProps } from "../../../shared/components/admin/layout/AdminShell.js";
 import RuleBuilder, { RuleBuilderValue } from "../../../shared/components/rules/RuleBuilder.js";
-import { TRANSPORT_RULE_ACTION_TYPES, TRANSPORT_RULE_CONDITION_FIELDS } from "../transportRuleConfig.js";
+import { TRANSPORT_RULE_ACTION_TYPES, TRANSPORT_RULE_CONDITION_FIELDS } from "../_transportRuleConfig.js";
 import Alert from "../../../shared/components/feedback/Alert.js";
 import Button from "../../../shared/components/buttons/Button.js";
 import FormField from "../../../shared/components/forms/FormField.js";
@@ -51,7 +51,7 @@ function NewTransportRuleForm() {
         setSaving(true);
         try {
             const created = await createTransportRule({ name: name.trim(), ...rule });
-            window.location.href = `/admin/transport-rules/detail?uid=${encodeURIComponent(created.uid)}`;
+            window.location.href = `/admin/transport-rules/${encodeURIComponent(created.uid)}`;
         } catch (err) {
             setError(err instanceof ApiRequestError ? err.message : "Could not create the transport rule.");
         } finally {

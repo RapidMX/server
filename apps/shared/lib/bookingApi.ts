@@ -218,11 +218,10 @@ export function rescheduleBooking(token: string, start: string): Promise<PublicB
     });
 }
 
-/** The same-origin URL for a booking's manage page — built client-side from `bookSlot()`'s own response
- * (`manageToken`), since `@rapidmx/restapi`'s own email-embedded manage link relies on a path-segment
- * token (`${mail:booking:public_url}/manage/:token`) this framework's file-based routing cannot resolve
- * (no dynamic route segments — see `apps/book/manage/index.tsx`'s own doc comment). Left unset in config,
- * so the confirmation email itself carries no such link; this on-screen link is the real, working one. */
+/** The same-origin URL for a booking's manage page, shown on-screen right after a booking — the same
+ * shape `@rapidmx/restapi`'s own email-embedded manage link now resolves to as well
+ * (`${mail:booking:public_url}/manage/:token`, see `config.mongo.ts`/`config.sql.ts` and
+ * `apps/book/manage/[token].tsx`'s own doc comment). */
 export function bookingManageUrl(manageToken: string): string {
-    return `/book/manage?token=${encodeURIComponent(manageToken)}`;
+    return `/book/manage/${encodeURIComponent(manageToken)}`;
 }

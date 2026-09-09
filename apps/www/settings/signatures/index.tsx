@@ -70,7 +70,7 @@ function SignaturesContent() {
                                     )}
                                 </div>
                                 <a
-                                    href={`/settings/signatures/detail?uid=${encodeURIComponent(sig.uid)}&mailboxUid=${encodeURIComponent(mailboxUid!)}`}
+                                    href={`/settings/signatures/${encodeURIComponent(sig.uid)}?mailboxUid=${encodeURIComponent(mailboxUid!)}`}
                                     className="text-primary-dark hover:underline font-medium text-sm"
                                 >
                                     Edit

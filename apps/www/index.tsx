@@ -199,7 +199,7 @@ function InboxContent() {
 
     function handleSelect(message: Message) {
         if (isMobile) {
-            window.location.href = `/messages/detail?uid=${encodeURIComponent(message.uid)}`;
+            window.location.href = `/messages/${encodeURIComponent(message.uid)}`;
             return;
         }
         setSelectedUid(message.uid);
@@ -213,7 +213,7 @@ function InboxContent() {
             // `messageUids` always has at least one entry — a `ConversationSummary` only ever exists
             // because it was grouped from real messages (see `BaseMessageRoute.conversations()`).
             const latestUid = conversation.messageUids[conversation.messageUids.length - 1];
-            window.location.href = `/messages/detail?uid=${encodeURIComponent(latestUid)}`;
+            window.location.href = `/messages/${encodeURIComponent(latestUid)}`;
             return;
         }
         setSelectedConversationId(conversation.conversationId);

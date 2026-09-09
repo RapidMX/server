@@ -58,7 +58,7 @@ function IngestQueueContent() {
         <div className="max-w-4xl flex flex-col gap-4">
             <div>
                 <a
-                    href={`/admin/mailboxes/detail?uid=${encodeURIComponent(mailboxUid)}`}
+                    href={`/admin/mailboxes/${encodeURIComponent(mailboxUid)}`}
                     className="text-sm text-primary-dark hover:underline"
                 >
                     &larr; Back to mailbox

@@ -40,7 +40,7 @@
     "@rapidmx/mapi": "1.0.0-beta.0",
     "@rapidmx/restapi": "^0.3.1",
     "@rapidrest/core": "^5.2.2",
-    "@rapidrest/react": "^2.0.0-beta.0",
+    "@rapidrest/react": "patch:@rapidrest/react@npm%3A2.0.0-beta.0#~/.yarn/patches/@rapidrest-react-npm-2.0.0-beta.0-a98bafc97f.patch",
     "@rapidrest/service-core": "^1.7.2",
     "@tiptap/core": "^3.31.3",
     "@tiptap/extension-highlight": "^3.31.3",

@@ -8,16 +8,11 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import PublicBookingPage, { readSlug } from "../../../apps/book/index.js";
+import NoBookingSlugPage from "../../../apps/book/index.js";
 
-describe("PublicBookingPage SSR guard (no window)", () => {
+describe("NoBookingSlugPage SSR guard (no window)", () => {
     it("renders without throwing when there is no window global", () => {
         expect(typeof window).toBe("undefined");
-        expect(() => renderToStaticMarkup(<PublicBookingPage />)).not.toThrow();
-    });
-
-    it("readSlug() returns null when there is no window global", () => {
-        expect(typeof window).toBe("undefined");
-        expect(readSlug()).toBeNull();
+        expect(() => renderToStaticMarkup(<NoBookingSlugPage />)).not.toThrow();
     });
 });

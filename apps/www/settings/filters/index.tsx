@@ -81,7 +81,7 @@ function FiltersContent() {
                                         <td className="py-2.5 px-2.5 border-b border-border">{rule.actions.length}</td>
                                         <td className="py-2.5 px-2.5 border-b border-border text-right">
                                             <a
-                                                href={`/settings/filters/detail?uid=${encodeURIComponent(rule.uid)}&mailboxUid=${encodeURIComponent(mailboxUid!)}`}
+                                                href={`/settings/filters/${encodeURIComponent(rule.uid)}?mailboxUid=${encodeURIComponent(mailboxUid!)}`}
                                                 className="text-primary-dark hover:underline font-medium"
                                             >
                                                 View

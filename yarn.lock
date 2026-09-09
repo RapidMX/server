@@ -1405,7 +1405,7 @@ __metadata:
     "@rapidmx/restapi": "npm:^0.3.1"
     "@rapidrest/cli": "npm:^1.0.1"
     "@rapidrest/core": "npm:^5.2.2"
-    "@rapidrest/react": "npm:^2.0.0-beta.0"
+    "@rapidrest/react": "patch:@rapidrest/react@npm%3A2.0.0-beta.0#~/.yarn/patches/@rapidrest-react-npm-2.0.0-beta.0-a98bafc97f.patch"
     "@rapidrest/service-core": "npm:^1.7.2"
     "@swc/core": "npm:^1.16.2"
     "@tailwindcss/vite": "npm:^4.3.3"
@@ -1528,7 +1528,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@rapidrest/react@npm:^2.0.0-beta.0":
+"@rapidrest/react@npm:2.0.0-beta.0":
   version: 2.0.0-beta.0
   resolution: "@rapidrest/react@npm:2.0.0-beta.0"
   dependencies:
@@ -1554,6 +1554,35 @@ __metadata:
   bin:
     rapidreact: dist/cli/cli.js
   checksum: 10c0/8489bc6ae3c049d78720d90e2ac35fff4040aa5eab85302c017a4496821f3356a37a670fac229b2d10efe827521d3f2bfed55a89530763cd0e5b949cbdd91d40
+  languageName: node
+  linkType: hard
+
+"@rapidrest/react@patch:@rapidrest/react@npm%3A2.0.0-beta.0#~/.yarn/patches/@rapidrest-react-npm-2.0.0-beta.0-a98bafc97f.patch":
+  version: 2.0.0-beta.0
+  resolution: "@rapidrest/react@patch:@rapidrest/react@npm%3A2.0.0-beta.0#~/.yarn/patches/@rapidrest-react-npm-2.0.0-beta.0-a98bafc97f.patch::version=2.0.0-beta.0&hash=cccd63"
+  dependencies:
+    cross-spawn: "npm:^7.0.6"
+  peerDependencies:
+    "@rapidrest/core": 5.x
+    "@rapidrest/service-core": 1.x
+    "@vitejs/plugin-react": ">=4.0.0"
+    nodemon: ">=3.0.0"
+    react: 19.x
+    react-dom: 19.x
+    tsx: ">=4.0.0"
+    vite: ">=5.0.0"
+  peerDependenciesMeta:
+    "@vitejs/plugin-react":
+      optional: true
+    nodemon:
+      optional: true
+    tsx:
+      optional: true
+    vite:
+      optional: true
+  bin:
+    rapidreact: dist/cli/cli.js
+  checksum: 10c0/c05b02e84987f23b581ead99945e26e3e5641573d9146c64033daefdb6490ac60e7f7736af9a748275a5c9ee20b6d4e218aacf7f6534212c5d1e08289ed218f8
   languageName: node
   linkType: hard
 

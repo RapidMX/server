@@ -20,7 +20,7 @@ export interface ContactDetailPaneProps {
 /**
  * A contact's read-only detail view. Shared by the desktop inline pane (`apps/www/contacts/index.tsx`,
  * always visible alongside the contact list) and the mobile detail route
- * (`apps/www/contacts/detail/index.tsx`, a full page on its own reached by tapping a contact row).
+ * (`apps/www/contacts/[uid].tsx`, a full page on its own reached by tapping a contact row).
  */
 export default function ContactDetailPane({ contact, onEdit, onDelete, backHref }: ContactDetailPaneProps) {
     return (
