@@ -2,7 +2,11 @@
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: service-config
+  # Chart-name-qualified (not bare "service-config") so a parent chart depending on this one as a
+  # subchart (or, for this chart, a chart depending on THIS one) - each with its own, genuinely
+  # different config values - doesn't have one silently overwrite the other's ConfigMap under the same
+  # literal resource name.
+  name: {{ include "rrst.fullname" . }}-service-config
 data:
   cookie_secret: {{ tpl $.Values.cookies.secret . | quote }}
   session__secret: {{ tpl $.Values.sessions.secret . | quote }}
@@ -10,6 +14,13 @@ data:
   {{- $publicScheme := ternary "https" "http" $.Values.gateway.tls }}
   {{- $corsHosts := list "http://localhost:3000" (printf "%s://%s" $publicScheme $.Values.host) }}
   cors__origins: {{ $corsHosts | toJson | quote }}
+  # Browser-facing: apps/www's/apps/admin's unauthenticated-redirect and this service's own SSR both
+  # resolve auth-server through this URL, so it must be reachable from the visitor's browser, not just
+  # from inside the cluster - hence the authServer subdomain host, not a Service DNS name. Only rendered
+  # when authServer is actually enabled; set mail__auth_server_url directly via service.config otherwise.
+  {{- if $.Values.authServer.create }}
+  mail__auth_server_url: {{ printf "%s://%s" $publicScheme $.Values.authServer.host | quote }}
+  {{- end }}
   {{- range $k, $v := $.Values.service.config }}
   {{- if kindIs "string" $v }}
   {{ $k }}: {{ tpl $v $ | quote }}
@@ -25,7 +36,8 @@ data:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: service-db-info
+  # Chart-name-qualified - see the ConfigMap above for why.
+  name: {{ include "rrst.fullname" . }}-service-db-info
 type: Opaque
 data:
   {{- $mongoRootUser := "" }}
@@ -83,10 +95,12 @@ data:
   {{- end }}
   datastores__sql__type: {{ print "postgres" | b64enc | quote }}
   {{- /*
-  server.ts picks its config module with `!!process.env.datastores__sql__url` - a bare presence
-  check on this exact combined-URL var, not on any of the separate host/username/password fields
-  used above for acl. So unlike acl, sql must always end up with a `url` key or the app silently
-  loads config.mongo.ts instead, regardless of how the rest of these datastore fields are set.
+  Unlike acl above, sql must always end up with a `url` key here regardless of how the rest of these
+  datastore fields are set - PostgresFullTextSearchProvider and other sql-only wiring read it directly,
+  and 1_deployments/service.yaml's own command/args selects server.sql.js vs server.mongo.js from
+  postgresql.create/mongodb.create directly (not by sniffing this env var - @rapidmx/server's
+  server.mongo.ts/server.sql.ts are separate, statically-imported entry points, not one script that
+  branches on env vars at runtime).
   */}}
   {{- $sqlHost := include "rrst.render" (dict "value" $.Values.service.postgresql.sql.host "context" $) | default (printf "%s" $.Values.postgresql.fullnameOverride) }}
   {{- $sqlDatabase := include "rrst.render" (dict "value" $.Values.service.postgresql.sql.name "context" $) }}

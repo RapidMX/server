@@ -1,4 +1,5 @@
-{{- if and (eq "api-gateway" (tpl $.Values.gateway.name $)) (eq $.Release.Namespace (tpl $.Values.gateway.namespace $)) }}
+{{- /* See auth-server's own 3_gateways/api.yaml doc comment for why this is gated on gateway.create. */}}
+{{- if and $.Values.gateway.create (eq "api-gateway" (tpl $.Values.gateway.name $)) (eq $.Release.Namespace (tpl $.Values.gateway.namespace $)) }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
@@ -6,10 +7,13 @@ metadata:
 spec:
   gatewayClassName: nginx
   listeners:
+  # No per-listener `hostname:` restriction - this Gateway is shared with the authServer subchart (see
+  # values.yaml's authServer.host, a distinct auth.<host> subdomain), so hostname-based routing is left
+  # entirely to each HTTPRoute's own `hostnames:` list instead (this chart's own below, and authServer's -
+  # both attach to this same "http"/"https" listener via `sectionName`).
   - name: http
     port: 80
     protocol: HTTP
-    hostname: {{ $.Values.host | quote }}
     allowedRoutes:
       namespaces:
         from: All
@@ -17,7 +21,6 @@ spec:
   - name: https
     protocol: HTTPS
     port: 443
-    hostname: {{ $.Values.host | quote }}
     allowedRoutes:
       namespaces:
         from: All
@@ -27,7 +30,9 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: api-httproute
+  # Chart-name-qualified (not a bare "api-httproute") - see authServer's own identical fix, needed once
+  # both charts' HTTPRoutes attach to the one shared Gateway above.
+  name: {{ include "rrst.fullname" . }}-httproute
 spec:
   parentRefs:
   - name: {{ tpl $.Values.gateway.name $ }}

@@ -1,5 +1,5 @@
 apiVersion: v2
-description: Installs the RapidMX authentication and authorization server into a Kubernetes cluster
+description: Installs the RapidMX mail server - webmail, ActiveSync, MAPI, and Autodiscover - along with its supporting auth-server, Postfix/rspamd/ClamAV mail stack, and mta-bridge, into a Kubernetes cluster
 name: mail-server
 version: 1.0.0
 appVersion: "0.1.0"
@@ -31,4 +31,17 @@ dependencies:
     - cache
     - redis
   alias: redis
+
+# The separate auth-server deployment this service verifies JWTs against (see .claude/NOTES.md,
+# "Authentication is out of scope for this repo") - co-installed as a subchart by default so one `helm
+# install` brings up the whole stack, matching docker-compose.mongo.yml/sql.yml's own auth-server wiring.
+# Its own mongodb/redis/postgresql subchart creation is disabled via values.yaml (authServer.mongodb.create
+# etc.) in favor of sharing this chart's own instances, on separate logical databases - see values.yaml's
+# authServer block for the full wiring, and its own chart's gateway.create toggle (values.yaml's
+# authServer.gateway.create: false) for how the two charts share one Gateway without colliding.
+- name: auth-server
+  repository: "oci://ghcr.io/rapidrest/charts"
+  version: ~1.0.0
+  condition: authServer.create
+  alias: authServer
 

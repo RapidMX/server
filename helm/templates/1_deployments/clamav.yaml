@@ -1,0 +1,25 @@
+---
+# Anti-virus scanning (AvScanProvider) - see ClamAvScanProvider. clamd's signature database can take a
+# few minutes to load on first start; the provider fails closed (quarantines) until it's ready - see the
+# generous resources.requests default in values.yaml.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clamav
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: clamav
+  template:
+    metadata:
+      labels:
+        app: clamav
+    spec:
+      containers:
+        - name: clamav
+          image: {{ $.Values.mail.clamav.image.registry }}/{{ $.Values.mail.clamav.image.repository }}:{{ $.Values.mail.clamav.image.tag }}
+          ports:
+            - containerPort: 3310
+          resources:
+            {{- toYaml $.Values.mail.clamav.resources | nindent 12 }}

@@ -3358,10 +3358,14 @@ session, for reasons having nothing to do with any of this session's own changes
   clean locally. `@rapidmx/restapi` re-patched into `server` via `yarn patch`/`yarn patch-commit` (per this
   file's own standing decision on how to consume unpublished sibling-repo changes ahead of a real npm
   publish) to pick up the new `dkim/`/`/internal/mta/domain` code — `package.json`'s `@rapidmx/restapi` line
-  now points at a `patch:` spec instead of the plain `^0.3.1` registry version; **this must be reverted
-  back to a plain version constraint once JP actually publishes a new `@rapidmx/restapi` version containing
-  these changes**, exactly like the pre-publish `mail`/`@rapidmx/restapi` precedent this file's own
-  standing decisions section already documents.
+  pointed at a `patch:` spec instead of the plain registry version for the rest of this session.
+  **Resolved later the same session**: JP published `@rapidmx/restapi@0.4.0` (containing this session's
+  `dkim/`/`GET /internal/mta/domain`/`ScanPipeline` fix) and updated `package.json` to a plain
+  `"^0.4.0"` constraint himself. Dropped the now-unreferenced `.yarn/patches/@rapidmx-restapi-npm-0.3.1-
+  *.patch` file, re-ran `yarn install` (resolved straight to the real npm package, no patch machinery),
+  and re-verified `yarn tsc --noEmit`/`yarn lint`/`Server.mongo.test.ts`/`Server.sql.test.ts`/
+  `test/mta-bridge/*` all still green against the real published package - no code changes needed on this
+  side, confirming the yarn-patch's dist output matched what actually got published.
 - **Full local `docker build` and `docker compose up` DID complete successfully** (`server` reports
   `healthy` via its own HEALTHCHECK; `postfix`/`rspamd`/`clamav` all report `healthy` too). `auth-server`
   itself could NOT be pulled in this environment — `ghcr.io/rapidrest/auth-server:latest` returned "denied"
@@ -3416,3 +3420,158 @@ session, for reasons having nothing to do with any of this session's own changes
 - Not done this session: committing any of this (same standing "never auto-commit" rule as every entry in
   this file), and no live browser/mail-client walkthrough or actual send/receive test through the running
   stack.
+
+### 2026-09-09 (continued) — Helm chart: same deploy-wiring, for Kubernetes instead of docker-compose
+
+JP's follow-up after the docker-compose session above: "let's do the helm chart" - bring `helm/` (until
+now an essentially unadapted scaffold copy, per this file's own 2026-08-25 entry) up to the same
+end-to-end wiring docker-compose now has. Spans this repo and `@rapidrest/auth-server` (sibling repo,
+`d:\github\rapidrest\auth-server`) - the auth-server change is described here for context but belongs to
+that repo's own NOTES.md too.
+
+- **`.github/workflows/ci.yml` bug found and fixed before touching the chart at all**: `publish-docker-image`
+  derived its image name from `package.json`'s scoped npm name (`@rapidmx/server`) verbatim - a literal
+  `@` makes for an invalid Docker reference (`docker build -t ghcr.io/RapidMX/@rapidmx/server:latest .`
+  fails outright with "invalid reference format", confirmed by reproducing it directly). This job has
+  presumably never successfully run since the rapidmx split (whenever `package.json`'s name gained the
+  scope) - fixed by stripping the scope (`sed -E 's|^@[^/]+/||'`), matching what `values.yaml`'s
+  `service.image.repository` now expects (`rapidmx/server`). Not otherwise investigated (no `gh` CLI here
+  to check actual past run history) - worth confirming the next real tagged release actually publishes.
+- **Confirmed via `AskUserQuestion` before starting**: auth-server would be added as a real Helm chart
+  *dependency* (subchart, alias `authServer`) rather than hand-rolling a parallel Deployment/Service for
+  it - auth-server already has its own complete, independently-publishable chart
+  (`oci://ghcr.io/rapidrest/charts/auth-server`, confirmed via that repo's own ci.yml), identical scaffold
+  to this one. This was flagged as a real fork (not a default judgment call) because doing it properly
+  meant also patching auth-server's own chart, not just this one - see below.
+- **The "identical scaffold" turned out to run deeper than expected, and the actual required auth-server
+  patch was larger than what was described when asking**: every `0_config/*` resource in BOTH charts
+  hardcodes its own name (`jwt-auth`, `service-config`, `service-db-info`), and `3_gateways/api.yaml`
+  hardcodes `api-gateway`/`api-httproute` too - none of it chart-name-qualified. Co-installing auth-server
+  as a subchart with everything left at its own defaults reproduces this literally: `helm template`
+  confirmed TWO resources each named `service-config`/`service-db-info`/`jwt-auth`/`api-httproute` in one
+  release, each with genuinely different content (different datastore credentials, different JWT audience
+  in the naive first draft) - whichever applied last would have silently clobbered the other, breaking one
+  service's ability to connect to its own database or trust its own tokens. Fixed by chart-qualifying
+  every one of those resource names (`{{ include "rrst.fullname" . }}-<resource>`) in **both** repos'
+  `0_config/jwt-auth.yaml`/`service-config.yaml` and updating each repo's own `service.yaml` `envFrom`
+  refs to match, plus a new `gateway.create` toggle (default `true`) in auth-server's own
+  `3_gateways/api.yaml`/`values.yaml` so a parent chart can suppress its Gateway creation while still
+  pointing its (now chart-qualified) HTTPRoute at the parent's own shared Gateway. This repo's own
+  `3_gateways/api.yaml` also dropped its Gateway listeners' per-hostname restriction entirely (both
+  `http`/`https`) so one shared Gateway can carry both this chart's own HTTPRoute (`host`) and
+  authServer's (`authServer.host`, a distinct `auth.<host>` subdomain - Kubernetes Gateway routing is
+  hostname-based, unlike docker-compose's port-based `localhost:3001`) without either resource colliding.
+  `redis.yaml`'s own `db-redis-info` Secret did NOT need this fix - it's already wrapped in
+  `{{- if $.Values.redis.create }}`, and `authServer.redis.create: false` (below) means it simply never
+  renders for that subchart instance at all.
+- **A second, genuinely non-obvious Helm limitation hit while wiring `authServer`'s values**: subchart
+  values are a static YAML merge at chart-load time, not a live reference back to the parent's own
+  `.Values` - a `authServer.host: '{{ .Values.host }}'`-style override in this chart's own `values.yaml`
+  does NOT resolve against *this* chart's `host`; it becomes a literal string that gets merged into
+  authServer's own values namespace, then (if and only if authServer's own template happens to wrap that
+  specific field in `tpl` at its point of use - not all of them do) re-evaluated against **authServer's
+  own** `.Values.host` instead. Caught this before it shipped by tracing which fields each repo's
+  templates actually `tpl`-wrap (`auth.audience`/`issuer`/`secret`, `cookies.secret`, `sessions.secret`,
+  `gateway.name`/`namespace`, `redis.url`, everything inside `service.mongodb`/`service.postgresql` via
+  the shared `rrst.render` helper - all safe to reference indirectly) versus which are read raw
+  (`host`, `environment`, `gateway.tls`/`hsts`, `mongodb`/`redis`/`postgresql` `.create`/
+  `.fullnameOverride` - NOT safe; a template-string value there is used exactly as-is, unparsed). Every
+  field in the `authServer:` block that needed to track this chart's own value is therefore a **plain
+  literal**, kept in sync by comment rather than by reference - see `values.yaml`'s own extensive comment
+  on this. One real behavioral consequence: `auth.audience`/`auth.issuer` were changed from this
+  scaffold's original `'{{ .Values.host }}'`/`'api.{{ .Values.host }}'` defaults to a fixed logical
+  identifier (`mail-server-api`, matching config.defaults.ts's own non-host-derived placeholder
+  convention) specifically so they can never drift from `authServer.auth.audience`/`issuer` just because
+  `host`/`authServer.host` differ - JWT verification fails outright the moment the two charts disagree on
+  any of `audience`/`issuer`/`secret`, so this triplet is the one place where "keep two literals in sync
+  by hand" was judged too fragile and a host-independent constant was used instead.
+- **`auth.secret`/`authServer.auth.secret` are now a fixed literal (`MyPasswordIsSecure`, matching
+  `DEFAULT_AUTH_SECRET`) instead of this scaffold's original `{{ randAlphaNum 32 }}`** - two independent
+  per-chart random generations would never actually produce the same secret, and there is no `global`-
+  values or other live-sharing mechanism between a parent and a subchart's own random value. The app's own
+  `assertProductionSecretsAreSet()` already refuses to boot with this exact default in a real
+  (`NODE_ENV=production`) deployment, so this doesn't weaken the existing safety net - it just means the
+  operator overrides BOTH `auth.secret` and `authServer.auth.secret` together (documented in `values.yaml`)
+  rather than being able to rely on `--set`-free random generation the way `cookies.secret`/`sessions.secret`
+  (which don't need to match anything) still do.
+- **Sharing infrastructure, not creating a second copy**: `authServer.mongodb.create`/`redis.create`/
+  `postgresql.create` are all `false`, with `fullnameOverride` set to an identical literal copy of this
+  chart's own (`mongodb`/`db-redis`/`postgresql`) - auth-server's own `service-config.yaml`/`redis.yaml`
+  templates do a `lookup` for datastore credentials keyed by that exact resource name, so with matching
+  `fullnameOverride`s they transparently find and reuse the credentials this chart's own mongodb/redis
+  subcharts already created, no changes needed to those templates at all. Separate logical databases per
+  app (`rapidmx_server_mongo`/`_acls` vs `rapidmx_auth_mongo`/`_acls`, mirroring docker-compose's own
+  naming) via `service.mongodb.*`/`authServer.service.mongodb.*` - this chart's own defaults were also
+  renamed from the vestigial `access_control_lists`/`rrst_auth` to match.
+- **New mail-flow stack, mirroring docker-compose.mail.yml service-for-service**: `1_deployments/
+  {postfix,rspamd,clamav,mta-bridge}.yaml` + `2_services/mail-services.yaml`. `mta-bridge` reuses the main
+  service Deployment's own image (`$.Values.service.image.*`), just a different `command`. **Caught one
+  design mistake before it shipped**: an early draft mounted the `dkim-keys` PVC into the *standalone*
+  `rspamd` Deployment - wrong target. That rspamd instance is only ever used for the app's own inbound
+  spam-scoring HTTP API (`RspamdSpamScanProvider`); DKIM signing happens inside the **separate**, bundled
+  rspamd that ships inside the `postfix` Deployment's own `boky/postfix` image (matching
+  docker-compose.mail.yml exactly, where the standalone `rspamd:` service also has no DKIM volume at all)
+  - fixed by moving the mount to `postfix.yaml` only.
+- **DKIM/blob storage as real PVCs** (`0_config/mail-storage.yaml`): `dkim-keys` (mounted read-write by
+  both the main service Deployment - `FsDkimKeyProvider` writes - and `postfix` - rspamd's `dkim_signing`
+  module reads), `blob-data` (`LocalFsBlobStore`'s root, main service only), and `dkim-opendkim-keys`
+  (postfix only, for supplying a pre-generated key pair manually - mirrors docker-compose's
+  `dkim_opendkim_keys` volume). **`dkim-keys` defaults to `ReadWriteOnce`, not `ReadWriteMany`** -
+  documented in `values.yaml` as correct-but-topology-dependent: RWO lets two *different* Deployments'
+  pods share one PVC only when the scheduler happens to place both on the same node, which is
+  unconditionally true on a single-node cluster (e.g. `single_node_install.sh`'s own k3s) but not
+  guaranteed on a real multi-node one, which needs `storageClassName` overridden to an RWX-capable class
+  (NFS/EFS/Azure Files/Longhorn) instead. Not fixable more fundamentally without either forcing pod
+  affinity between two otherwise-independent Deployments or moving DKIM key custody out of the filesystem
+  entirely (e.g. into a Kubernetes Secret server writes via the API) - flagged, not silently chosen,
+  since it's a real operational tradeoff the previous `AskUserQuestion` didn't need to ask about (RWO with
+  a documented caveat was judged an acceptable default, unlike the two questions that WERE asked).
+- **`1_deployments/service.yaml`'s command/args now actually selects `server.mongo.js` vs `server.sql.js`
+  from `postgresql.create`/`mongodb.create`** - previously always ran the image's default CMD
+  (`dist/src/server.js`, hardwired to Mongo config) regardless of environment or which datastore was
+  enabled, the **exact same bug already found and fixed in docker-compose.mongo.yml/sql.yml** (see the
+  entry above, and `d485c2e`'s own commit message) but never carried over to this chart. A
+  `postgresql.create: true` install would previously have silently run against Mongo config while
+  `service-db-info` correctly populated every Postgres-only env var, with nothing to explain the mismatch.
+  Also replaced a stale comment (referencing `process.env.datastores__sql__url` runtime branching that
+  doesn't exist in `@rapidmx/server` - only in whatever this scaffold was originally copied from) with an
+  accurate one.
+- **Known, accepted, not-fixed-this-session gap**: `authServer`'s own `redis-probe`/`mongo-probe` init
+  containers are gated on `$.Values.redis.create`/`mongodb.create` - since `authServer.redis.create`/
+  `mongodb.create` are `false` (sharing this chart's own instances), authServer's pod does **not** wait
+  for either to be ready before starting, unlike this chart's own main service Deployment (whose own
+  probes still gate on its own `redis.create`/`mongodb.create`, both `true`, so it still waits correctly).
+  A real startup race is possible on a fresh install (authServer's pod starting before mongodb/redis are
+  actually accepting connections) - the app's own DB client retry/reconnect behavior would need to carry
+  it through the first few seconds. Not fixed - would need either a cross-chart-aware probe mechanism or a
+  patch to authServer's own init-container conditions keyed on something other than its own
+  (now-suppressed) `.create` flags, more surgery than this session's scope covered.
+- **Also flagged, not fixed**: auth-server's own chart has this exact same `server.js`-always-Mongo
+  command-selection bug in its own `1_deployments/service.yaml` - harmless in THIS integration (authServer
+  is only ever pointed at Mongo here, matching this chart's own default), but a latent bug for anyone using
+  auth-server's chart standalone with `postgresql.create: true`. Out of scope for this session (belongs to
+  that repo, and doesn't affect the current default configuration) - noted here and in that repo's own
+  NOTES.md rather than fixed.
+- **Verification**: `helm lint`/`helm template` only - no live Kubernetes cluster available in this
+  environment. Temporarily pointed the new `auth-server` Chart.yaml dependency at a local
+  `file://../../../rapidrest/auth-server/helm` path (the real committed value is
+  `oci://ghcr.io/rapidrest/charts`, which needs real registry access neither present nor attempted here)
+  to actually exercise `helm dep update`/`helm template` end to end against real auth-server templates,
+  not just guess at their shape - reverted `Chart.yaml`/`Chart.lock`/`charts/*.tgz` back to the committed
+  state afterward (the `.tgz` files are gitignored regardless). Confirmed via a small Node.js script
+  (`js-yaml`, already a transitive dependency) that all 46 rendered resources across a full `helm template`
+  pass have zero duplicate `(kind, namespace, name)` triples - both with `authServer.create` true and
+  false, and with `postgresql.create`/`mongodb.create` toggled - and spot-checked that `auth__secret`/
+  `auth__options__audience`/`issuer` render byte-identical between the two charts, that the Gateway/
+  Certificate/HTTPRoute resources come out non-colliding for both hostnames, and that
+  `mail__auth_server_url`/`mail__dkim__*`/`mail__scan__*` all render with the expected values. **Not done,
+  and not really possible without one**: an actual `helm install`/`helm upgrade` against a real cluster -
+  everything above is `helm template`-level (rendering) correctness, not confirmed runtime behavior (pod
+  startup ordering, PVC binding, DNS resolution, cert-manager issuance, the Gateway API controller's own
+  handling of a no-hostname listener). Recommend `helm install --dry-run` (which DOES contact a real
+  cluster's API server for schema validation, unlike `template`) as the next step once one is available,
+  before a real production install.
+- Not done this session: committing any of this (same standing rule), publishing the auth-server chart fix
+  (belongs to that repo's own release process), and no attempt to actually reach `oci://ghcr.io/rapidrest/
+  charts` to confirm the real published auth-server chart's current version/content matches what this
+  chart's `~1.0.0` dependency range and this session's local testing assumed.

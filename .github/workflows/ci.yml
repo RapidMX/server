@@ -144,7 +144,10 @@ jobs:
       - name: Extract package name
         id: pkg
         run: |
-          echo "name=$(yq '.name' package.json)" >> "$GITHUB_OUTPUT"
+          # package.json's "name" is the scoped npm name (@rapidmx/server) - strip the scope, since a
+          # literal "@" makes for an invalid Docker image reference ("docker build -t ghcr.io/<owner>/
+          # @rapidmx/server:latest" fails outright with "invalid reference format").
+          echo "name=$(yq '.name' package.json | sed -E 's|^@[^/]+/||')" >> "$GITHUB_OUTPUT"
 
       - name: Login to GHCR
         run: |

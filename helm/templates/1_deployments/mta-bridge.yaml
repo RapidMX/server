@@ -1,0 +1,49 @@
+---
+# Translates Postfix's own protocols (tcp_table lookups, plain SMTP) into calls against the main
+# service's /internal/mta contract - see src/mta-bridge/index.ts's own doc comment, and postfix.yaml for
+# how Postfix is pointed at it. Same image as the main service Deployment, just a different command.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mta-bridge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mta-bridge
+  template:
+    metadata:
+      labels:
+        app: mta-bridge
+    spec:
+      {{- if $.Values.service.imagePullSecret }}
+      imagePullSecrets:
+        - name: {{ $.Values.service.imagePullSecret }}
+      {{- end }}
+      containers:
+        - name: mta-bridge
+          image: {{ $.Values.service.image.registry }}/{{ $.Values.service.image.repository }}:{{ $.Values.service.image.tag | default $.Chart.AppVersion }}
+          {{- if eq ($.Values.service.image.tag | default $.Chart.AppVersion) "latest" }}
+          imagePullPolicy: Always
+          {{- else }}
+          imagePullPolicy: IfNotPresent
+          {{- end }}
+          command: ["node", "dist/src/mta-bridge/index.js"]
+          env:
+            - name: MTA_INGEST_BASE_URL
+              value: {{ printf "http://%s-services/internal/mta" (include "rrst.fullname" .) | quote }}
+            # mail-ingest-secret.yaml stores this under the app's own nconf-style key
+            # (mail__transport__ingest__secret, consumed via envFrom by the main service Deployment) -
+            # mta-bridge itself reads the plain MTA_INGEST_SECRET env var instead (see
+            # src/mta-bridge/index.ts), hence the explicit key mapping rather than envFrom here.
+            - name: MTA_INGEST_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "rrst.fullname" . }}-mail-ingest-secret
+                  key: mail__transport__ingest__secret
+          ports:
+            - containerPort: 10040
+            - containerPort: 10041
+            - containerPort: 2525
+          resources:
+            {{- toYaml $.Values.mail.mtaBridge.resources | nindent 12 }}

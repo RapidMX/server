@@ -1368,9 +1368,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@rapidmx/restapi@npm:0.3.1":
-  version: 0.3.1
-  resolution: "@rapidmx/restapi@npm:0.3.1"
+"@rapidmx/restapi@npm:^0.4.0":
+  version: 0.4.0
+  resolution: "@rapidmx/restapi@npm:0.4.0"
   dependencies:
     html-to-text: "npm:^10.0.1"
     mailparser: "npm:^3.9.23"
@@ -1389,32 +1389,7 @@ __metadata:
       optional: true
     pdf-parse:
       optional: true
-  checksum: 10c0/eb6b2dbbb34a4590af88914a025d1feb50cad5d05fad816eb88c8fa85f63d8584c4643c8bae02ad0ad6a9125928d93e7386a4909f236004e1f2a2efca6ee245f
-  languageName: node
-  linkType: hard
-
-"@rapidmx/restapi@patch:@rapidmx/restapi@npm%3A0.3.1#~/.yarn/patches/@rapidmx-restapi-npm-0.3.1-18a30bc4c4.patch":
-  version: 0.3.1
-  resolution: "@rapidmx/restapi@patch:@rapidmx/restapi@npm%3A0.3.1#~/.yarn/patches/@rapidmx-restapi-npm-0.3.1-18a30bc4c4.patch::version=0.3.1&hash=509d36"
-  dependencies:
-    html-to-text: "npm:^10.0.1"
-    mailparser: "npm:^3.9.23"
-    nodemailer: "npm:^10.0.1"
-    sanitize-html: "npm:^2.17.7"
-  peerDependencies:
-    "@opensearch-project/opensearch": ">=3.0.0"
-    "@rapidrest/core": 5.x
-    "@rapidrest/service-core": 1.x
-    mammoth: ">=1.8.0"
-    pdf-parse: ">=1.1.1"
-  peerDependenciesMeta:
-    "@opensearch-project/opensearch":
-      optional: true
-    mammoth:
-      optional: true
-    pdf-parse:
-      optional: true
-  checksum: 10c0/e46edcd1963954731640b669d771eb41bd772ef9c62ae707d59b6119255c2759aaf8183ebff0617001f04ef9bd95380516321b1250052a15235667f57b62d84d
+  checksum: 10c0/1e105e2d6f73f30677dce6a89537a1bc7a3909ba1051dc97298ea800230ac569f60eb64c231e1645c6278dbf6dde27439ca5c80ab3b37c1a9c1d97c7157ff874
   languageName: node
   linkType: hard
 
@@ -1427,7 +1402,7 @@ __metadata:
     "@rapidmx/activesync": "npm:1.0.0-beta.0"
     "@rapidmx/autodiscover": "npm:1.0.0-beta.0"
     "@rapidmx/mapi": "npm:1.0.0-beta.0"
-    "@rapidmx/restapi": "patch:@rapidmx/restapi@npm%3A0.3.1#~/.yarn/patches/@rapidmx-restapi-npm-0.3.1-18a30bc4c4.patch"
+    "@rapidmx/restapi": "npm:^0.4.0"
     "@rapidrest/cli": "npm:^1.0.1"
     "@rapidrest/core": "npm:^5.2.2"
     "@rapidrest/react": "npm:2.0.0-beta.1"

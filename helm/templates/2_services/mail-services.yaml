@@ -1,0 +1,61 @@
+---
+# Exposes rspamd's HTTP checkv2 API for RspamdSpamScanProvider (mail__scan__spam__rspamd__url).
+apiVersion: v1
+kind: Service
+metadata:
+  name: rspamd
+spec:
+  ports:
+    - port: 11333
+      targetPort: 11333
+      name: http
+  selector:
+    app: rspamd
+---
+# Exposes clamd for ClamAvScanProvider (mail__scan__av__clamav__host/port).
+apiVersion: v1
+kind: Service
+metadata:
+  name: clamav
+spec:
+  ports:
+    - port: 3310
+      targetPort: 3310
+      name: clamd
+  selector:
+    app: clamav
+---
+# Real inbound SMTP needs to be reachable from the public internet - see values.yaml's
+# mail.postfix.serviceType doc comment for LoadBalancer vs NodePort.
+apiVersion: v1
+kind: Service
+metadata:
+  name: postfix
+spec:
+  type: {{ $.Values.mail.postfix.serviceType }}
+  ports:
+    - port: 25
+      targetPort: 25
+      name: smtp
+  selector:
+    app: postfix
+---
+# Internal only - reachable solely from the postfix Deployment (tcp_table lookups on 10040/10041, plain
+# SMTP delivery hand-off on 2525). Never expose this outside the cluster.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mta-bridge
+spec:
+  ports:
+    - port: 10040
+      targetPort: 10040
+      name: domain-lookup
+    - port: 10041
+      targetPort: 10041
+      name: recipient-lookup
+    - port: 2525
+      targetPort: 2525
+      name: smtp-delivery
+  selector:
+    app: mta-bridge

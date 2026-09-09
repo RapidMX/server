@@ -1,0 +1,53 @@
+---
+# See values.yaml's mail.dkim.storage doc comment for the ReadWriteOnce/ReadWriteMany tradeoff - shared
+# read-write by both the main service Deployment (1_deployments/service.yaml, FsDkimKeyProvider writes)
+# and the postfix Deployment (1_deployments/postfix.yaml, rspamd's dkim_signing module reads).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "rrst.fullname" . }}-dkim-keys
+spec:
+  accessModes:
+    - {{ .Values.mail.dkim.storage.accessMode }}
+  {{- if ne .Values.mail.dkim.storage.storageClassName "default" }}
+  storageClassName: {{ tpl .Values.mail.dkim.storage.storageClassName . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.mail.dkim.storage.size }}
+---
+# LocalFsBlobStore's root - only ever mounted by the main service Deployment, so this is always safe as
+# ReadWriteOnce regardless of cluster topology (unlike dkim-keys above).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "rrst.fullname" . }}-blob-data
+spec:
+  accessModes:
+    - {{ .Values.mail.blob.storage.accessMode }}
+  {{- if ne .Values.mail.blob.storage.storageClassName "default" }}
+  storageClassName: {{ tpl .Values.mail.blob.storage.storageClassName . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.mail.blob.storage.size }}
+---
+# To supply your own DKIM key pair for a domain instead of relying on FsDkimKeyProvider/
+# DKIM_AUTOGENERATE (recommended for production): drop the standard opendkim-genkey output -
+# <domain>/<selector>.private (PEM RSA private key) and <domain>/<selector>.txt (the DNS TXT record
+# text) - into this volume under /etc/opendkim/keys/<domain>/ (mounted only by the postfix Deployment);
+# the image's own startup script imports it into rspamd's native format (the dkim-keys PVC above) on
+# container start. Only ever mounted by one Deployment, so always ReadWriteOnce regardless of topology.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "rrst.fullname" . }}-dkim-opendkim-keys
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- if ne .Values.mail.dkim.storage.storageClassName "default" }}
+  storageClassName: {{ tpl .Values.mail.dkim.storage.storageClassName . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: 256Mi
