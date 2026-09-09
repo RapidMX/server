@@ -12,6 +12,11 @@ export interface UserMenuProps {
     onSignOut: () => void;
     /** Shows an "Admin" item linking to `/admin`, above "Sign Out" — pass only for a trusted-role caller. */
     showAdminLink?: boolean;
+    /** Shows a "Settings" item, above "Admin"/"Sign Out" — an account-scoped surface (like "Admin"), not
+     * a content-scoped one, so it lives here rather than as a 5th `AppShell` rail icon. Links straight to
+     * `/settings/auto-reply`, the only settings section that exists today; repoint this at a real
+     * `/settings` landing page once a second section (Mail Filters, Signatures) makes one worth building. */
+    showSettingsLink?: boolean;
 }
 
 function Avatar({ profile, initials, large }: { profile?: Profile; initials: string; large?: boolean }) {
@@ -42,7 +47,7 @@ function Avatar({ profile, initials, large }: { profile?: Profile; initials: str
  * letter when unset or unreachable, which is a fully valid, expected state for most password-registered
  * accounts (only OIDC sign-in currently populates a real avatar).
  */
-export default function UserMenu({ userUid, authServerUrl, onSignOut, showAdminLink }: UserMenuProps) {
+export default function UserMenu({ userUid, authServerUrl, onSignOut, showAdminLink, showSettingsLink }: UserMenuProps) {
     const [open, setOpen] = useState(false);
     const [profile, setProfile] = useState<Profile | undefined>(undefined);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -112,6 +117,15 @@ export default function UserMenu({ userUid, authServerUrl, onSignOut, showAdminL
                         <Avatar profile={profile} initials={initials} large />
                         <span className="text-sm font-semibold text-text truncate">{name}</span>
                     </div>
+                    {showSettingsLink && (
+                        <a
+                            role="menuitem"
+                            href="/settings/auto-reply"
+                            className="block px-3.5 py-2 text-sm text-text hover:bg-surface-alt"
+                        >
+                            Settings
+                        </a>
+                    )}
                     {showAdminLink && (
                         <a
                             role="menuitem"

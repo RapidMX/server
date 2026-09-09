@@ -44,6 +44,18 @@ export interface Mailbox {
     bookingWindowDays?: number;
     /** A request longer than this many minutes is auto-declined. `undefined` means no limit. */
     maxDurationMinutes?: number;
+    /** `true` if this mailbox's out-of-office auto-reply is currently enabled. Always present on a real
+     * `Mailbox` (defaults to `false` server-side) — optional here only because some older test fixtures
+     * predate this field, matching this file's existing convention for every other boolean flag above. */
+    oofEnabled?: boolean;
+    /** The out-of-office auto-reply message body — a single combined message rather than per-audience
+     * variants, matching `@rapidmx/restapi`'s own deliberate simplification. Always present (defaults to
+     * `""`), same caveat as `oofEnabled` above. */
+    oofMessage?: string;
+    /** When set together with `oofEndTime`, the auto-reply is only active within this window rather than
+     * indefinitely while `oofEnabled` is `true`. */
+    oofStartTime?: string;
+    oofEndTime?: string;
 }
 
 /** Lists mailboxes the caller can access (owned, shared with them, or — for a trusted caller — every one). */
@@ -130,6 +142,10 @@ export interface UpdateMailboxInput {
     allowConflicts?: boolean;
     bookingWindowDays?: number;
     maxDurationMinutes?: number;
+    oofEnabled?: boolean;
+    oofMessage?: string;
+    oofStartTime?: string;
+    oofEndTime?: string;
 }
 
 export function updateMailbox(input: UpdateMailboxInput): Promise<Mailbox> {

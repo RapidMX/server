@@ -166,4 +166,26 @@ describe("AppShell", () => {
         await user.click(screen.getByRole("button", { name: "Account menu" }));
         expect(screen.getByRole("menuitem", { name: "Admin" })).toBeInTheDocument();
     });
+
+    it("always shows the Settings link in the user menu, regardless of trusted", async () => {
+        const user = userEvent.setup();
+        render(<AppShell active="mail" userUid="u1">content</AppShell>);
+        await user.click(screen.getByRole("button", { name: "Account menu" }));
+        expect(screen.getByRole("menuitem", { name: "Settings" })).toBeInTheDocument();
+    });
+
+    it("shows 'Settings' as the header title and highlights no rail/tab icon when active is 'settings'", () => {
+        render(<AppShell active="settings" userUid="u1">content</AppShell>);
+
+        expect(screen.getByText("Settings", { selector: "span" })).toBeInTheDocument();
+
+        const rail = within(screen.getByRole("navigation", { name: "Apps" }));
+        for (const label of ["Mail", "Calendar", "Contacts", "Tasks"]) {
+            expect(rail.getByRole("link", { name: label })).not.toHaveAttribute("aria-current");
+        }
+        const tabBar = within(screen.getByRole("navigation", { name: "Mobile navigation" }));
+        for (const label of ["Mail", "Calendar", "Contacts", "Tasks"]) {
+            expect(tabBar.getByRole("link", { name: label })).not.toHaveAttribute("aria-current");
+        }
+    });
 });

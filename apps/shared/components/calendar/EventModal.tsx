@@ -17,6 +17,7 @@ import {
     updateCalendarEvent,
 } from "../../lib/calendarApi.js";
 import { deleteEventOccurrence, deleteEventSeries, detachOccurrence, saveEventSeries } from "../../lib/calendarMutations.js";
+import { toDatetimeLocal } from "../../lib/dateInput.js";
 import { Mailbox } from "../../lib/mailApi.js";
 import { CalendarOccurrence } from "../../lib/recurrence.js";
 import Modal from "../../lib/Modal.js";
@@ -40,14 +41,6 @@ const RESPONSE_STATUS_LABEL: Record<AttendeeResponseStatus, string> = {
     declined: "Declined",
     tentative: "Tentative",
 };
-
-/** `<input type="datetime-local">` reads/writes local time with no timezone suffix — `new Date(str)`
- * parses that as the browser's own local time, matching what the picker visually showed the user. */
-function toDatetimeLocal(iso: string): string {
-    const d = new Date(iso);
-    const local = new Date(d.getTime() - d.getTimezoneOffset() * 60_000);
-    return local.toISOString().slice(0, 16);
-}
 
 export interface EventModalProps {
     open: boolean;
@@ -104,6 +97,8 @@ export default function EventModal({
     const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRule | null>(occurrence?.recurrenceRule ?? null);
     const [reminderMinutes, setReminderMinutes] = useState(occurrence?.reminderMinutesBeforeStart?.toString() ?? "");
     const [busyStatus, setBusyStatus] = useState<BusyStatus>(occurrence?.busyStatus ?? "busy");
+    const [autoReplyEnabled, setAutoReplyEnabled] = useState(occurrence?.autoReplyEnabled ?? false);
+    const [autoReplyMessage, setAutoReplyMessage] = useState(occurrence?.autoReplyMessage ?? "");
     const [editScope, setEditScope] = useState<EditScope>("occurrence");
     const [confirmingDelete, setConfirmingDelete] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -160,6 +155,8 @@ export default function EventModal({
             recurrenceRule: recurrenceRule ?? undefined,
             reminderMinutesBeforeStart: reminderMinutes.trim() ? Number(reminderMinutes) : undefined,
             busyStatus,
+            autoReplyEnabled,
+            autoReplyMessage: autoReplyEnabled ? autoReplyMessage : undefined,
         };
 
         setSaving(true);
@@ -404,6 +401,31 @@ export default function EventModal({
                             placeholder="None"
                         />
                     </FormField>
+                </div>
+
+                <div className="mb-3">
+                    <label className="flex items-center gap-2 text-sm font-medium">
+                        <input
+                            type="checkbox"
+                            checked={autoReplyEnabled}
+                            onChange={(e) => setAutoReplyEnabled(e.target.checked)}
+                        />
+                        Send an automatic reply while this event is happening
+                    </label>
+                    <p className="text-xs text-text-muted mt-1">
+                        Applies in addition to your mailbox&rsquo;s own Automatic Replies setting (see Settings) —
+                        this event&rsquo;s message takes over for its own start/end window.
+                    </p>
+                    {autoReplyEnabled && (
+                        <textarea
+                            aria-label="Automatic reply message"
+                            className={`${INPUT_CLASS} mt-2`}
+                            rows={3}
+                            value={autoReplyMessage}
+                            onChange={(e) => setAutoReplyMessage(e.target.value)}
+                            placeholder="I'm out of office and back on..."
+                        />
+                    )}
                 </div>
 
                 <FormField label="Recurrence" htmlFor="event-recurrence">

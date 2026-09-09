@@ -966,6 +966,95 @@ describe("EventModal", () => {
         });
     });
 
+    describe("automatic reply", () => {
+        it("hides the message textarea until the toggle is checked", () => {
+            render(
+                <EventModal
+                    open
+                    onClose={vi.fn()}
+                    mailboxUid="mb1"
+                    folderUid="f1"
+                    organizerAddress="jane@example.com"
+                    occurrence={null}
+                    onSaved={vi.fn()}
+                    onDeleted={vi.fn()}
+                />,
+            );
+            expect(screen.queryByLabelText("Automatic reply message")).not.toBeInTheDocument();
+        });
+
+        it("shows the message textarea once the toggle is checked, and hides it again when unchecked", async () => {
+            const user = userEvent.setup();
+            render(
+                <EventModal
+                    open
+                    onClose={vi.fn()}
+                    mailboxUid="mb1"
+                    folderUid="f1"
+                    organizerAddress="jane@example.com"
+                    occurrence={null}
+                    onSaved={vi.fn()}
+                    onDeleted={vi.fn()}
+                />,
+            );
+
+            const toggle = screen.getByRole("checkbox", { name: "Send an automatic reply while this event is happening" });
+            await user.click(toggle);
+            expect(screen.getByLabelText("Automatic reply message")).toBeInTheDocument();
+
+            await user.click(toggle);
+            expect(screen.queryByLabelText("Automatic reply message")).not.toBeInTheDocument();
+        });
+
+        it("pre-fills the toggle/message from an existing occurrence", () => {
+            const withAutoReply = occurrence({ autoReplyEnabled: true, autoReplyMessage: "On vacation" });
+            render(
+                <EventModal
+                    open
+                    onClose={vi.fn()}
+                    mailboxUid="mb1"
+                    folderUid="f1"
+                    organizerAddress="jane@example.com"
+                    occurrence={withAutoReply}
+                    onSaved={vi.fn()}
+                    onDeleted={vi.fn()}
+                />,
+            );
+
+            expect(screen.getByRole("checkbox", { name: "Send an automatic reply while this event is happening" })).toBeChecked();
+            expect(screen.getByLabelText("Automatic reply message")).toHaveValue("On vacation");
+        });
+
+        it("sends autoReplyEnabled/autoReplyMessage when the toggle is on", async () => {
+            const fetchMock = mockFetch((url, init) =>
+                url === "/api/mail/calendar-events" && init?.method === "POST" ? jsonResponse(200, occurrence()) : undefined,
+            );
+            const user = userEvent.setup();
+            render(
+                <EventModal
+                    open
+                    onClose={vi.fn()}
+                    mailboxUid="mb1"
+                    folderUid="f1"
+                    organizerAddress="jane@example.com"
+                    occurrence={null}
+                    onSaved={vi.fn()}
+                    onDeleted={vi.fn()}
+                />,
+            );
+
+            await user.type(screen.getByLabelText("Title"), "Vacation");
+            await user.click(screen.getByRole("checkbox", { name: "Send an automatic reply while this event is happening" }));
+            await user.type(screen.getByLabelText("Automatic reply message"), "On vacation");
+            await user.click(screen.getByRole("button", { name: "Save" }));
+
+            await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+            const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+            expect(body.autoReplyEnabled).toBe(true);
+            expect(body.autoReplyMessage).toBe("On vacation");
+        });
+    });
+
     describe("resource picker", () => {
         it("is closed until '+ Add room/equipment' is clicked", async () => {
             const user = userEvent.setup();

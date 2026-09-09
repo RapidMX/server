@@ -14,9 +14,14 @@ import UserMenu from "./UserMenu.js";
 
 export type AppShellApp = "mail" | "calendar" | "contacts" | "tasks";
 
+/** `"settings"` is a valid `active` value but deliberately has no entry in `APPS` below — Settings is
+ * reached via a `UserMenu` item, not a 5th rail icon (see `SettingsShell.tsx`), so it highlights no
+ * rail/tab icon at all; only the header title (`ACTIVE_LABELS` below) needs to account for it. */
+export type AppShellActive = AppShellApp | "settings";
+
 export interface AppShellProps {
-    /** Which icon in the rail is highlighted as the current app. */
-    active: AppShellApp;
+    /** Which icon in the rail is highlighted as the current app — `"settings"` highlights none. */
+    active: AppShellActive;
     /** Populated automatically by the framework from an authenticated request (e.g. a valid `jwt` cookie). */
     userUid?: string;
     /** auth-server's base URL, injected via the route's `fetchProps`. */
@@ -46,6 +51,16 @@ export const APPS: AppDef[] = [
     { id: "contacts", href: "/contacts", label: "Contacts", icon: HiOutlineUsers },
     { id: "tasks", href: "/tasks", label: "Tasks", icon: HiOutlineClipboardDocumentList },
 ];
+
+/** The header title for every valid `active` value — a superset of `APPS`' own labels since `"settings"`
+ * has no rail icon (and so no `AppDef`) but still needs a header title. */
+const ACTIVE_LABELS: Record<AppShellActive, string> = {
+    mail: "Mail",
+    calendar: "Calendar",
+    contacts: "Contacts",
+    tasks: "Tasks",
+    settings: "Settings",
+};
 
 /**
  * The persistent chrome shared by every webmail app (Mail, Calendar, Contacts, Tasks): a left icon rail for
@@ -87,8 +102,6 @@ export default function AppShell({
     if (!userUid) {
         return <div className="min-h-screen" />;
     }
-
-    const activeApp = APPS.find((app) => app.id === active);
 
     return (
         <ComposeProvider>
@@ -135,8 +148,8 @@ export default function AppShell({
                     <BottomTabBar apps={APPS} active={active} />
                     <div className="flex-1 flex flex-col min-w-0">
                         <header className="h-16 shrink-0 bg-surface border-b border-border flex items-center justify-between gap-4 px-6">
-                            <span className="font-display font-bold text-lg uppercase tracking-wide">{activeApp?.label}</span>
-                            <UserMenu userUid={userUid} authServerUrl={authServerUrl} onSignOut={handleSignOut} showAdminLink={trusted} />
+                            <span className="font-display font-bold text-lg uppercase tracking-wide">{ACTIVE_LABELS[active]}</span>
+                            <UserMenu userUid={userUid} authServerUrl={authServerUrl} onSignOut={handleSignOut} showAdminLink={trusted} showSettingsLink />
                         </header>
                         <div className="flex-1 flex min-h-0 pb-14 md:pb-0">{children}</div>
                     </div>

@@ -83,6 +83,15 @@ export interface CalendarEvent {
     inviteSequenceSent?: number;
     /** Set when an iTIP CANCEL was last sent for this event — read-only display, never sent back. */
     cancelNoticeSentAt?: string;
+    /** When `true`, this event's own [`startDate`, `endDate`] window independently triggers an
+     * automatic-reply period for the mailbox, in addition to (not instead of) the mailbox-level
+     * `Mailbox.oofEnabled` toggle — e.g. a "Vacation" event configuring its own out-of-office window
+     * without touching the mailbox-wide setting. Takes precedence over `Mailbox.oofEnabled` while both
+     * are active (see `@rapidmx/restapi`'s `resolveActiveOof()`). */
+    autoReplyEnabled?: boolean;
+    /** The automatic-reply body while this event's window is active. Only meaningful when
+     * `autoReplyEnabled` is `true`. */
+    autoReplyMessage?: string;
 }
 
 /**
@@ -119,6 +128,8 @@ export interface CalendarEventInput {
     status?: CalendarEventStatus;
     busyStatus?: BusyStatus;
     reminderMinutesBeforeStart?: number;
+    autoReplyEnabled?: boolean;
+    autoReplyMessage?: string;
 }
 
 export function createCalendarEvent(input: CalendarEventInput): Promise<CalendarEvent> {

@@ -57,6 +57,22 @@ describe("UserMenu", () => {
         expect(screen.queryByRole("menuitem", { name: "Admin" })).not.toBeInTheDocument();
     });
 
+    it("shows the Settings item when showSettingsLink is set", async () => {
+        const user = userEvent.setup();
+        render(<UserMenu userUid="jane" onSignOut={vi.fn()} showSettingsLink />);
+
+        await user.click(screen.getByRole("button", { name: "Account menu" }));
+        expect(screen.getByRole("menuitem", { name: "Settings" })).toHaveAttribute("href", "/settings/auto-reply");
+    });
+
+    it("hides the Settings item when showSettingsLink is not set", async () => {
+        const user = userEvent.setup();
+        render(<UserMenu userUid="jane" onSignOut={vi.fn()} />);
+
+        await user.click(screen.getByRole("button", { name: "Account menu" }));
+        expect(screen.queryByRole("menuitem", { name: "Settings" })).not.toBeInTheDocument();
+    });
+
     it("calls onSignOut when 'Sign Out' is clicked", async () => {
         const onSignOut = vi.fn();
         const user = userEvent.setup();

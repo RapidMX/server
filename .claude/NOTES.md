@@ -2357,5 +2357,108 @@ once added, this phase adds the actual picker UI on top of it).
   browser click-through was done** — same standing limitation as every entry in this file; JP should
   verify visually before relying on this, particularly the picker's popover positioning inside the
   modal and the search/filter interaction.
+- **Committed** as `a34d5be`.
+
+### 2026-09-08 — Wiring `@rapidmx/restapi`'s new features into `server`: Phase 10 (Webmail Settings area
+foundation + Automatic Replies/out-of-office)
+
+Tenth slice of the same 15-phase plan (see the Phase 0–9 entries above for full context). Builds the
+first-ever Settings surface in `apps/www` — reached via a new `UserMenu` entry per JP's confirmed
+decision, not a 5th `AppShell` icon — plus its first real page, Automatic Replies (mailbox-level
+out-of-office), and a small independent Automatic Reply toggle on calendar events.
+
+- **A real design decision this phase had to resolve, not just implement**: `AppShell.tsx`'s `active`
+  prop was a closed 4-literal union (`AppShellApp = "mail" | "calendar" | "contacts" | "tasks"`) tied
+  1:1 to the 4-item icon rail (`APPS`). Since Settings deliberately isn't a 5th rail icon, passing
+  `active="settings"` needed a type that isn't in `APPS` at all. Widened to a new `AppShellActive =
+  AppShellApp | "settings"`, and replaced the header title's old `APPS.find(...)?.label` derivation
+  (which would've silently rendered a blank title for `"settings"`, since it's absent from `APPS`) with
+  an explicit `ACTIVE_LABELS: Record<AppShellActive, string>` map covering all five values. The rail/
+  tab-bar iteration itself still only ever maps over `APPS` (4 items) — `"settings"` simply never
+  matches any of their `id === active` checks, so it highlights nothing, exactly as intended, with zero
+  changes needed there.
+- `apps/shared/components/layout/UserMenu.tsx`: new `showSettingsLink?: boolean` prop, a "Settings" item
+  mirroring the existing "Admin" item's exact JSX/styling, linking straight to `/settings/auto-reply`
+  (the only settings section that exists today — documented inline as needing repointing at a real
+  `/settings` landing page once a second section, e.g. Phase 11's Mail Filters, makes one worth
+  building, rather than building an unrequested redirect page now for a single destination). `AppShell.
+  tsx` now always passes `showSettingsLink` (unlike `showAdminLink`, which stays `trusted`-gated) — this
+  is a per-user feature, not admin-only; `AdminShell.tsx`'s own separate `UserMenu` mount is untouched
+  (already inside admin, no webmail Settings link relevant there).
+- `apps/shared/components/settings/layout/SettingsShell.tsx` (new) — unlike `ContactsShell`/
+  `TasksShell` (whose sidebar is just a mailbox switcher, since each has exactly one well-known folder
+  and no real "sections" concept), this shell's sidebar is a genuine list of settings sections
+  (`SETTINGS_SECTIONS`, one entry — "Automatic Replies" — today, appended to by later phases rather than
+  duplicated per-page) alongside the same mailbox-switcher/`?mailboxUid=`/status-machine/`Drawer`
+  mechanics `ContactsShell` already established. No folder concept at all — Settings sections aren't
+  folder-backed. Introduces its own `active: SettingsSectionId` prop (distinct from `AppShell`'s own
+  `active`, which this shell always hardcodes to `"settings"`) so each settings page passes its own
+  section id explicitly — the same "gotcha" pattern this plan already calls out for every shell's
+  `active`, just with two independent `active` concepts stacked (outer chrome vs. inner section) instead
+  of one.
+- `apps/www/settings/auto-reply/index.tsx` (new) — toggle + message + optional start/end date range for
+  the `Mailbox`-level `oofEnabled`/`oofMessage`/`oofStartTime`/`oofEndTime` fields, a plain `updateMailbox`
+  PUT. Reads the already-loaded mailbox straight from `useSettingsShell()`'s `mailboxes` array (same
+  "receive already-loaded parent data" pattern as `ResourceSettingsCard`/`MemberListCard`, since
+  `SettingsShell` only ever renders children once mailboxes have resolved) rather than a redundant
+  independent fetch.
+- `apps/shared/lib/mailApi.ts`: `Mailbox`/`UpdateMailboxInput` gain `oofEnabled?/oofMessage?/
+  oofStartTime?/oofEndTime?` — confirmed via direct inspection that these already exist server-side with
+  real defaults (`oofEnabled: false, oofMessage: ""`) on every `Mailbox`, just never previously surfaced
+  client-side at all (not "expose 2 half-wired fields" — a genuine first-time UI gap, matching the
+  plan's own sizing note). `CreateMailboxInput` deliberately does **not** gain them — the server already
+  defaults them on create, nothing to send.
+- `apps/shared/lib/calendarApi.ts`: `CalendarEvent`/`CalendarEventInput` gain `autoReplyEnabled?/
+  autoReplyMessage?`; `EventModal.tsx` gets a small independent toggle+textarea (not gated behind
+  Phase 8's attendee/respond UI at all) — confirmed via restapi's own `resolveActiveOof()` that an
+  active event-level auto-reply takes precedence over the mailbox-level toggle while both are active,
+  documented inline in the modal's own copy ("Applies in addition to your mailbox's own Automatic
+  Replies setting").
+- `apps/shared/lib/dateInput.ts` (new) — `EventModal.tsx`'s private `toDatetimeLocal()` helper split out
+  once the new Settings page needed the identical ISO-to-`datetime-local` conversion, the same "extract
+  once a second consumer needs it" precedent `apiQuery.ts`'s own doc comment already established for
+  this codebase. `EventModal.tsx` now imports it instead of defining its own copy; given full direct
+  unit test coverage in its own file (previously only exercised indirectly through `EventModal`'s
+  rendering).
+- Two coverage gaps worth naming, both closed with genuine (not contrived) tests: `SettingsShell.tsx`'s
+  per-section `aria-current`/highlight-class ternaries can't be exercised by any *real* prop combination
+  today, since `SETTINGS_SECTIONS` has exactly one entry until Phase 11 adds Mail Filters — closed with
+  a dedicated test that casts a synthetic `active` value to exercise the "not-the-active-section"
+  branch now, the same "future-reachable, genuinely tested ahead of its second consumer" precedent this
+  plan already established for `RuleBuilder.addAction`'s own guard (documented inline in the test as
+  such, not left to look like an accident). Separately, `EventModal.tsx`'s full-suite coverage (not
+  caught by an isolated per-file run, since the isolated run predated this phase's actual UI edits to
+  that file) dropped to 98% at full-suite scale after adding the auto-reply toggle+textarea with no new
+  tests for it — same "isolated-run coverage can lag the file's *current* content" trap as Phase 4's
+  `RuleBuilder` full-suite-only gap; caught by re-running the full suite before considering the phase
+  done, not by trusting the earlier isolated-file check. Fixed with real tests: toggle show/hide, pre-
+  fill from an existing occurrence, and the submitted body's `autoReplyEnabled`/`autoReplyMessage`
+  fields.
+- One more instance of the "dead guard the UI structurally can't trigger" pattern (same precedent as
+  every phase so far): `SettingsShell`'s per-section link `href`'s `mailboxUid ? ... : section.href`
+  fallback — `inner` (the whole branch this lives in) is only ever computed once `status === "ready"`
+  and `mailboxUid` has already resolved truthy, a falsy `mailboxUid` instead returning
+  `<MailboxProvisioning />` above. Removed the fallback; TypeScript's own narrowing of the `const`
+  already reflected this was safe (confirmed by `no-unnecessary-type-assertion` catching a redundant
+  `mailboxUid!` on the first lint pass, once the guard was gone).
+- Verification: `yarn tsc --noEmit`, client `tsc -p tsconfig.client.json --noEmit`, `yarn lint` (two
+  `no-unnecessary-type-assertion` catches — the `mailboxUid!` above, and an overcomplicated `as unknown
+  as "auto-reply"` double-cast in a test simplified to a plain `as any`) all clean. Full `yarn test`:
+  1084/1084 passing, coverage gate holds with no new carve-outs. **Dev-server restart required and
+  performed** — this phase's `/settings/auto-reply` is a genuinely new page file, hitting the
+  already-documented "new entry pages don't appear in the Vite dev manifest until restarted" gotcha
+  (confirmed directly: the route 404'd against the still-running pre-restart server, then `200`'d
+  cleanly right after a restart). Real `yarn dev` + `curl` (dev auto-auth, cookie jar) after the
+  restart: created a real mailbox, confirmed `GET /settings/auto-reply?mailboxUid=...` returns `200`;
+  `PUT /api/mail/mailboxes/:uid` with `oofEnabled`/`oofMessage`/`oofStartTime`/`oofEndTime` round-trips
+  every field back exactly as sent; a real `CalendarEvent` created with `autoReplyEnabled`/
+  `autoReplyMessage` round-trips both fields too; the webmail index and calendar pages both still
+  return `200` post-restart. **No interactive browser click-through was done** — same standing
+  limitation as every entry in this file; JP should verify visually before relying on this, particularly
+  the Settings sidebar's layout (mailbox switcher above the section list) and the mobile drawer's
+  combined content.
+- Also fixed in passing: an orphaned sentence fragment left over in this file from an earlier edit to
+  the Phase 8 entry's own ending (a leftover trailing line an `Edit` call's `old_string` didn't quite
+  reach) — no content lost, just a stray dangling line after Phase 9's own "Not yet committed" bullet,
+  now cleaned up and that bullet updated to reflect Phase 9's real commit hash (`a34d5be`).
 - Not yet committed — holding for JP's review/commit-authorization, same default as every entry above.
-  matching the precedent set by JP's own ACL fix commit in Phase 0.
