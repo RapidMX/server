@@ -45,10 +45,12 @@ export interface AdminShellProps {
 
 type Status = "checking" | "denied" | "error" | "authorized";
 
+/** Sections shown in the persistent icon rail / mobile tab bar — every admin area reachable from
+ * anywhere in the console. Deliberately excludes `quarantine`/`ingestQueue`: those are scoped to a
+ * single mailbox and only ever reached via links on that mailbox's own detail page (see
+ * `apps/admin/mailboxes/detail/index.tsx`), not global navigation destinations. */
 const NAV_ITEMS: NavItem[] = [
     { id: "mailboxes", href: "/admin", label: "Mailboxes", icon: HiOutlineInboxStack },
-    { id: "quarantine", href: "/admin/quarantine", label: "Quarantine", icon: HiOutlineShieldExclamation },
-    { id: "ingestQueue", href: "/admin/ingest-queue", label: "Ingest Queue", icon: HiOutlineQueueList },
     { id: "domains", href: "/admin/domains", label: "Domains", icon: HiOutlineGlobeAlt },
     { id: "auditLog", href: "/admin/audit-log", label: "Audit Log", icon: HiOutlineClipboardDocumentList },
     {
@@ -64,6 +66,15 @@ const NAV_ITEMS: NavItem[] = [
         icon: HiOutlineShieldCheck,
     },
 ];
+
+/** Mailbox-scoped sections — not part of the global nav rail/tab bar (see `NAV_ITEMS` above), but
+ * still need an entry here so the header can resolve a label for them when they're the active page. */
+const MAILBOX_SCOPED_ITEMS: NavItem[] = [
+    { id: "quarantine", href: "/admin/quarantine", label: "Quarantine", icon: HiOutlineShieldExclamation },
+    { id: "ingestQueue", href: "/admin/ingest-queue", label: "Ingest Queue", icon: HiOutlineQueueList },
+];
+
+const ALL_ITEMS: NavItem[] = [...NAV_ITEMS, ...MAILBOX_SCOPED_ITEMS];
 
 /**
  * Gates every `apps/admin` page behind the `admin` trusted role. Uses `GET /api/admin/release-notes` (any
@@ -117,7 +128,7 @@ export default function AdminShell({ active, userUid, authServerUrl, children }:
             </div>
         );
     } else {
-        const activeItem = NAV_ITEMS.find((item) => item.id === active);
+        const activeItem = ALL_ITEMS.find((item) => item.id === active);
         content = (
             <div className="min-h-screen flex flex-col bg-surface-alt">
                 <div className="flex-1 flex min-h-0">

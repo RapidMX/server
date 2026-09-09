@@ -4,10 +4,11 @@
 ///////////////////////////////////////////////////////////////////////////////
 import React, { useEffect, useState } from "react";
 import { ApiRequestError } from "../../../shared/lib/api.js";
-import { DnsRecordCheck, Domain, getDnsSetup, getDomain, verifyDomain } from "../../../shared/lib/domainsApi.js";
+import { deleteDomain, DnsRecordCheck, Domain, getDnsSetup, getDomain, verifyDomain } from "../../../shared/lib/domainsApi.js";
 import AdminShell, { AdminShellProps } from "../../../shared/components/admin/layout/AdminShell.js";
 import Alert from "../../../shared/components/feedback/Alert.js";
 import Button from "../../../shared/components/buttons/Button.js";
+import Modal from "../../../shared/lib/Modal.js";
 
 /** This framework has no dynamic route segments — the target domain's uid comes from the query string
  * instead, same convention as every other admin detail page (e.g. `mailboxes/detail`). */
@@ -40,6 +41,9 @@ function DomainDetailContent() {
     const [error, setError] = useState<string | null>(null);
     const [verifying, setVerifying] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
 
     useEffect(() => {
         setUid(readTargetUid());
@@ -80,6 +84,26 @@ function DomainDetailContent() {
         }
     }
 
+    // Only ever invoked from the "Delete domain" confirmation modal below, which itself only renders once
+    // `domain` is resolved (children only render once loaded — see the early returns above) — the non-null
+    // assertion reflects that real invariant, not an unchecked assumption. Matches `handleVerify`'s identical
+    // pattern above.
+    function closeDeleteModal() {
+        setConfirmingDelete(false);
+    }
+
+    async function handleDelete() {
+        setDeleting(true);
+        setDeleteError(null);
+        try {
+            await deleteDomain(domain!.uid, domain!.version);
+            window.location.href = "/admin/domains";
+        } catch (err) {
+            setDeleteError(err instanceof ApiRequestError ? err.message : "Could not delete this domain.");
+            setDeleting(false);
+        }
+    }
+
     async function handleCopy(value: string) {
         try {
             await navigator.clipboard.writeText(value);
@@ -104,11 +128,21 @@ function DomainDetailContent() {
 
     return (
         <div className="max-w-3xl flex flex-col gap-5">
-            <div>
-                <a href="/admin/domains" className="text-sm text-primary-dark hover:underline">
-                    &larr; All domains
-                </a>
-                <h1 className="text-xl font-bold tracking-tight mt-1">{domain.name}</h1>
+            <div className="flex items-start justify-between gap-4">
+                <div>
+                    <a href="/admin/domains" className="text-sm text-primary-dark hover:underline">
+                        &larr; All domains
+                    </a>
+                    <h1 className="text-xl font-bold tracking-tight mt-1">{domain.name}</h1>
+                </div>
+                <Button
+                    type="button"
+                    variant="secondary"
+                    className="!w-auto shrink-0 !border-danger !text-danger hover:!border-danger hover:!text-danger"
+                    onClick={() => setConfirmingDelete(true)}
+                >
+                    Delete domain
+                </Button>
             </div>
 
             <div className="bg-surface border border-border rounded-md p-6">
@@ -210,6 +244,33 @@ function DomainDetailContent() {
                     </div>
                 </div>
             )}
+
+            <Modal open={confirmingDelete} onClose={closeDeleteModal} title="Delete domain">
+                <p className="text-sm mb-5">
+                    Are you sure you want to delete <strong>{domain.name}</strong>? This cannot be undone.
+                </p>
+                {deleteError && <Alert>{deleteError}</Alert>}
+                <div className="flex gap-3 justify-end mt-5">
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        className="!w-auto"
+                        disabled={deleting}
+                        onClick={closeDeleteModal}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        type="button"
+                        className="!w-auto !bg-none !bg-danger !border-danger hover:!bg-danger"
+                        loading={deleting}
+                        disabled={deleting}
+                        onClick={handleDelete}
+                    >
+                        Delete
+                    </Button>
+                </div>
+            </Modal>
         </div>
     );
 }

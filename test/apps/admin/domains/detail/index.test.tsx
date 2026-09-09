@@ -3,10 +3,10 @@
 // Copyright (C) 2026 Jean-Philippe Steinmetz. All rights reserved.
 ///////////////////////////////////////////////////////////////////////////////
 import React from "react";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { jsonResponse, mockFetch } from "../../../testUtils.js";
+import { emptyResponse, jsonResponse, mockFetch, mockLocation } from "../../../testUtils.js";
 import DomainDetailPage from "../../../../../apps/admin/domains/detail/index.js";
 
 // jsdom's `navigator.clipboard` is a getter-only property — `Object.assign` throws against it, so
@@ -268,5 +268,89 @@ describe("DomainDetailPage", () => {
         });
         render(<DomainDetailPage userUid="admin-1" authServerUrl="https://auth.example.com" />);
         expect(await screen.findByText("Domain not found.")).toBeInTheDocument();
+    });
+
+    it("closes the delete confirmation modal on Cancel without deleting", async () => {
+        mockFetch((url) => {
+            if (url === "/api/admin/release-notes") return jsonResponse(200, {});
+            if (url === "/api/mail/domains/example.com") return jsonResponse(200, domain);
+            if (url === "/api/mail/domains/example.com/dns-setup") return jsonResponse(200, []);
+            throw new Error(`unexpected ${url}`);
+        });
+        const user = userEvent.setup();
+        render(<DomainDetailPage userUid="admin-1" authServerUrl="https://auth.example.com" />);
+
+        await user.click(await screen.findByRole("button", { name: "Delete domain" }));
+        const dialog = within(screen.getByRole("dialog", { name: "Delete domain" }));
+        await user.click(dialog.getByRole("button", { name: "Cancel" }));
+        expect(screen.queryByRole("dialog", { name: "Delete domain" })).not.toBeInTheDocument();
+    });
+
+    it("shows an error message in the modal when deletion fails", async () => {
+        mockFetch((url, init) => {
+            if (url === "/api/admin/release-notes") return jsonResponse(200, {});
+            if (url === "/api/mail/domains/example.com") return jsonResponse(200, domain);
+            if (url === "/api/mail/domains/example.com/dns-setup") return jsonResponse(200, []);
+            if (url === "/api/mail/domains/example.com?version=0" && init?.method === "DELETE") {
+                return jsonResponse(409, { message: "Domain still has active mailboxes." });
+            }
+            throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
+        });
+        const user = userEvent.setup();
+        render(<DomainDetailPage userUid="admin-1" authServerUrl="https://auth.example.com" />);
+
+        await user.click(await screen.findByRole("button", { name: "Delete domain" }));
+        const dialog = within(screen.getByRole("dialog", { name: "Delete domain" }));
+        await user.click(dialog.getByRole("button", { name: "Delete" }));
+        expect(await dialog.findByText("Domain still has active mailboxes.")).toBeInTheDocument();
+    });
+
+    it("shows a generic error message in the modal when deletion fails with a non-API error", async () => {
+        mockFetch((url, init) => {
+            if (url === "/api/admin/release-notes") return jsonResponse(200, {});
+            if (url === "/api/mail/domains/example.com") return jsonResponse(200, domain);
+            if (url === "/api/mail/domains/example.com/dns-setup") return jsonResponse(200, []);
+            if (url === "/api/mail/domains/example.com?version=0" && init?.method === "DELETE") {
+                throw new TypeError("network down");
+            }
+            throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
+        });
+        const user = userEvent.setup();
+        render(<DomainDetailPage userUid="admin-1" authServerUrl="https://auth.example.com" />);
+
+        await user.click(await screen.findByRole("button", { name: "Delete domain" }));
+        const dialog = within(screen.getByRole("dialog", { name: "Delete domain" }));
+        await user.click(dialog.getByRole("button", { name: "Delete" }));
+        expect(await dialog.findByText("Could not delete this domain.")).toBeInTheDocument();
+    });
+
+    // Mocks window.location wholesale (see testUtils.mockLocation) only after the initial render/uid
+    // resolution — readTargetUid() needs the real, pushState-driven window.location on mount, and
+    // mockLocation's replacement isn't undone between tests (unlike vi.stubGlobal). Must run last in this
+    // file — same convention as mailboxes/detail's own impersonation-redirect test.
+    it("opens a confirmation modal from 'Delete domain', deletes the domain, and navigates back to the list", async () => {
+        let deleteCalled = false;
+        mockFetch((url, init) => {
+            if (url === "/api/admin/release-notes") return jsonResponse(200, {});
+            if (url === "/api/mail/domains/example.com") return jsonResponse(200, domain);
+            if (url === "/api/mail/domains/example.com/dns-setup") return jsonResponse(200, []);
+            if (url === "/api/mail/domains/example.com?version=0" && init?.method === "DELETE") {
+                deleteCalled = true;
+                return emptyResponse(200);
+            }
+            throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
+        });
+        const user = userEvent.setup();
+        render(<DomainDetailPage userUid="admin-1" authServerUrl="https://auth.example.com" />);
+
+        const deleteButton = await screen.findByRole("button", { name: "Delete domain" });
+        const location = mockLocation();
+        await user.click(deleteButton);
+        const dialog = within(screen.getByRole("dialog", { name: "Delete domain" }));
+        expect(dialog.getByText(/Are you sure you want to delete/)).toBeInTheDocument();
+
+        await user.click(dialog.getByRole("button", { name: "Delete" }));
+        expect(deleteCalled).toBe(true);
+        await vi.waitFor(() => expect(location.href).toBe("/admin/domains"));
     });
 });

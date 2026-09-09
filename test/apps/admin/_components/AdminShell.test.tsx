@@ -65,7 +65,38 @@ describe("AdminShell", () => {
         expect(await screen.findByText("Could not verify administrator access.")).toBeInTheDocument();
     });
 
-    it("renders the icon rail with all four sections, highlighting the active one", async () => {
+    it("renders the icon rail with the five global sections, highlighting the active one", async () => {
+        mockFetch((url) => {
+            if (url === "/api/admin/release-notes") return jsonResponse(200, {});
+            throw new Error(`unexpected ${url}`);
+        });
+        render(
+            <AdminShell active="domains" userUid="admin-1" authServerUrl={AUTH_SERVER_URL}>
+                content
+            </AdminShell>,
+        );
+        await screen.findByText("content");
+
+        const rail = within(screen.getByRole("navigation", { name: "Admin sections" }));
+        const mailboxes = rail.getByRole("link", { name: "Mailboxes" });
+        const domains = rail.getByRole("link", { name: "Domains" });
+        const auditLog = rail.getByRole("link", { name: "Audit Log" });
+        const distributionLists = rail.getByRole("link", { name: "Distribution Lists" });
+        const transportRules = rail.getByRole("link", { name: "Transport Rules" });
+
+        expect(mailboxes).toHaveAttribute("href", "/admin");
+        expect(domains).toHaveAttribute("href", "/admin/domains");
+        expect(auditLog).toHaveAttribute("href", "/admin/audit-log");
+        expect(distributionLists).toHaveAttribute("href", "/admin/distribution-lists");
+        expect(transportRules).toHaveAttribute("href", "/admin/transport-rules");
+
+        expect(domains).toHaveAttribute("aria-current", "page");
+        expect(domains.className).toContain("bg-primary/10");
+        expect(mailboxes).not.toHaveAttribute("aria-current");
+        expect(mailboxes.className).not.toContain("bg-primary/10");
+    });
+
+    it("does not render mailbox-scoped sections (Quarantine, Ingest Queue) in the icon rail or mobile tab bar", async () => {
         mockFetch((url) => {
             if (url === "/api/admin/release-notes") return jsonResponse(200, {});
             throw new Error(`unexpected ${url}`);
@@ -77,27 +108,29 @@ describe("AdminShell", () => {
         );
         await screen.findByText("content");
 
-        const rail = within(screen.getByRole("navigation", { name: "Admin sections" }));
-        const mailboxes = rail.getByRole("link", { name: "Mailboxes" });
-        const quarantine = rail.getByRole("link", { name: "Quarantine" });
-        const ingestQueue = rail.getByRole("link", { name: "Ingest Queue" });
-        const domains = rail.getByRole("link", { name: "Domains" });
-        const auditLog = rail.getByRole("link", { name: "Audit Log" });
-        const distributionLists = rail.getByRole("link", { name: "Distribution Lists" });
-        const transportRules = rail.getByRole("link", { name: "Transport Rules" });
+        expect(
+            within(screen.getByRole("navigation", { name: "Admin sections" })).queryByRole("link", {
+                name: "Quarantine",
+            }),
+        ).not.toBeInTheDocument();
+        expect(
+            within(screen.getByRole("navigation", { name: "Admin sections" })).queryByRole("link", {
+                name: "Ingest Queue",
+            }),
+        ).not.toBeInTheDocument();
+        expect(
+            within(screen.getByRole("navigation", { name: "Mobile navigation" })).queryByRole("link", {
+                name: "Quarantine",
+            }),
+        ).not.toBeInTheDocument();
+        expect(
+            within(screen.getByRole("navigation", { name: "Mobile navigation" })).queryByRole("link", {
+                name: "Ingest Queue",
+            }),
+        ).not.toBeInTheDocument();
 
-        expect(mailboxes).toHaveAttribute("href", "/admin");
-        expect(quarantine).toHaveAttribute("href", "/admin/quarantine");
-        expect(ingestQueue).toHaveAttribute("href", "/admin/ingest-queue");
-        expect(domains).toHaveAttribute("href", "/admin/domains");
-        expect(auditLog).toHaveAttribute("href", "/admin/audit-log");
-        expect(distributionLists).toHaveAttribute("href", "/admin/distribution-lists");
-        expect(transportRules).toHaveAttribute("href", "/admin/transport-rules");
-
-        expect(quarantine).toHaveAttribute("aria-current", "page");
-        expect(quarantine.className).toContain("bg-primary/10");
-        expect(mailboxes).not.toHaveAttribute("aria-current");
-        expect(mailboxes.className).not.toContain("bg-primary/10");
+        // Still resolves the header label for a mailbox-scoped section reached via a mailbox detail page link.
+        expect(screen.getByText("Quarantine", { selector: "span" })).toBeInTheDocument();
     });
 
     it("hides the icon rail below md, shows it at md and above", async () => {
@@ -111,17 +144,17 @@ describe("AdminShell", () => {
         expect(screen.getByRole("navigation", { name: "Admin sections" })).toHaveClass("hidden", "md:flex");
     });
 
-    it("renders the mobile bottom tab bar with the same sections, highlighting the active one", async () => {
+    it("renders the mobile bottom tab bar with the same global sections, highlighting the active one", async () => {
         mockFetch(() => jsonResponse(200, {}));
         render(
-            <AdminShell active="ingestQueue" userUid="admin-1" authServerUrl={AUTH_SERVER_URL}>
+            <AdminShell active="domains" userUid="admin-1" authServerUrl={AUTH_SERVER_URL}>
                 content
             </AdminShell>,
         );
         await screen.findByText("content");
 
         const tabBar = within(screen.getByRole("navigation", { name: "Mobile navigation" }));
-        expect(tabBar.getByRole("link", { name: "Ingest Queue" })).toHaveAttribute("aria-current", "page");
+        expect(tabBar.getByRole("link", { name: "Domains" })).toHaveAttribute("aria-current", "page");
         expect(tabBar.getByRole("link", { name: "Mailboxes" })).not.toHaveAttribute("aria-current");
     });
 
