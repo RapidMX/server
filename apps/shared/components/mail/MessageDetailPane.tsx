@@ -5,6 +5,8 @@
 import React, { useState } from "react";
 import { ApiRequestError } from "../../lib/api.js";
 import { Attachment, Message, attachmentContentUrl, recallMessage } from "../../lib/mailApi.js";
+import { buildForwardQuote, buildReplyQuote, forwardSubject, replySubject } from "../../lib/composeQuoting.js";
+import { useCompose } from "./compose/ComposeContext.js";
 import Modal from "../../lib/Modal.js";
 import Alert from "../feedback/Alert.js";
 import Button from "../buttons/Button.js";
@@ -41,12 +43,47 @@ function formatBytes(bytes: number): string {
  * site for how `message`/`attachments`/`isSentItems` are sourced.
  */
 export default function MessageDetailPane({ message, attachments, backHref, isSentItems, onRecalled }: MessageDetailPaneProps) {
+    const { openCompose } = useCompose();
     const [confirming, setConfirming] = useState(false);
     const [recalling, setRecalling] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     if (!message) {
         return <p className="p-8 text-sm text-text-muted">Select a message to read it.</p>;
+    }
+
+    // Only ever invoked from the Reply/Reply All/Forward buttons below, which themselves only render
+    // once `message` is loaded (the early return above covers the only other state) — the non-null
+    // assertions reflect that real invariant, matching `handleRecall`'s identical pattern just below.
+    function handleReply() {
+        openCompose({
+            mailboxUid: message!.mailboxUid,
+            to: message!.from.address,
+            subject: replySubject(message!.subject),
+            quotedHtml: buildReplyQuote(message!),
+            signatureContext: "reply_forward",
+        });
+    }
+
+    function handleReplyAll() {
+        const cc = message!.recipients.filter((r) => r.type !== "bcc").map((r) => r.address);
+        openCompose({
+            mailboxUid: message!.mailboxUid,
+            to: message!.from.address,
+            cc: cc.join(", "),
+            subject: replySubject(message!.subject),
+            quotedHtml: buildReplyQuote(message!),
+            signatureContext: "reply_forward",
+        });
+    }
+
+    function handleForward() {
+        openCompose({
+            mailboxUid: message!.mailboxUid,
+            subject: forwardSubject(message!.subject),
+            quotedHtml: buildForwardQuote(message!),
+            signatureContext: "reply_forward",
+        });
     }
 
     async function handleRecall() {
@@ -100,6 +137,17 @@ export default function MessageDetailPane({ message, attachments, backHref, isSe
                 <p className="text-sm text-text-muted">
                     To {message.recipients.map((r) => r.displayName || r.address).join(", ")}
                 </p>
+                <div className="flex gap-2 mt-3">
+                    <Button type="button" variant="secondary" className="!w-auto" onClick={handleReply}>
+                        Reply
+                    </Button>
+                    <Button type="button" variant="secondary" className="!w-auto" onClick={handleReplyAll}>
+                        Reply All
+                    </Button>
+                    <Button type="button" variant="secondary" className="!w-auto" onClick={handleForward}>
+                        Forward
+                    </Button>
+                </div>
                 {attachments.length > 0 && (
                     <ul className="flex flex-wrap gap-2 mt-3">
                         {attachments.map((attachment) => (

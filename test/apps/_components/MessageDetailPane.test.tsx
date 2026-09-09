@@ -8,6 +8,57 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { jsonResponse, mockFetch } from "../testUtils.js";
 import MessageDetailPane from "../../../apps/shared/components/mail/MessageDetailPane.js";
+import ComposeProvider from "../../../apps/shared/components/mail/compose/ComposeContext.js";
+
+// `ComposeWindow`'s own exhaustive rendering (draft lifecycle, send, attachments...) is tested in its
+// own file — mocked here (`RichTextEditor` only, matching every other compose-adjacent test file's
+// convention) so the "reply/forward" tests below only exercise the values `MessageDetailPane` itself
+// hands off to `openCompose()`, observed via the real `ComposeWindow` that pops up.
+vi.mock("../../../apps/shared/components/mail/compose/RichTextEditor.js", () => ({
+    default: () => <textarea data-testid="html-editor" />,
+}));
+
+function mockComposeDraft() {
+    return mockFetch((url, init) => {
+        if (url.startsWith("/api/mail/folders")) {
+            return jsonResponse(200, [
+                {
+                    uid: "f-drafts",
+                    version: 0,
+                    dateCreated: "2026-01-01T00:00:00.000Z",
+                    dateModified: "2026-01-01T00:00:00.000Z",
+                    mailboxUid: "mb1",
+                    name: "Drafts",
+                    type: "drafts",
+                    unreadCount: 0,
+                    totalCount: 0,
+                },
+            ]);
+        }
+        if (url.startsWith("/api/mail/mail-signatures")) return jsonResponse(200, []);
+        if (url === "/api/mail/messages" && (init?.method ?? "GET") === "POST") {
+            return jsonResponse(200, {
+                uid: "draft1",
+                version: 0,
+                dateCreated: "2026-01-01T00:00:00.000Z",
+                dateModified: "2026-01-01T00:00:00.000Z",
+                folderUid: "f-drafts",
+                mailboxUid: "mb1",
+                messageId: "draft1@webmail",
+                subject: "",
+                from: { address: "u1@example.com", type: "to" },
+                recipients: [],
+                sentDate: "2026-01-01T00:00:00.000Z",
+                receivedDate: "2026-01-01T00:00:00.000Z",
+                bodyPreview: "",
+                flags: { read: true, flagged: false, answered: false, forwarded: false },
+                importance: "normal",
+                hasAttachments: false,
+            });
+        }
+        throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
+    });
+}
 
 function messageFixture(overrides: Record<string, unknown> = {}) {
     return {
@@ -207,6 +258,75 @@ describe("MessageDetailPane", () => {
             await user.click(screen.getByRole("button", { name: "Recall message" }));
 
             expect(await screen.findByText("Could not recall this message.")).toBeInTheDocument();
+        });
+    });
+
+    describe("reply/forward", () => {
+        it("Reply opens Compose prefilled with the sender's address, a 'Re:' subject, and a quoted body", async () => {
+            mockComposeDraft();
+            const user = userEvent.setup();
+            render(
+                <ComposeProvider>
+                    <MessageDetailPane message={messageFixture() as any} attachments={[]} />
+                </ComposeProvider>,
+            );
+
+            await user.click(screen.getByRole("button", { name: "Reply" }));
+
+            expect(await screen.findByRole("dialog", { name: "Re: Hello there" })).toBeInTheDocument();
+            expect(screen.getByLabelText("To")).toHaveValue("sender@example.com");
+        });
+
+        it("Reply All prefills To with the sender and Cc with every other recipient, excluding bcc", async () => {
+            mockComposeDraft();
+            const user = userEvent.setup();
+            const message = messageFixture({
+                recipients: [
+                    { address: "u1@example.com", displayName: "Me", type: "to" },
+                    { address: "other@example.com", type: "cc" },
+                    { address: "hidden@example.com", type: "bcc" },
+                ],
+            });
+            render(
+                <ComposeProvider>
+                    <MessageDetailPane message={message as any} attachments={[]} />
+                </ComposeProvider>,
+            );
+
+            await user.click(screen.getByRole("button", { name: "Reply All" }));
+
+            await screen.findByRole("dialog", { name: "Re: Hello there" });
+            expect(screen.getByLabelText("To")).toHaveValue("sender@example.com");
+            expect(screen.getByLabelText("Cc")).toHaveValue("u1@example.com, other@example.com");
+        });
+
+        it("Forward opens Compose with a 'Fwd:' subject and no prefilled recipient", async () => {
+            mockComposeDraft();
+            const user = userEvent.setup();
+            render(
+                <ComposeProvider>
+                    <MessageDetailPane message={messageFixture() as any} attachments={[]} />
+                </ComposeProvider>,
+            );
+
+            await user.click(screen.getByRole("button", { name: "Forward" }));
+
+            expect(await screen.findByRole("dialog", { name: "Fwd: Hello there" })).toBeInTheDocument();
+            expect(screen.getByLabelText("To")).toHaveValue("");
+        });
+
+        it("does not double-prefix Re:/Fwd: on a subject that already carries one", async () => {
+            mockComposeDraft();
+            const user = userEvent.setup();
+            const message = messageFixture({ subject: "Re: Hello there" });
+            render(
+                <ComposeProvider>
+                    <MessageDetailPane message={message as any} attachments={[]} />
+                </ComposeProvider>,
+            );
+
+            await user.click(screen.getByRole("button", { name: "Reply" }));
+            expect(await screen.findByRole("dialog", { name: "Re: Hello there" })).toBeInTheDocument();
         });
     });
 });

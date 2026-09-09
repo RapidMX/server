@@ -23,6 +23,7 @@ import {
     sendMessage,
     uploadAttachment,
 } from "../../../lib/mailApi.js";
+import { listMailSignatures } from "../../../lib/mailSignaturesApi.js";
 import useIsMobile from "../../../lib/useIsMobile.js";
 import type { ComposeSession } from "./ComposeContext.js";
 import RichTextEditor from "./RichTextEditor.js";
@@ -91,7 +92,7 @@ function HeaderButton({ label, onClick, icon: Icon }: { label: string; onClick: 
  * once.
  */
 export default function ComposeWindow({ session, onClose, onToggleMinimize }: ComposeWindowProps) {
-    const { id, mailboxUid, initialTo, minimized } = session;
+    const { id, mailboxUid, initialTo, initialCc, initialSubject, initialQuotedHtml, signatureContext, minimized } = session;
     const isMobile = useIsMobile();
 
     const windowRef = useRef<HTMLDivElement>(null);
@@ -102,11 +103,12 @@ export default function ComposeWindow({ session, onClose, onToggleMinimize }: Co
     const [expanded, setExpanded] = useState(false);
     const [manualSize, setManualSize] = useState<Size | null>(null);
     const [to, setTo] = useState(initialTo ?? "");
-    const [cc, setCc] = useState("");
+    const [cc, setCc] = useState(initialCc ?? "");
     const [bcc, setBcc] = useState("");
-    const [showCcBcc, setShowCcBcc] = useState(false);
-    const [subject, setSubject] = useState("");
+    const [showCcBcc, setShowCcBcc] = useState(!!initialCc);
+    const [subject, setSubject] = useState(initialSubject ?? "");
     const [html, setHtml] = useState("");
+    const [contentReady, setContentReady] = useState(false);
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const [attachError, setAttachError] = useState<string | null>(null);
     const [sendError, setSendError] = useState<string | null>(null);
@@ -117,6 +119,27 @@ export default function ComposeWindow({ session, onClose, onToggleMinimize }: Co
             .then((folders) => setDraftsFolderUid(folders.find((f) => f.type === "drafts")?.uid))
             .catch((err) => setFolderError(err instanceof ApiRequestError ? err.message : "Could not load your Drafts folder."));
     }, [mailboxUid]);
+
+    // Resolves the mailbox's default signature (if any) for `signatureContext` and seeds `html` with it
+    // plus any quoted original message, before `RichTextEditor` ever mounts (gated by `contentReady`
+    // below) — `RichTextEditor`'s own doc comment is explicit that `value` only seeds its *initial*
+    // content and never re-syncs from a later prop change, so this has to resolve before that first
+    // mount, not after. A signature-list failure is best-effort, same as every other supplementary,
+    // non-blocking fetch in this codebase (e.g. `ConversationThreadPane`'s attachment fetch) — no
+    // signature is a completely legitimate outcome, so this falls back to just the quoted content
+    // (if any) rather than surfacing an error over what's a cosmetic nicety.
+    useEffect(() => {
+        listMailSignatures(mailboxUid)
+            .then((signatures) => {
+                const signature = signatures.find((s) =>
+                    signatureContext === "new" ? s.isDefaultForNewMessages : s.isDefaultForReplyForward,
+                );
+                const signatureHtml = signature?.contentHtml ? `${signature.contentHtml}<p></p>` : "";
+                setHtml(`${signatureHtml}${initialQuotedHtml ?? ""}`);
+            })
+            .catch(() => setHtml(initialQuotedHtml ?? ""))
+            .finally(() => setContentReady(true));
+    }, [mailboxUid, signatureContext, initialQuotedHtml]);
 
     useEffect(() => {
         if (!draftsFolderUid || draft) {
@@ -379,7 +402,7 @@ export default function ComposeWindow({ session, onClose, onToggleMinimize }: Co
                 </div>
 
                 <div className="flex-1 min-h-0 p-2">
-                    <RichTextEditor value={html} onChange={setHtml} fill onUploadImage={handleUploadImage} />
+                    {contentReady && <RichTextEditor value={html} onChange={setHtml} fill onUploadImage={handleUploadImage} />}
                 </div>
 
                 {attachments.length > 0 && (

@@ -74,7 +74,7 @@ const draft = {
 };
 
 function session(overrides: Partial<ComposeSession> = {}): ComposeSession {
-    return { id: "s1", mailboxUid: "mb1", minimized: false, ...overrides };
+    return { id: "s1", mailboxUid: "mb1", signatureContext: "new", minimized: false, ...overrides };
 }
 
 function mockCompose(extra?: (url: string, init?: RequestInit) => Response | undefined) {
@@ -82,9 +82,25 @@ function mockCompose(extra?: (url: string, init?: RequestInit) => Response | und
         const custom = extra?.(url, init);
         if (custom) return custom;
         if (url.startsWith("/api/mail/folders")) return jsonResponse(200, [otherFolder, draftsFolder]);
+        if (url.startsWith("/api/mail/mail-signatures")) return jsonResponse(200, []);
         if (url === "/api/mail/messages" && (init?.method ?? "GET") === "POST") return jsonResponse(200, draft);
         throw new Error(`unexpected ${init?.method ?? "GET"} ${url}`);
     });
+}
+
+function signatureFixture(overrides: Record<string, unknown> = {}) {
+    return {
+        uid: "sig1",
+        version: 0,
+        dateCreated: "2026-01-01T00:00:00.000Z",
+        dateModified: "2026-01-01T00:00:00.000Z",
+        mailboxUid: "mb1",
+        name: "Default",
+        contentHtml: "<p>Best,<br>Jane</p>",
+        isDefaultForNewMessages: false,
+        isDefaultForReplyForward: false,
+        ...overrides,
+    };
 }
 
 afterEach(() => {
@@ -609,6 +625,89 @@ describe("ComposeWindow", () => {
             // ComposeContext's mobile session-visibility logic).
             expect(screen.getByRole("button", { name: "Minimize" })).toBeInTheDocument();
             expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+        });
+    });
+
+    describe("signature resolution", () => {
+        it("seeds the editor with the mailbox's isDefaultForNewMessages signature for a fresh compose", async () => {
+            mockCompose((url) =>
+                url.startsWith("/api/mail/mail-signatures")
+                    ? jsonResponse(200, [
+                          signatureFixture({ uid: "sig-reply", isDefaultForReplyForward: true }),
+                          signatureFixture({ uid: "sig-new", isDefaultForNewMessages: true }),
+                      ])
+                    : undefined,
+            );
+            render(<ComposeWindow session={session()} onClose={vi.fn()} onToggleMinimize={vi.fn()} />);
+
+            expect(await screen.findByTestId("html-editor")).toHaveValue("<p>Best,<br>Jane</p><p></p>");
+        });
+
+        it("seeds the editor with the mailbox's isDefaultForReplyForward signature, plus the quoted content, for a reply/forward", async () => {
+            mockCompose((url) =>
+                url.startsWith("/api/mail/mail-signatures")
+                    ? jsonResponse(200, [
+                          signatureFixture({ uid: "sig-new", isDefaultForNewMessages: true }),
+                          signatureFixture({ uid: "sig-reply", isDefaultForReplyForward: true }),
+                      ])
+                    : undefined,
+            );
+            render(
+                <ComposeWindow
+                    session={session({ signatureContext: "reply_forward", initialQuotedHtml: "<blockquote>Hi</blockquote>" })}
+                    onClose={vi.fn()}
+                    onToggleMinimize={vi.fn()}
+                />,
+            );
+
+            expect(await screen.findByTestId("html-editor")).toHaveValue("<p>Best,<br>Jane</p><p></p><blockquote>Hi</blockquote>");
+        });
+
+        it("seeds the editor with just the quoted content when the mailbox has no matching default signature", async () => {
+            mockCompose((url) =>
+                url.startsWith("/api/mail/mail-signatures") ? jsonResponse(200, [signatureFixture()]) : undefined,
+            );
+            render(
+                <ComposeWindow
+                    session={session({ signatureContext: "reply_forward", initialQuotedHtml: "<blockquote>Hi</blockquote>" })}
+                    onClose={vi.fn()}
+                    onToggleMinimize={vi.fn()}
+                />,
+            );
+
+            expect(await screen.findByTestId("html-editor")).toHaveValue("<blockquote>Hi</blockquote>");
+        });
+
+        it("falls back to just the quoted content when the signature list fails to load", async () => {
+            mockCompose((url) => (url.startsWith("/api/mail/mail-signatures") ? jsonResponse(500, { message: "boom" }) : undefined));
+            render(
+                <ComposeWindow
+                    session={session({ initialQuotedHtml: "<blockquote>Hi</blockquote>" })}
+                    onClose={vi.fn()}
+                    onToggleMinimize={vi.fn()}
+                />,
+            );
+
+            expect(await screen.findByTestId("html-editor")).toHaveValue("<blockquote>Hi</blockquote>");
+        });
+
+        it("does not mount the editor until the signature lookup resolves", async () => {
+            let resolveSignatures: (() => void) | undefined;
+            mockCompose((url) => {
+                if (url.startsWith("/api/mail/mail-signatures")) {
+                    return new Promise((resolve) => {
+                        resolveSignatures = () => resolve(jsonResponse(200, []));
+                    });
+                }
+                return undefined;
+            });
+            render(<ComposeWindow session={session()} onClose={vi.fn()} onToggleMinimize={vi.fn()} />);
+
+            await waitFor(() => expect(resolveSignatures).toBeDefined());
+            expect(screen.queryByTestId("html-editor")).not.toBeInTheDocument();
+
+            resolveSignatures!();
+            expect(await screen.findByTestId("html-editor")).toBeInTheDocument();
         });
     });
 });

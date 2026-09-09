@@ -2552,4 +2552,109 @@ under a second, genuinely different consumer.
   browser click-through was done** — same standing limitation as every entry in this file; JP should
   verify visually before relying on this, particularly the new `"select"` condition field's layout and
   the folder-picker action rows.
+- **Committed** as `7f69303`.
+
+### 2026-09-08 — Wiring `@rapidmx/restapi`'s new features into `server`: Phase 12 (Mail signatures,
+webmail Settings + Compose integration)
+
+Twelfth slice of the same 15-phase plan (see the Phase 0–11 entries above for full context). Adds a
+third Settings section (Signatures) plus real Compose integration — and, as the plan's own text
+flagged as an open question to resolve rather than assume away, this phase also had to build Reply/
+Reply All/Forward from nothing, since no such entry point existed anywhere in this codebase before now.
+
+- **Confirmed, not assumed**: searched the whole `apps/` tree for any Reply/Forward compose entry point
+  before starting — none existed. `ComposeContext.tsx`'s `OpenComposeInput` only ever had `mailboxUid`/
+  `to` (Contacts' "Email" action is its one caller), and `ComposeWindow.tsx`'s `html` state always
+  started as a plain `useState("")`. This was a real, second gap this phase had to close, exactly as
+  the plan anticipated it might be.
+- **Another brand-new backend route, same shape as Phase 11's `MailFilterRule` gap**: `MailSignature`
+  ships from `@rapidmx/restapi` as `MailSignatureRouteMongo`/`...SQL` (`BaseScopedChildRoute`,
+  `scopeProperty: "mailboxUid"`) but `server` had never mounted them either. Added
+  `src/{mongo,sql}/routes/MailSignatureRoute.ts` at `mail/mail-signatures`, identical one-line-subclass
+  pattern, naturally exercised by `Server.*.test.ts`'s real-app-boot integration tests the same way
+  every sibling route file already is — no dedicated unit test needed, confirmed again this phase.
+- `apps/shared/lib/mailSignaturesApi.ts` (new) — `MailSignature`/CRUD, directly mirroring
+  `mailFilterRulesApi.ts`'s mailbox-scoped shape (`listMailSignatures(mailboxUid, params)`, `mailboxUid`
+  required in the body for create). Doc comment quotes restapi's own: composing a signature into a real
+  message body is entirely this app's job, restapi never does it itself.
+- `apps/shared/lib/composeQuoting.ts` (new) — `replySubject()`/`forwardSubject()` (the standard
+  "don't double-prefix an existing Re:/Fwd:" convention) and `buildReplyQuote()`/`buildForwardQuote()`.
+  **A deliberate scope decision, not an oversight**: quotes `message.bodyPreview` (a plain-text excerpt
+  the server already derives at ingest time) rather than the message's full rendered HTML body —
+  `MessageDetailPane`'s own body renders via a sandboxed `<iframe src=".../content">`, so the raw HTML
+  isn't available to this app's own JavaScript to re-embed without a second fetch and its own
+  HTML-in-HTML sanitization pass. A plain-text quote is smaller and safer, and no less faithful in
+  practice since `sanitizeComposeHtml()` (the one server-side gate every compose body passes through
+  regardless of origin) strips a full HTML quote down to similarly plain content anyway. Documented
+  inline so this reads as a considered trade-off, not a shortcut nobody explained.
+- `apps/shared/components/mail/MessageDetailPane.tsx`: new Reply/Reply All/Forward buttons — the actual
+  new entry point. Reply prefills the sender's address; Reply All also Ccs every other To/Cc recipient
+  (bcc excluded, since bcc is invisible to other recipients by definition — there's nothing to "reply
+  all" to that a real recipient could ever see in the first place); Forward prefills no recipient and
+  uses `buildForwardQuote()`'s headers-block convention instead of a bare attribution line. **A known,
+  documented simplification**: Reply All doesn't filter the viewing mailbox's own address out of the Cc
+  list, since `MessageDetailPane` only has `message.mailboxUid`, not the mailbox's own
+  `primarySmtpAddress` — cc'ing yourself is harmless (if slightly redundant) compared to threading a new
+  prop just for this; flagged here rather than silently shipped as if it were correct on purpose.
+- `apps/shared/components/mail/compose/ComposeContext.tsx`: `OpenComposeInput`/`ComposeSession` gain
+  `cc`/`subject`/`quotedHtml`/`signatureContext` ("new" | "reply_forward", defaulting to "new" so both
+  existing callers — Contacts' "Email" action, `MailShell`'s Compose button — need no changes at all).
+- `apps/shared/components/mail/compose/ComposeWindow.tsx`: fetches the mailbox's signatures once per
+  window and resolves the one matching `signatureContext` (`isDefaultForNewMessages` vs.
+  `isDefaultForReplyForward` — the same two-flag convention `mailSignaturesApi.ts`'s doc comment
+  describes), then seeds `html` with the signature followed by any quoted content. **Gated the
+  `RichTextEditor` mount itself behind a new `contentReady` flag** rather than just setting `html`
+  after the fetch resolves — confirmed via `RichTextEditor`'s own doc comment that `value` only seeds
+  the editor's *initial* content and never re-syncs from a later prop change (TipTap owns its document
+  once created), so setting `html` after first mount would have silently done nothing. A
+  signature-lookup failure is best-effort (falls back to just the quoted content, if any) — no
+  signature is a completely legitimate outcome, matching this codebase's established "supplementary,
+  non-blocking fetch" catch convention (e.g. `ConversationThreadPane`'s attachment fetch).
+- `apps/www/settings/signatures/{index,new/index,detail/index}.tsx` (new) — the same list/create/edit
+  three-page shape as `settings/filters/`, using `RichTextEditor` (already built for Compose) instead
+  of a plain textarea for `contentHtml`, matching the plan's own instruction. `onUploadImage` is a real,
+  deliberate no-op here (documented inline): a signature has no draft/attachment record to upload an
+  inline image against the way a real Compose draft does, and building that mechanism is out of scope
+  for this phase.
+- `apps/www/settings/signatures/signatureDefaults.ts` (new) — `clearPreviousDefaults()`, the client-side
+  enforcement `MailSignature`'s own doc comment explicitly assigns to the composing client: "at most
+  one signature per mailbox should have this set — enforced by convention (the composing client toggles
+  the previous default off), not by a DB constraint." Both the New and Edit forms call it before saving
+  a signature with either default flag newly turned on, looking up the mailbox's other signatures and
+  `PUT`-ing off whichever flag(s) they currently hold — skipping the signature actually being saved, and
+  skipping the lookup entirely when neither flag is being turned on (no reason to touch anything).
+- `SettingsShell.tsx`: `SETTINGS_SECTIONS` gains `signatures` → `/settings/signatures` ("Signatures"),
+  the third and (per this plan) final section.
+- All new/touched files reached 100% coverage this phase, confirmed via `lcov.info` both per-file and
+  at full-suite scale (`ComposeWindow.tsx`'s one remaining branch gap is the same already-documented,
+  pre-existing v8-tool-limitation carve-out from the "Floating Compose window" entry — confirmed
+  untouched by this phase's diff, not a new gap). Two coverage gaps worth naming, both closed with
+  genuine tests: `ComposeWindow.tsx`'s signature-resolution `.find()` callback body was never actually
+  *executed* by any pre-existing test (every one either omitted `/api/mail/mail-signatures` from its
+  mock, hitting the best-effort `.catch()` path only, or returned an empty list) — added dedicated
+  tests with real signature fixtures covering both `signatureContext` values, no match found, and the
+  fetch failing outright. Both new Settings pages' "Use for new messages"/"Use for replies and
+  forwards" checkboxes and their `onUploadImage` no-op each needed at least one test that actually
+  toggled/clicked them, not just a pre-filled-from-load assertion.
+- Verification: `yarn tsc --noEmit`, client `tsc -p tsconfig.client.json --noEmit`, `yarn lint` all
+  clean. Full `yarn test`: 1186/1186 passing, coverage gate holds with no new carve-outs (`src/mongo/
+  routes`/`src/sql/routes` aggregate ticked up again, from the two new `MailSignatureRoute.ts` files
+  landing exactly where every sibling route file already does). Killed the dev server's full process
+  tree cleanly before restarting this time (`server.ts` + its `tsx --watch` supervisor together, not
+  just the port-owning child) — the same zombie-accumulation mistake from earlier this session, this
+  time avoided rather than repeated. Real `yarn dev` + `curl` (dev auto-auth, cookie jar) after the
+  restart: confirmed `/settings/signatures`, `/settings/signatures/new`, and `/settings/signatures/
+  detail` all return `200`; a real `MailSignature` created/listed (scoped list `200`, unscoped list
+  `400` matching `BaseScopedChildRoute`'s contract, live-verified rather than just trusted from reading
+  the source)/updated/deleted end to end; the webmail index/calendar/settings-auto-reply pages all
+  still return `200`. **The Reply/Reply All/Forward → signature-resolution → gated-editor-mount chain
+  has no dedicated new backend endpoint of its own to curl** (it's built entirely from already-verified
+  pieces: the real `MailSignature` CRUD above, and the pre-existing Compose/assemble/send pipeline) —
+  confirmed instead through this phase's own test suite exercising the *real* `ComposeWindow`/
+  `ComposeProvider` (not a mocked `useCompose`), which is the same rigor the pre-existing
+  `ComposeContext.test.tsx`/`ComposeWindow.test.tsx` suites already use for every other Compose
+  behavior. **No interactive browser click-through was done** — same standing limitation as every entry
+  in this file; JP should verify visually before relying on this, particularly the Reply/Reply All/
+  Forward buttons' placement in the reading pane, the quoted-content formatting, and the Signatures
+  editor's layout.
 - Not yet committed — holding for JP's review/commit-authorization, same default as every entry above.

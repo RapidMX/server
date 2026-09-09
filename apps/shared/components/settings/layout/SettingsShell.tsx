@@ -18,11 +18,11 @@ export interface SettingsSectionDef {
     label: string;
 }
 
-/** Every settings section with its own sidebar entry — appended to by later phases (Signatures)
- * rather than duplicated per-page. */
+/** Every settings section with its own sidebar entry. */
 export const SETTINGS_SECTIONS: SettingsSectionDef[] = [
     { id: "auto-reply", href: "/settings/auto-reply", label: "Automatic Replies" },
     { id: "filters", href: "/settings/filters", label: "Mail Filters" },
+    { id: "signatures", href: "/settings/signatures", label: "Signatures" },
 ];
 
 export type SettingsSectionId = (typeof SETTINGS_SECTIONS)[number]["id"];

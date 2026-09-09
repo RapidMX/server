@@ -10,13 +10,30 @@ export interface ComposeSession {
     id: string;
     mailboxUid: string;
     initialTo?: string;
+    initialCc?: string;
+    initialSubject?: string;
+    /** Pre-built HTML (already includes its own quote-attribution wrapper — see `composeQuoting.ts`)
+     * inserted below the resolved default signature. Absent for a fresh, non-reply/forward compose. */
+    initialQuotedHtml?: string;
+    /** Which of a signature's two "default" flags to resolve against — `"new"` (the default) uses
+     * `isDefaultForNewMessages`, `"reply_forward"` uses `isDefaultForReplyForward`. */
+    signatureContext: "new" | "reply_forward";
     minimized: boolean;
 }
 
 export interface OpenComposeInput {
     mailboxUid: string;
-    /** Prefills the To field — e.g. Contacts' "Email" toolbar action. */
+    /** Prefills the To field — e.g. Contacts' "Email" toolbar action, or Reply/Reply All/Forward. */
     to?: string;
+    /** Prefills the Cc field and reveals the Cc/Bcc row — Reply All only. */
+    cc?: string;
+    /** Prefills the Subject field — Reply/Reply All/Forward. */
+    subject?: string;
+    /** See `ComposeSession.initialQuotedHtml`'s own doc comment. */
+    quotedHtml?: string;
+    /** See `ComposeSession.signatureContext`'s own doc comment. Defaults to `"new"` — every existing
+     * caller (Contacts' "Email" action, the folder-sidebar "Compose" button) is a fresh compose. */
+    signatureContext?: "new" | "reply_forward";
 }
 
 export interface ComposeContextValue {
@@ -42,8 +59,20 @@ export default function ComposeProvider({ children }: PropsWithChildren) {
     const [sessions, setSessions] = useState<ComposeSession[]>([]);
     const isMobile = useIsMobile();
 
-    function openCompose({ mailboxUid, to }: OpenComposeInput) {
-        setSessions((prev) => [...prev, { id: crypto.randomUUID(), mailboxUid, initialTo: to, minimized: false }]);
+    function openCompose({ mailboxUid, to, cc, subject, quotedHtml, signatureContext = "new" }: OpenComposeInput) {
+        setSessions((prev) => [
+            ...prev,
+            {
+                id: crypto.randomUUID(),
+                mailboxUid,
+                initialTo: to,
+                initialCc: cc,
+                initialSubject: subject,
+                initialQuotedHtml: quotedHtml,
+                signatureContext,
+                minimized: false,
+            },
+        ]);
     }
 
     function closeCompose(id: string) {
