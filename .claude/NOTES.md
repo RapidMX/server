@@ -2740,4 +2740,79 @@ scheduled time.
   click-through was done** — same standing limitation as every entry in this file; JP should verify
   visually before relying on this, particularly the split Send/"Send later" button and the Outbox
   "Scheduled for.../Cancel" banner's placement.
-- Not yet committed — holding for JP's review/commit-authorization, same default as every entry above.
+- **Committed** as `b4378f5`.
+
+### 2026-09-08 — Wiring `@rapidmx/restapi`'s new features into `server`: Phase 14 (Final sweep and
+sign-off)
+
+Final slice of the 15-phase plan (see the Phase 0–13 entries above for full context — the plan's own
+numbering runs to 16 counting Phase 0, but the last content phase is this one). Adds no application code
+of its own; this is the plan's own closing checklist — a consistency sweep plus one consolidated live
+smoke pass touching all 9 features together, in one session, for the first time.
+
+- **`active="..."` sweep**: grepped every one of the 17 new page files added across Phases 1–13
+  (`apps/admin/{domains,audit-log,distribution-lists,transport-rules}/**`, `apps/www/settings/
+  {auto-reply,filters,signatures}/**`, `apps/www/messages/detail/index.tsx`) for their shell's `active=`
+  prop. All 16 `AdminShell`/`SettingsShell` consumers pass a literal string matching their own section
+  exactly. `messages/detail/index.tsx` correctly has none at all — confirmed by reading `MailShell.tsx`
+  directly that `MailShellProps` is `Omit<AppShellProps, "active">` and `MailShell` always hardcodes
+  `active="mail"` internally, the same shape every other `apps/www/**` page already has (`MailShell`/
+  `ContactsShell`/`TasksShell`/`CalendarShell` none take an `active` prop of their own) — not a gap.
+- **Admin icon rail**: confirmed exactly 7 `NAV_ITEMS` in `AdminShell.tsx` (Mailboxes, Quarantine,
+  Ingest Queue, Domains, Audit Log, Distribution Lists, Transport Rules), matching the plan's own count.
+- **Settings `UserMenu` entry**: confirmed `AppShell.tsx` passes `showSettingsLink` unconditionally (not
+  gated like `showAdminLink={trusted}`, since Settings is available to every authenticated mailbox owner)
+  and that `SettingsShell` itself renders through `AppShell` (not a separate shell with its own
+  `UserMenu`), so every Settings page inherits this consistently rather than needing its own wiring.
+  `AdminShell`'s own `UserMenu` deliberately passes neither flag — correct, not an oversight, since
+  Admin's `UserMenu` already lives inside the admin console itself (an "Admin" link there would be
+  circular) and Settings is a webmail-user-scoped concept the admin console has no equivalent of.
+  **One pre-existing, still-open note, not fixed this phase**: `UserMenu.tsx`'s own doc comment on
+  `showSettingsLink` says to repoint its hardcoded `/settings/auto-reply` link at a real `/settings`
+  landing page "once a second section makes one worth building" — that condition is now true (Filters
+  and Signatures both shipped since), but building a landing page is new UI work, not a consistency
+  check, so it's flagged here for JP's own call rather than added unasked during a sign-off sweep.
+- **Full-suite coverage re-check**: no application code changed since Phase 13's own full-suite run
+  (1210/1210 passing, coverage gate holds, zero new carve-outs) — confirmed via `git status` that only
+  `.claude/NOTES.md` (this file) differs from that point forward, so that run already satisfies this
+  phase's own re-verification requirement; re-running it would exercise byte-identical code.
+- **One consolidated live `yarn dev` + `curl` pass touching every new route from all 9 features in one
+  session** (dev auto-auth, cookie jar) — the thing no single prior phase's own smoke test actually did,
+  since each verified its own feature in isolation:
+  - Every new list/page route returns `200` together in the same session: `/api/mail/{domains,audit-log,
+    distribution-lists,transport-rules,mail-signatures}`, `/api/mail/mail-filter-rules` (`400` without
+    `mailboxUid`, matching `BaseScopedChildRoute`'s contract, as every phase that owns one of these has
+    already individually confirmed), `/api/mail/messages/conversations`, `/admin/{domains,audit-log,
+    distribution-lists,transport-rules}`, `/settings/{auto-reply,filters,signatures}`, and the webmail
+    index itself.
+  - Real create→delete cycles, run together for the first time this session (each individually verified
+    in its own phase's own entry above, but never all in the same live server run until now): a
+    Distribution List, a Transport Rule, and a Domain — all `201`/`200` on create, `204` on delete.
+  - A real resource mailbox (`isResource: true, resourceType: "room"`) created and confirmed reachable
+    through the `isResource=true` mailbox filter `ResourcePicker.tsx` relies on.
+  - A real `CalendarEvent` with the dev mailbox as an attendee, `POST .../respond` with
+    `responseStatus: "accepted"` — round-tripped onto that attendee's own row exactly as `EventModal`'s
+    UI expects.
+  - A real Sent Items message, `POST .../recall` — round-tripped `recallRequestedAt` back exactly as
+    `MessageDetailPane`'s "Recall requested" indicator expects; `GET .../conversations` afterward
+    correctly listed it (and the two Phase-13 scheduled-send test messages from earlier this session)
+    as real, distinct conversations.
+  - Phase 13's own scheduled-send `PUT`/cancel-`PUT` round trip (verified in that phase's own entry
+    above) is the piece of this pass that could **not** be extended to a real end-to-end send this
+    session either — `POST .../send` still `500`s on both a scheduled and an ordinary draft alike in
+    this dev image, the same pre-existing `sendmail`-binary gap named in the Phase 0-era
+    `docker-compose.mail.yml` entry and in Phase 13's own entry, not something this phase's sweep could
+    resolve.
+- No dev-server restart needed — this phase adds no new page file or route of its own.
+- **No interactive browser click-through was done at any point across all 14 phases** — this whole plan
+  ran without a browser-automation tool available in this environment, the same standing limitation named
+  in every single entry above. Calling this out one final time, consolidated, for JP's own visual
+  pass before relying on any of it in production: the merged conversation-thread view's expand/collapse
+  interaction (Phase 6), the rule builder's condition/action editing UI and its new `"select"` field kind
+  (Phases 4/11), the meeting-invite accept/decline/tentative buttons and responseStatus badges
+  (Phase 8), the resource picker inside `EventModal` (Phase 9), the Settings area's sidebar/mobile-drawer
+  layout across all three sections (Phases 10–12), the Reply/Reply All/Forward buttons and signature
+  auto-insertion in Compose (Phase 12), and the split Send/"Send later" button plus the Outbox
+  scheduled-send banner (Phase 13).
+- Nothing to commit beyond this NOTES.md entry itself and the Phase 13 hash correction above — this
+  phase made no application-code changes.
