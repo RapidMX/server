@@ -4,7 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 import React, { useEffect, useState } from "react";
 import { ApiRequestError } from "../shared/lib/api.js";
-import { Message, listMessages } from "../shared/lib/mailApi.js";
+import { Message, MessageClassification, listMessages } from "../shared/lib/mailApi.js";
 import { ConversationSummary, listConversations } from "../shared/lib/conversationsApi.js";
 import { useMarkMessageRead, useMessageAttachments } from "../shared/lib/mailDetailHooks.js";
 import useIsMobile from "../shared/lib/useIsMobile.js";
@@ -34,6 +34,7 @@ function InboxContent() {
     const [error, setError] = useState<string | null>(null);
     const [selectedUid, setSelectedUid] = useState<string | null>(null);
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+    const [classificationFilter, setClassificationFilter] = useState<MessageClassification | "all">("all");
 
     // Conversations are computed mailbox-wide (see `conversationsApi.ts`), not scoped to the selected
     // folder — switching into "By conversation" mode replaces the per-folder list entirely, and the
@@ -41,6 +42,7 @@ function InboxContent() {
     useEffect(() => {
         setSelectedUid(null);
         setSelectedConversationId(null);
+        setClassificationFilter("all");
 
         if (viewMode === "conversation") {
             // `mailboxUid` is always set by this point — `MailShell` only ever resolves `folderUid`
@@ -74,7 +76,20 @@ function InboxContent() {
     useMarkMessageRead(selected, (updated) => setMessages((prev) => prev.map((m) => (m.uid === updated.uid ? updated : m))));
     const isSentItems = folders.find((f) => f.uid === folderUid)?.type === "sent_items";
     const isOutbox = folders.find((f) => f.uid === folderUid)?.type === "outbox";
+    const isInbox = folders.find((f) => f.uid === folderUid)?.type === "inbox";
     const draftsFolderUid = folders.find((f) => f.type === "drafts")?.uid;
+
+    // Focused/Other is an Inbox-only concept (see `MessageDetailPane`'s own `isInbox` doc comment) — the
+    // sub-tabs only ever render there, so a message with no `inferenceClassification` (the common case:
+    // absent means Focused) or an explicit `"focused"` counts as Focused, everything else as Other.
+    const visibleMessages =
+        isInbox && classificationFilter !== "all"
+            ? messages.filter((m) =>
+                  classificationFilter === "other"
+                      ? m.inferenceClassification === "other"
+                      : m.inferenceClassification !== "other",
+              )
+            : messages;
 
     function handleSelect(message: Message) {
         if (isMobile) {
@@ -137,6 +152,25 @@ function InboxContent() {
                         Showing every conversation in this mailbox — the selected folder doesn&apos;t filter this view.
                     </p>
                 )}
+                {viewMode === "date" && isInbox && (
+                    <div className="flex border-b border-border text-xs">
+                        {(["all", "focused", "other"] as const).map((value) => (
+                            <button
+                                key={value}
+                                type="button"
+                                onClick={() => setClassificationFilter(value)}
+                                className={[
+                                    "flex-1 py-1.5 font-semibold",
+                                    classificationFilter === value
+                                        ? "text-primary-dark border-b-2 border-primary-dark"
+                                        : "text-text-muted",
+                                ].join(" ")}
+                            >
+                                {value === "all" ? "All" : value === "focused" ? "Focused" : "Other"}
+                            </button>
+                        ))}
+                    </div>
+                )}
 
                 {error && (
                     <div className="p-4">
@@ -152,11 +186,13 @@ function InboxContent() {
                         selectedId={selectedConversationId}
                         onSelect={handleSelectConversation}
                     />
-                ) : messages.length === 0 ? (
-                    <p className="p-4 text-sm text-text-muted">No messages in this folder.</p>
+                ) : visibleMessages.length === 0 ? (
+                    <p className="p-4 text-sm text-text-muted">
+                        {classificationFilter === "all" ? "No messages in this folder." : "No messages here."}
+                    </p>
                 ) : (
                     <ul>
-                        {messages.map((message) => (
+                        {visibleMessages.map((message) => (
                             <li key={message.uid}>
                                 <button
                                     type="button"
@@ -191,6 +227,9 @@ function InboxContent() {
                         isSentItems={isSentItems}
                         onRecalled={(updated) => setMessages((prev) => prev.map((m) => (m.uid === updated.uid ? updated : m)))}
                         isOutbox={isOutbox}
+                        isInbox={isInbox}
+                        onClassified={(updated) => setMessages((prev) => prev.map((m) => (m.uid === updated.uid ? updated : m)))}
+                        onReceiptHandled={(updated) => setMessages((prev) => prev.map((m) => (m.uid === updated.uid ? updated : m)))}
                         draftsFolderUid={draftsFolderUid}
                         onScheduledSendCanceled={(updated) => {
                             // The message moved out of the currently-viewed Outbox folder (into Drafts)

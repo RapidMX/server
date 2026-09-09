@@ -162,6 +162,9 @@ export default function ConversationThreadPane({ conversation, folders }: Conver
                             // the conversation — `conversation.messageUids` is owned by the parent, not
                             // this component, so there's no membership list here to remove it from.
                             onScheduledSendCanceled={(updated) => setMessages((prev) => ({ ...prev, [uid]: updated }))}
+                            isInbox={folders.find((f) => f.uid === message.folderUid)?.type === "inbox"}
+                            onClassified={(updated) => setMessages((prev) => ({ ...prev, [uid]: updated }))}
+                            onReceiptHandled={(updated) => setMessages((prev) => ({ ...prev, [uid]: updated }))}
                         />
                     </div>
                 );

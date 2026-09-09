@@ -21,6 +21,9 @@ vi.mock("../../../apps/shared/components/mail/MessageDetailPane.js", () => ({
         isOutbox,
         draftsFolderUid,
         onScheduledSendCanceled,
+        isInbox,
+        onClassified,
+        onReceiptHandled,
     }: {
         message: { uid: string; recallRequestedAt?: string; scheduledSendTime?: string } | null;
         attachments: { filename: string }[];
@@ -29,11 +32,14 @@ vi.mock("../../../apps/shared/components/mail/MessageDetailPane.js", () => ({
         isOutbox?: boolean;
         draftsFolderUid?: string;
         onScheduledSendCanceled?: (updated: Record<string, unknown>) => void;
+        isInbox?: boolean;
+        onClassified?: (updated: Record<string, unknown>) => void;
+        onReceiptHandled?: (updated: Record<string, unknown>) => void;
     }) => (
         <div data-testid={`detail-${message?.uid}`}>
             {message ? `message:${message.uid}` : "no-message"} attachments:{attachments.map((a) => a.filename).join(",")}{" "}
             sentItems:{String(!!isSentItems)} recallRequestedAt:{message?.recallRequestedAt ?? "unset"} outbox:
-            {String(!!isOutbox)} draftsFolderUid:{draftsFolderUid ?? "unset"}
+            {String(!!isOutbox)} draftsFolderUid:{draftsFolderUid ?? "unset"} inbox:{String(!!isInbox)}
             {message && onRecalled && (
                 <button type="button" onClick={() => onRecalled({ ...message, recallRequestedAt: "2026-01-02T00:00:00.000Z" })}>
                     simulate-recall-{message.uid}
@@ -45,6 +51,16 @@ vi.mock("../../../apps/shared/components/mail/MessageDetailPane.js", () => ({
                     onClick={() => onScheduledSendCanceled({ ...message, scheduledSendTime: undefined, folderUid: draftsFolderUid })}
                 >
                     simulate-cancel-scheduled-send-{message.uid}
+                </button>
+            )}
+            {message && onClassified && (
+                <button type="button" onClick={() => onClassified({ ...message, inferenceClassification: "other" })}>
+                    simulate-classify-{message.uid}
+                </button>
+            )}
+            {message && onReceiptHandled && (
+                <button type="button" onClick={() => onReceiptHandled({ ...message, deliveryReceiptPending: false })}>
+                    simulate-receipt-handled-{message.uid}
                 </button>
             )}
         </div>
@@ -432,6 +448,66 @@ describe("ConversationThreadPane", () => {
             // m2 stays mounted/unaffected by m1's patch.
             expect(screen.getByTestId("detail-m2")).toHaveTextContent("recallRequestedAt:unset");
             expect(await screen.findByTestId("detail-m1")).toBeInTheDocument();
+        });
+    });
+
+    describe("classify/receipts", () => {
+        it("computes isInbox per-message from the message's own folderUid", async () => {
+            mockFetch((url) => {
+                const uid = url.split("/").pop();
+                const overrides: Record<string, unknown> = { uid, flags: { read: true, flagged: false, answered: false, forwarded: false } };
+                if (uid === "m1") {
+                    overrides.folderUid = "f2"; // Sent Items, not Inbox
+                }
+                return jsonResponse(200, messageFixture(overrides));
+            });
+            const user = userEvent.setup();
+            render(
+                <ConversationThreadPane
+                    conversation={conversationFixture({ folderUids: ["f1", "f2"] })}
+                    folders={[inboxFolder, sentItemsFolder]}
+                />,
+            );
+
+            expect(await screen.findByTestId("detail-m2")).toHaveTextContent("inbox:true");
+            await user.click(screen.getByText("Sender One")); // expand m1, the Sent Items copy
+            expect(await screen.findByTestId("detail-m1")).toHaveTextContent("inbox:false");
+        });
+
+        it("patches a reclassified message into state via onClassified without disturbing other messages", async () => {
+            mockFetch((url) => {
+                const uid = url.split("/").pop();
+                return jsonResponse(200, messageFixture({ uid, flags: { read: true, flagged: false, answered: false, forwarded: false } }));
+            });
+            const user = userEvent.setup();
+            render(<ConversationThreadPane conversation={conversationFixture()} folders={[inboxFolder]} />);
+
+            await screen.findByTestId("detail-m2");
+            await user.click(screen.getByText("Sender One")); // expand m1
+            await screen.findByTestId("detail-m1");
+
+            await user.click(screen.getByRole("button", { name: "simulate-classify-m1" }));
+
+            expect(screen.getByTestId("detail-m1")).toBeInTheDocument();
+            expect(screen.getByTestId("detail-m2")).toHaveTextContent("recallRequestedAt:unset");
+        });
+
+        it("patches a handled receipt into state via onReceiptHandled without disturbing other messages", async () => {
+            mockFetch((url) => {
+                const uid = url.split("/").pop();
+                return jsonResponse(200, messageFixture({ uid, flags: { read: true, flagged: false, answered: false, forwarded: false } }));
+            });
+            const user = userEvent.setup();
+            render(<ConversationThreadPane conversation={conversationFixture()} folders={[inboxFolder]} />);
+
+            await screen.findByTestId("detail-m2");
+            await user.click(screen.getByText("Sender One")); // expand m1
+            await screen.findByTestId("detail-m1");
+
+            await user.click(screen.getByRole("button", { name: "simulate-receipt-handled-m1" }));
+
+            expect(screen.getByTestId("detail-m1")).toBeInTheDocument();
+            expect(screen.getByTestId("detail-m2")).toHaveTextContent("recallRequestedAt:unset");
         });
     });
 });

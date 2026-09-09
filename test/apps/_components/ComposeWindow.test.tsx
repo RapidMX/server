@@ -220,6 +220,50 @@ describe("ComposeWindow", () => {
         await waitFor(() => expect(onClose).toHaveBeenCalled());
     });
 
+    it("does not set requestReceipt when the checkbox is left unchecked", async () => {
+        const fetchMock = mockCompose((url, init) => {
+            const method = init?.method ?? "GET";
+            if (url === "/api/mail/compose/m1/assemble" && method === "POST") return jsonResponse(200, draft);
+            if (url === "/api/mail/messages/m1/send" && method === "POST") return jsonResponse(200, draft);
+            return undefined;
+        });
+        const user = userEvent.setup();
+        render(<ComposeWindow session={session()} onClose={vi.fn()} onToggleMinimize={vi.fn()} />);
+        await waitFor(() => expect(screen.getByRole("button", { name: "Send" })).not.toBeDisabled());
+
+        await user.type(screen.getByLabelText("To"), "b@example.com");
+        await user.click(screen.getByRole("button", { name: "Send" }));
+
+        await waitFor(() =>
+            expect(fetchMock).toHaveBeenCalledWith("/api/mail/messages/m1/send", expect.objectContaining({ method: "POST" })),
+        );
+        expect(fetchMock.mock.calls.some(([url]) => url === "/api/mail/messages/m1")).toBe(false);
+    });
+
+    it("sets requestReceipt before sending when 'Request a read receipt' is checked", async () => {
+        const fetchMock = mockCompose((url, init) => {
+            const method = init?.method ?? "GET";
+            if (url === "/api/mail/compose/m1/assemble" && method === "POST") return jsonResponse(200, draft);
+            if (url === "/api/mail/messages/m1" && method === "PUT") return jsonResponse(200, { ...draft, requestReceipt: true });
+            if (url === "/api/mail/messages/m1/send" && method === "POST") return jsonResponse(200, draft);
+            return undefined;
+        });
+        const user = userEvent.setup();
+        render(<ComposeWindow session={session()} onClose={vi.fn()} onToggleMinimize={vi.fn()} />);
+        await waitFor(() => expect(screen.getByRole("button", { name: "Send" })).not.toBeDisabled());
+
+        await user.type(screen.getByLabelText("To"), "b@example.com");
+        await user.click(screen.getByLabelText("Request a read receipt"));
+        await user.click(screen.getByRole("button", { name: "Send" }));
+
+        await waitFor(() =>
+            expect(fetchMock).toHaveBeenCalledWith(
+                "/api/mail/messages/m1",
+                expect.objectContaining({ method: "PUT", body: JSON.stringify({ uid: "m1", version: 0, requestReceipt: true }) }),
+            ),
+        );
+    });
+
     it("shows an error message when assembling fails", async () => {
         mockCompose((url, init) =>
             url === "/api/mail/compose/m1/assemble" && (init?.method ?? "GET") === "POST"
@@ -705,6 +749,35 @@ describe("ComposeWindow", () => {
                 expect(fetchMock).toHaveBeenCalledWith("/api/mail/messages/m1/send", expect.objectContaining({ method: "POST" })),
             );
             await waitFor(() => expect(onClose).toHaveBeenCalled());
+        });
+
+        it("also sets requestReceipt before scheduling when the checkbox is checked", async () => {
+            const fetchMock = mockCompose((url, init) => {
+                const method = init?.method ?? "GET";
+                if (url === "/api/mail/compose/m1/assemble" && method === "POST") return jsonResponse(200, draft);
+                if (url === "/api/mail/messages/m1" && method === "PUT") {
+                    const body = JSON.parse(init!.body as string);
+                    return jsonResponse(200, { ...draft, ...body });
+                }
+                if (url === "/api/mail/messages/m1/send" && method === "POST") return jsonResponse(200, draft);
+                return undefined;
+            });
+            const user = userEvent.setup();
+            render(<ComposeWindow session={session()} onClose={vi.fn()} onToggleMinimize={vi.fn()} />);
+            await waitFor(() => expect(screen.getByRole("button", { name: "Send later" })).not.toBeDisabled());
+
+            await user.type(screen.getByLabelText("To"), "b@example.com");
+            await user.click(screen.getByLabelText("Request a read receipt"));
+            await user.click(screen.getByRole("button", { name: "Send later" }));
+            await user.type(screen.getByLabelText("Send at"), futureLocalValue());
+            await user.click(screen.getAllByRole("button", { name: "Send later" })[1]);
+
+            await waitFor(() =>
+                expect(fetchMock).toHaveBeenCalledWith(
+                    "/api/mail/messages/m1",
+                    expect.objectContaining({ body: JSON.stringify({ uid: "m1", version: 0, requestReceipt: true }) }),
+                ),
+            );
         });
 
         it("shows an error message when assembling fails", async () => {

@@ -22,6 +22,7 @@ import {
     createDraft,
     listFolders,
     sendMessage,
+    setMessageRequestReceipt,
     setMessageScheduledSendTime,
     uploadAttachment,
 } from "../../../lib/mailApi.js";
@@ -116,6 +117,7 @@ export default function ComposeWindow({ session, onClose, onToggleMinimize }: Co
     const [attachError, setAttachError] = useState<string | null>(null);
     const [sendError, setSendError] = useState<string | null>(null);
     const [sending, setSending] = useState(false);
+    const [requestReceipt, setRequestReceipt] = useState(false);
     const [schedulePickerOpen, setSchedulePickerOpen] = useState(false);
     const scheduleButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -252,14 +254,15 @@ export default function ComposeWindow({ session, onClose, onToggleMinimize }: Co
             // See the old compose page's identical note: `sanitize-html` is Node-oriented and the server-side
             // gate in `BaseMailComposeRoute.assemble()` is the sole authoritative sanitizer regardless, so no
             // client-side pass is done here either.
-            await assembleDraft(draft!.uid, {
+            const assembled = await assembleDraft(draft!.uid, {
                 to: toRecipients,
                 cc: parseAddresses(cc),
                 bcc: parseAddresses(bcc),
                 subject,
                 html,
             });
-            await sendMessage(draft!.uid);
+            const withReceipt = requestReceipt ? await setMessageRequestReceipt(assembled, true) : assembled;
+            await sendMessage(withReceipt.uid);
             onClose();
         } catch (err) {
             setSendError(err instanceof ApiRequestError ? err.message : "Could not send this message.");
@@ -291,7 +294,8 @@ export default function ComposeWindow({ session, onClose, onToggleMinimize }: Co
                 subject,
                 html,
             });
-            const scheduled = await setMessageScheduledSendTime(assembled, scheduledSendTimeIso);
+            const withReceipt = requestReceipt ? await setMessageRequestReceipt(assembled, true) : assembled;
+            const scheduled = await setMessageScheduledSendTime(withReceipt, scheduledSendTimeIso);
             await sendMessage(scheduled.uid);
             onClose();
         } catch (err) {
@@ -452,6 +456,11 @@ export default function ComposeWindow({ session, onClose, onToggleMinimize }: Co
                         ))}
                     </ul>
                 )}
+
+                <label className="flex items-center gap-1.5 px-3 pb-1 text-xs text-text-muted">
+                    <input type="checkbox" checked={requestReceipt} onChange={(e) => setRequestReceipt(e.target.checked)} />
+                    Request a read receipt
+                </label>
 
                 <div className="shrink-0 flex items-center gap-1 px-3 py-2 border-t border-border">
                     <div className="flex items-center rounded-pill bg-primary text-white overflow-hidden">

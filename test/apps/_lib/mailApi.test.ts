@@ -5,12 +5,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { emptyResponse, jsonResponse, mockFetch } from "../testUtils.js";
 import {
+    approveReceipt,
     assembleDraft,
     attachmentContentUrl,
     cancelScheduledSend,
+    classifyMessage,
     createDraft,
     createFolder,
     createMailbox,
+    declineReceipt,
     deleteMailbox,
     getMailbox,
     getMailboxAcl,
@@ -29,6 +32,7 @@ import {
     revokeMailboxAccess,
     sendMessage,
     setMessageRead,
+    setMessageRequestReceipt,
     setMessageScheduledSendTime,
     stopImpersonating,
     updateFolder,
@@ -370,6 +374,28 @@ describe("recallMessage", () => {
     });
 });
 
+describe("classifyMessage", () => {
+    it("POSTs classifyAs with applyToSender defaulted to false", async () => {
+        const updated = { ...message, inferenceClassification: "other" };
+        const fetchMock = mockFetch(() => jsonResponse(200, updated));
+        const result = await classifyMessage("m1", "other");
+        expect(fetchMock).toHaveBeenCalledWith(
+            "/api/mail/messages/m1/classify",
+            expect.objectContaining({ method: "POST", body: JSON.stringify({ classifyAs: "other", applyToSender: false }) }),
+        );
+        expect(result).toEqual(updated);
+    });
+
+    it("forwards an explicit applyToSender", async () => {
+        const fetchMock = mockFetch(() => jsonResponse(200, message));
+        await classifyMessage("m1", "focused", true);
+        expect(fetchMock).toHaveBeenCalledWith(
+            "/api/mail/messages/m1/classify",
+            expect.objectContaining({ body: JSON.stringify({ classifyAs: "focused", applyToSender: true }) }),
+        );
+    });
+});
+
 describe("setMessageRead", () => {
     it("PUTs the message's uid/version with only the read flag changed", async () => {
         const fetchMock = mockFetch(() => jsonResponse(200, { ...message, flags: { ...message.flags, read: true } }));
@@ -413,6 +439,43 @@ describe("cancelScheduledSend", () => {
                 body: JSON.stringify({ uid: "m1", version: 0, scheduledSendTime: null, folderUid: "f-drafts" }),
             }),
         );
+    });
+});
+
+describe("setMessageRequestReceipt", () => {
+    it("PUTs the message's uid/version with requestReceipt", async () => {
+        const fetchMock = mockFetch(() => jsonResponse(200, { ...message, requestReceipt: true }));
+        await setMessageRequestReceipt(message, true);
+        expect(fetchMock).toHaveBeenCalledWith(
+            "/api/mail/messages/m1",
+            expect.objectContaining({ method: "PUT", body: JSON.stringify({ uid: "m1", version: 0, requestReceipt: true }) }),
+        );
+    });
+});
+
+describe("approveReceipt", () => {
+    it("POSTs the receipt type to the approve route", async () => {
+        const updated = { ...message, deliveryReceiptPending: false };
+        const fetchMock = mockFetch(() => jsonResponse(200, updated));
+        const result = await approveReceipt("m1", "delivery");
+        expect(fetchMock).toHaveBeenCalledWith(
+            "/api/mail/messages/m1/receipt/approve",
+            expect.objectContaining({ method: "POST", body: JSON.stringify({ type: "delivery" }) }),
+        );
+        expect(result).toEqual(updated);
+    });
+});
+
+describe("declineReceipt", () => {
+    it("POSTs the receipt type to the decline route", async () => {
+        const updated = { ...message, readReceiptPending: false };
+        const fetchMock = mockFetch(() => jsonResponse(200, updated));
+        const result = await declineReceipt("m1", "read");
+        expect(fetchMock).toHaveBeenCalledWith(
+            "/api/mail/messages/m1/receipt/decline",
+            expect.objectContaining({ method: "POST", body: JSON.stringify({ type: "read" }) }),
+        );
+        expect(result).toEqual(updated);
     });
 });
 

@@ -8,6 +8,7 @@ import {
     HiOutlineClipboardDocumentList,
     HiOutlineGlobeAlt,
     HiOutlineInboxStack,
+    HiOutlinePaintBrush,
     HiOutlineQueueList,
     HiOutlineShieldCheck,
     HiOutlineShieldExclamation,
@@ -15,6 +16,7 @@ import {
 } from "react-icons/hi2";
 import { apiFetch, ApiRequestError } from "../../../lib/api.js";
 import { useRedirectIfUnauthenticated } from "../../../lib/session.js";
+import useBranding from "../../../lib/useBranding.js";
 import Alert from "../../feedback/Alert.js";
 import BottomTabBar, { NavItem } from "../../layout/BottomTabBar.js";
 import UserMenu from "../../layout/UserMenu.js";
@@ -26,7 +28,8 @@ export type AdminSection =
     | "domains"
     | "auditLog"
     | "distributionLists"
-    | "transportRules";
+    | "transportRules"
+    | "branding";
 
 export interface AdminShellProps {
     /** Which icon in the rail is highlighted as the current section. */
@@ -65,6 +68,7 @@ const NAV_ITEMS: NavItem[] = [
         label: "Transport Rules",
         icon: HiOutlineShieldCheck,
     },
+    { id: "branding", href: "/admin/branding", label: "Branding", icon: HiOutlinePaintBrush },
 ];
 
 /** Mailbox-scoped sections — not part of the global nav rail/tab bar (see `NAV_ITEMS` above), but
@@ -85,6 +89,7 @@ const ALL_ITEMS: NavItem[] = [...NAV_ITEMS, ...MAILBOX_SCOPED_ITEMS];
 export default function AdminShell({ active, userUid, authServerUrl, children }: PropsWithChildren<AdminShellProps>) {
     const [status, setStatus] = useState<Status>("checking");
     const [error, setError] = useState<string | null>(null);
+    const { logoSrc } = useBranding();
 
     useRedirectIfUnauthenticated(userUid, authServerUrl);
 
@@ -136,7 +141,7 @@ export default function AdminShell({ active, userUid, authServerUrl, children }:
                         aria-label="Admin sections"
                         className="hidden md:flex w-16 shrink-0 bg-surface border-r border-border flex-col items-center py-3 gap-1"
                     >
-                        <img src="/images/logo.svg" width="96" height="96" alt="" className="mb-3" />
+                        <img src={logoSrc} width="96" height="96" alt="" className="mb-3" />
                         {NAV_ITEMS.map(({ id, href, label, icon: Icon }) => (
                             <a
                                 key={id}

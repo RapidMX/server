@@ -174,6 +174,33 @@ describe("AppShell", () => {
         expect(screen.getByRole("menuitem", { name: "Settings" })).toBeInTheDocument();
     });
 
+    it("renders the branding header/footer HTML once loaded, and swaps in the configured logo", async () => {
+        mockFetch(() =>
+            jsonResponse(200, {
+                companyName: "Acme",
+                title: "Acme Mail",
+                logoUrl: "https://cdn.example.com/logo.png",
+                headerHtml: '<div data-testid="brand-header">Acme banner</div>',
+                footerHtml: '<div data-testid="brand-footer">Acme footer</div>',
+            }),
+        );
+        render(<AppShell active="mail" userUid="u1">content</AppShell>);
+
+        expect(await screen.findByTestId("brand-header")).toHaveTextContent("Acme banner");
+        expect(screen.getByTestId("brand-footer")).toHaveTextContent("Acme footer");
+        const rail = screen.getByRole("navigation", { name: "Apps" });
+        expect(rail.querySelector("img")).toHaveAttribute("src", "https://cdn.example.com/logo.png");
+    });
+
+    it("renders no header/footer chrome and the default logo when branding has none configured", async () => {
+        mockFetch(() => jsonResponse(200, { companyName: "", title: "" }));
+        render(<AppShell active="mail" userUid="u1">content</AppShell>);
+
+        await waitFor(() => expect(screen.queryByText("content")).toBeInTheDocument());
+        const rail = screen.getByRole("navigation", { name: "Apps" });
+        expect(rail.querySelector("img")).toHaveAttribute("src", "/images/logo.svg");
+    });
+
     it("shows 'Settings' as the header title and highlights no rail/tab icon when active is 'settings'", () => {
         render(<AppShell active="settings" userUid="u1">content</AppShell>);
 

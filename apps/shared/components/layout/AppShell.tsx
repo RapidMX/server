@@ -8,6 +8,7 @@ import type { IconType } from "react-icons";
 import { HiOutlineCalendarDays, HiOutlineClipboardDocumentList, HiOutlineEnvelope, HiOutlineUsers } from "react-icons/hi2";
 import { useRedirectIfUnauthenticated } from "../../lib/session.js";
 import { stopImpersonating } from "../../lib/mailApi.js";
+import useBranding from "../../lib/useBranding.js";
 import ComposeProvider from "../mail/compose/ComposeContext.js";
 import BottomTabBar from "./BottomTabBar.js";
 import UserMenu from "./UserMenu.js";
@@ -79,6 +80,7 @@ export default function AppShell({
     children,
 }: PropsWithChildren<AppShellProps>) {
     const [stoppingImpersonation, setStoppingImpersonation] = useState(false);
+    const { branding, logoSrc } = useBranding();
 
     useRedirectIfUnauthenticated(userUid, authServerUrl);
 
@@ -106,6 +108,9 @@ export default function AppShell({
     return (
         <ComposeProvider>
             <div className="min-h-screen flex flex-col bg-surface-alt">
+                {branding?.headerHtml && (
+                    <div dangerouslySetInnerHTML={{ __html: branding.headerHtml }} />
+                )}
                 {impersonating && (
                     <div className="h-10 shrink-0 bg-warning text-warning-contrast flex items-center justify-center gap-3 text-sm font-medium px-4">
                         <span>
@@ -126,7 +131,7 @@ export default function AppShell({
                         aria-label="Apps"
                         className="hidden md:flex w-16 shrink-0 bg-surface border-r border-border flex-col items-center py-3 gap-1"
                     >
-                        <img src="/images/logo.svg" width="96" height="96" alt="" className="mb-3" />
+                        <img src={logoSrc} width="96" height="96" alt="" className="mb-3" />
                         {APPS.map(({ id, href, label, icon: Icon }) => (
                             <a
                                 key={id}
@@ -154,6 +159,9 @@ export default function AppShell({
                         <div className="flex-1 flex min-h-0 pb-14 md:pb-0">{children}</div>
                     </div>
                 </div>
+                {branding?.footerHtml && (
+                    <div dangerouslySetInnerHTML={{ __html: branding.footerHtml }} />
+                )}
             </div>
         </ComposeProvider>
     );

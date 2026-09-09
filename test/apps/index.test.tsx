@@ -21,6 +21,9 @@ vi.mock("../../apps/shared/components/mail/MessageDetailPane.js", () => ({
         isOutbox,
         draftsFolderUid,
         onScheduledSendCanceled,
+        isInbox,
+        onClassified,
+        onReceiptHandled,
     }: {
         message: Record<string, unknown> | null;
         isSentItems?: boolean;
@@ -28,10 +31,13 @@ vi.mock("../../apps/shared/components/mail/MessageDetailPane.js", () => ({
         isOutbox?: boolean;
         draftsFolderUid?: string;
         onScheduledSendCanceled?: (updated: Record<string, unknown>) => void;
+        isInbox?: boolean;
+        onClassified?: (updated: Record<string, unknown>) => void;
+        onReceiptHandled?: (updated: Record<string, unknown>) => void;
     }) => (
         <div data-testid="detail-pane">
             {message ? `message:${message.uid}` : "no-message"} sentItems:{String(!!isSentItems)} outbox:{String(!!isOutbox)}{" "}
-            draftsFolderUid:{draftsFolderUid ?? "unset"}
+            inbox:{String(!!isInbox)} draftsFolderUid:{draftsFolderUid ?? "unset"}
             {message && onRecalled && (
                 <button type="button" onClick={() => onRecalled({ ...message, recallRequestedAt: "2026-01-02T00:00:00.000Z" })}>
                     simulate-recall
@@ -43,6 +49,16 @@ vi.mock("../../apps/shared/components/mail/MessageDetailPane.js", () => ({
                     onClick={() => onScheduledSendCanceled({ ...message, folderUid: draftsFolderUid, scheduledSendTime: undefined })}
                 >
                     simulate-cancel-scheduled-send
+                </button>
+            )}
+            {message && onClassified && (
+                <button type="button" onClick={() => onClassified({ ...message, inferenceClassification: "other" })}>
+                    simulate-classify
+                </button>
+            )}
+            {message && onReceiptHandled && (
+                <button type="button" onClick={() => onReceiptHandled({ ...message, deliveryReceiptPending: false })}>
+                    simulate-receipt-handled
                 </button>
             )}
         </div>
@@ -227,6 +243,99 @@ describe("InboxPage", () => {
 
         expect(await screen.findByText("sender@example.com")).toBeInTheDocument();
         expect(screen.getByText("(no subject)")).toBeInTheDocument();
+    });
+
+    describe("Focused/Other", () => {
+        it("passes isInbox to the detail pane when the active folder is the Inbox", async () => {
+            mockShellAndInbox([messageFixture()]);
+            render(<InboxPage userUid="u1" />);
+            await screen.findByText("Hello there");
+            expect(screen.getByTestId("detail-pane")).toHaveTextContent("inbox:true");
+        });
+
+        it("does not pass isInbox, and shows no sub-tabs, for a non-Inbox folder", async () => {
+            window.history.pushState(null, "", "/?mailboxUid=mb1&folderUid=f2");
+            mockFetch((url) => {
+                if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailbox]);
+                if (url.startsWith("/api/mail/folders")) return jsonResponse(200, [inboxFolder, sentItemsFolder]);
+                if (url.startsWith("/api/mail/messages")) return jsonResponse(200, [messageFixture({ folderUid: "f2" })]);
+                throw new Error(`unexpected ${url}`);
+            });
+            render(<InboxPage userUid="u1" />);
+            await screen.findByText("Hello there");
+            expect(screen.getByTestId("detail-pane")).toHaveTextContent("inbox:false");
+            expect(screen.queryByRole("button", { name: "Focused" })).not.toBeInTheDocument();
+        });
+
+        it("filters the message list by Focused/Other, defaulting to All", async () => {
+            const focused = messageFixture({ uid: "m1", subject: "Focused message" });
+            const other = messageFixture({ uid: "m2", subject: "Other message", inferenceClassification: "other" });
+            mockShellAndInbox([focused, other]);
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+
+            expect(await screen.findByText("Focused message")).toBeInTheDocument();
+            expect(screen.getByText("Other message")).toBeInTheDocument();
+
+            await user.click(screen.getByRole("button", { name: "Focused" }));
+            expect(screen.getByText("Focused message")).toBeInTheDocument();
+            expect(screen.queryByText("Other message")).not.toBeInTheDocument();
+
+            await user.click(screen.getByRole("button", { name: "Other" }));
+            expect(screen.queryByText("Focused message")).not.toBeInTheDocument();
+            expect(screen.getByText("Other message")).toBeInTheDocument();
+
+            await user.click(screen.getByRole("button", { name: "All" }));
+            expect(screen.getByText("Focused message")).toBeInTheDocument();
+            expect(screen.getByText("Other message")).toBeInTheDocument();
+        });
+
+        it("shows a filtered-empty-state message distinct from the folder-empty message", async () => {
+            const focused = messageFixture({ uid: "m1", subject: "Focused message" });
+            mockShellAndInbox([focused]);
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+            await screen.findByText("Focused message");
+
+            await user.click(screen.getByRole("button", { name: "Other" }));
+            expect(screen.getByText("No messages here.")).toBeInTheDocument();
+        });
+
+        it("patches the reclassified message and leaves the rest of the list untouched", async () => {
+            const msg = messageFixture();
+            const other = messageFixture({ uid: "m2", subject: "Untouched message" });
+            mockShellAndInbox([msg, other]);
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+
+            await user.click(await screen.findByText("Hello there"));
+            await user.click(screen.getByText("simulate-classify"));
+
+            await user.click(screen.getByRole("button", { name: "Other" }));
+            expect(screen.getByText("Hello there")).toBeInTheDocument();
+            expect(screen.queryByText("Untouched message")).not.toBeInTheDocument();
+
+            await user.click(screen.getByRole("button", { name: "Focused" }));
+            expect(screen.getByText("Untouched message")).toBeInTheDocument();
+        });
+    });
+
+    describe("receipts", () => {
+        it("patches the handled message and leaves the rest of the list untouched", async () => {
+            const msg = messageFixture({ deliveryReceiptPending: true });
+            const other = messageFixture({ uid: "m2", subject: "Untouched message" });
+            mockShellAndInbox([msg, other]);
+            const user = userEvent.setup();
+            render(<InboxPage userUid="u1" />);
+
+            await user.click(await screen.findByText("Hello there"));
+            await user.click(screen.getByText("simulate-receipt-handled"));
+
+            // No visible change to assert on the patched message itself — this confirms the callback is
+            // wired through and the untouched-message branch of the list patch leaves `other` intact.
+            expect(screen.getByText("Hello there")).toBeInTheDocument();
+            expect(screen.getByText("Untouched message")).toBeInTheDocument();
+        });
     });
 
     describe("on desktop", () => {

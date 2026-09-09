@@ -23,6 +23,9 @@ export const SETTINGS_SECTIONS: SettingsSectionDef[] = [
     { id: "auto-reply", href: "/settings/auto-reply", label: "Automatic Replies" },
     { id: "filters", href: "/settings/filters", label: "Mail Filters" },
     { id: "signatures", href: "/settings/signatures", label: "Signatures" },
+    { id: "focused-inbox", href: "/settings/focused-inbox", label: "Focused Inbox" },
+    { id: "read-receipts", href: "/settings/read-receipts", label: "Read Receipts" },
+    { id: "booking-types", href: "/settings/booking-types", label: "Booking Links" },
 ];
 
 export type SettingsSectionId = (typeof SETTINGS_SECTIONS)[number]["id"];

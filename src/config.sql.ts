@@ -100,6 +100,14 @@ conf.defaults({
             quota_bytes: 5_000_000_000,
             timeout_ms: 10_000
         },
+        // `BaseBrandingRoute` builds a self-hosted logo/stylesheet's public URL as `${public_url}` +
+        // a literal `/branding/logo`/`/branding/stylesheet`, which assumes the route is mounted at bare
+        // `/branding` — but this repo mounts it under `@ApiRoute("mail/branding")` (real path
+        // `/api/mail/branding/...`). `/api/mail` is the prefix that makes the concatenation land on the
+        // real mounted URL.
+        branding: {
+            public_url: "/api/mail",
+        },
         blob: {
             local: {
                 // Local filesystem root for raw MIME sources, sanitized HTML, attachment binaries, extracted

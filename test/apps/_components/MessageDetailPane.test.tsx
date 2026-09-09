@@ -425,4 +425,195 @@ describe("MessageDetailPane", () => {
             expect(await screen.findByText("Could not cancel this scheduled send.")).toBeInTheDocument();
         });
     });
+
+    describe("classify", () => {
+        it("shows neither the button nor the sender checkbox when isInbox is not set", () => {
+            render(<MessageDetailPane message={messageFixture() as any} attachments={[]} />);
+            expect(screen.queryByRole("button", { name: /Move to/ })).not.toBeInTheDocument();
+            expect(screen.queryByText("Always for this sender")).not.toBeInTheDocument();
+        });
+
+        it("shows 'Move to Other' when the message has no inferenceClassification (defaults to Focused)", () => {
+            render(<MessageDetailPane message={messageFixture() as any} attachments={[]} isInbox />);
+            expect(screen.getByRole("button", { name: "Move to Other" })).toBeInTheDocument();
+        });
+
+        it("shows 'Move to Focused' when the message is classified Other", () => {
+            render(
+                <MessageDetailPane
+                    message={messageFixture({ inferenceClassification: "other" }) as any}
+                    attachments={[]}
+                    isInbox
+                />,
+            );
+            expect(screen.getByRole("button", { name: "Move to Focused" })).toBeInTheDocument();
+        });
+
+        it("classifies the message and calls onClassified with the server's updated copy", async () => {
+            const updated = messageFixture({ inferenceClassification: "other" });
+            const fetchMock = mockFetch(() => jsonResponse(200, updated));
+            const onClassified = vi.fn();
+            const user = userEvent.setup();
+            render(
+                <MessageDetailPane message={messageFixture() as any} attachments={[]} isInbox onClassified={onClassified} />,
+            );
+
+            await user.click(screen.getByRole("button", { name: "Move to Other" }));
+
+            expect(fetchMock).toHaveBeenCalledWith(
+                "/api/mail/messages/m1/classify",
+                expect.objectContaining({
+                    method: "POST",
+                    body: JSON.stringify({ classifyAs: "other", applyToSender: false }),
+                }),
+            );
+            await vi.waitFor(() => expect(onClassified).toHaveBeenCalledWith(updated));
+        });
+
+        it("classifies back to Focused when the message is currently Other", async () => {
+            const fetchMock = mockFetch(() => jsonResponse(200, messageFixture({ inferenceClassification: "focused" })));
+            const user = userEvent.setup();
+            render(
+                <MessageDetailPane
+                    message={messageFixture({ inferenceClassification: "other" }) as any}
+                    attachments={[]}
+                    isInbox
+                />,
+            );
+
+            await user.click(screen.getByRole("button", { name: "Move to Focused" }));
+
+            expect(fetchMock).toHaveBeenCalledWith(
+                "/api/mail/messages/m1/classify",
+                expect.objectContaining({ body: JSON.stringify({ classifyAs: "focused", applyToSender: false }) }),
+            );
+        });
+
+        it("includes applyToSender when the checkbox is checked", async () => {
+            const fetchMock = mockFetch(() => jsonResponse(200, messageFixture()));
+            const user = userEvent.setup();
+            render(<MessageDetailPane message={messageFixture() as any} attachments={[]} isInbox />);
+
+            await user.click(screen.getByLabelText("Always for this sender"));
+            await user.click(screen.getByRole("button", { name: "Move to Other" }));
+
+            expect(fetchMock).toHaveBeenCalledWith(
+                "/api/mail/messages/m1/classify",
+                expect.objectContaining({ body: JSON.stringify({ classifyAs: "other", applyToSender: true }) }),
+            );
+        });
+
+        it("shows an error message when classifying fails", async () => {
+            mockFetch(() => jsonResponse(500, { message: "boom" }));
+            const user = userEvent.setup();
+            render(<MessageDetailPane message={messageFixture() as any} attachments={[]} isInbox />);
+
+            await user.click(screen.getByRole("button", { name: "Move to Other" }));
+
+            expect(await screen.findByText("boom")).toBeInTheDocument();
+        });
+
+        it("shows a generic error message when classifying fails with a non-API error", async () => {
+            mockFetch(() => {
+                throw new TypeError("network down");
+            });
+            const user = userEvent.setup();
+            render(<MessageDetailPane message={messageFixture() as any} attachments={[]} isInbox />);
+
+            await user.click(screen.getByRole("button", { name: "Move to Other" }));
+
+            expect(await screen.findByText("Could not reclassify this message.")).toBeInTheDocument();
+        });
+    });
+
+    describe("receipts", () => {
+        it("shows no banner when neither receipt is pending", () => {
+            render(<MessageDetailPane message={messageFixture() as any} attachments={[]} />);
+            expect(screen.queryByRole("button", { name: "Send receipt" })).not.toBeInTheDocument();
+        });
+
+        it("shows a delivery-receipt banner when deliveryReceiptPending is set", () => {
+            render(
+                <MessageDetailPane message={messageFixture({ deliveryReceiptPending: true }) as any} attachments={[]} />,
+            );
+            expect(screen.getByText(/requested a delivery receipt/)).toBeInTheDocument();
+        });
+
+        it("falls back to the raw sender address when displayName is absent", () => {
+            const message = messageFixture({
+                deliveryReceiptPending: true,
+                from: { address: "sender@example.com", type: "to" as const },
+            });
+            render(<MessageDetailPane message={message as any} attachments={[]} />);
+            expect(screen.getByText(/sender@example\.com requested a delivery receipt/)).toBeInTheDocument();
+        });
+
+        it("shows both banners when both delivery and read receipts are pending", () => {
+            render(
+                <MessageDetailPane
+                    message={messageFixture({ deliveryReceiptPending: true, readReceiptPending: true }) as any}
+                    attachments={[]}
+                />,
+            );
+            expect(screen.getByText(/requested a delivery receipt/)).toBeInTheDocument();
+            expect(screen.getByText(/requested a read receipt/)).toBeInTheDocument();
+        });
+
+        it("approves a pending receipt and calls onReceiptHandled with the server's updated copy", async () => {
+            const updated = messageFixture({ deliveryReceiptPending: false });
+            const fetchMock = mockFetch(() => jsonResponse(200, updated));
+            const onReceiptHandled = vi.fn();
+            const user = userEvent.setup();
+            render(
+                <MessageDetailPane
+                    message={messageFixture({ deliveryReceiptPending: true }) as any}
+                    attachments={[]}
+                    onReceiptHandled={onReceiptHandled}
+                />,
+            );
+
+            await user.click(screen.getByRole("button", { name: "Send receipt" }));
+
+            expect(fetchMock).toHaveBeenCalledWith(
+                "/api/mail/messages/m1/receipt/approve",
+                expect.objectContaining({ method: "POST", body: JSON.stringify({ type: "delivery" }) }),
+            );
+            await vi.waitFor(() => expect(onReceiptHandled).toHaveBeenCalledWith(updated));
+        });
+
+        it("declines a pending receipt", async () => {
+            const fetchMock = mockFetch(() => jsonResponse(200, messageFixture({ readReceiptPending: false })));
+            const user = userEvent.setup();
+            render(<MessageDetailPane message={messageFixture({ readReceiptPending: true }) as any} attachments={[]} />);
+
+            await user.click(screen.getByRole("button", { name: "Decline" }));
+
+            expect(fetchMock).toHaveBeenCalledWith(
+                "/api/mail/messages/m1/receipt/decline",
+                expect.objectContaining({ method: "POST", body: JSON.stringify({ type: "read" }) }),
+            );
+        });
+
+        it("shows an error message when handling a receipt fails", async () => {
+            mockFetch(() => jsonResponse(500, { message: "boom" }));
+            const user = userEvent.setup();
+            render(<MessageDetailPane message={messageFixture({ deliveryReceiptPending: true }) as any} attachments={[]} />);
+
+            await user.click(screen.getByRole("button", { name: "Send receipt" }));
+
+            expect(await screen.findByText("boom")).toBeInTheDocument();
+        });
+
+        it("shows a generic error message when handling a receipt fails with a non-API error", async () => {
+            mockFetch(() => {
+                throw new TypeError("network down");
+            });
+            const user = userEvent.setup();
+            render(<MessageDetailPane message={messageFixture({ deliveryReceiptPending: true }) as any} attachments={[]} />);
+
+            await user.click(screen.getByRole("button", { name: "Send receipt" }));
+
+            expect(await screen.findByText("Could not handle this receipt request.")).toBeInTheDocument();
+        });
+    });
 });

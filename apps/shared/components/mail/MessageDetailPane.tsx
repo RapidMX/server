@@ -4,7 +4,18 @@
 ///////////////////////////////////////////////////////////////////////////////
 import React, { useState } from "react";
 import { ApiRequestError } from "../../lib/api.js";
-import { Attachment, Message, attachmentContentUrl, cancelScheduledSend, recallMessage } from "../../lib/mailApi.js";
+import {
+    Attachment,
+    Message,
+    MessageClassification,
+    ReceiptType,
+    approveReceipt,
+    attachmentContentUrl,
+    cancelScheduledSend,
+    classifyMessage,
+    declineReceipt,
+    recallMessage,
+} from "../../lib/mailApi.js";
 import { buildForwardQuote, buildReplyQuote, forwardSubject, replySubject } from "../../lib/composeQuoting.js";
 import { useCompose } from "./compose/ComposeContext.js";
 import Modal from "../../lib/Modal.js";
@@ -37,6 +48,19 @@ export interface MessageDetailPaneProps {
     /** Called with the server's updated copy (now back in Drafts, `scheduledSendTime` cleared) after
      * successfully canceling a scheduled send. */
     onScheduledSendCanceled?: (updated: Message) => void;
+    /** Whether `message` currently lives in the Inbox — Focused/Other classification is an Inbox-only
+     * concept (`FocusedInboxUtils.classifyMessage()` short-circuits to Focused for every other folder), so
+     * the "Move to Other"/"Move to Focused" control below only renders here, the same
+     * each-caller-computes-its-own-folder-type pattern `isSentItems`/`isOutbox` already use. */
+    isInbox?: boolean;
+    /** Called with the server's updated copy (carrying the new `inferenceClassification`) after a
+     * successful classify — mirrors `onRecalled`'s identical shape. */
+    onClassified?: (updated: Message) => void;
+    /** Called with the server's updated copy after approving/declining a pending delivery/read receipt —
+     * mirrors `onRecalled`'s identical shape. No gating prop needed (unlike `isSentItems`/`isOutbox`/
+     * `isInbox`): `deliveryReceiptPending`/`readReceiptPending` already live directly on `message` and are
+     * only ever `true` on a real delivered copy, so the banner below is self-gating. */
+    onReceiptHandled?: (updated: Message) => void;
 }
 
 function formatBytes(bytes: number): string {
@@ -61,6 +85,9 @@ export default function MessageDetailPane({
     isOutbox,
     draftsFolderUid,
     onScheduledSendCanceled,
+    isInbox,
+    onClassified,
+    onReceiptHandled,
 }: MessageDetailPaneProps) {
     const { openCompose } = useCompose();
     const [confirming, setConfirming] = useState(false);
@@ -70,6 +97,14 @@ export default function MessageDetailPane({
     // Kept separate from `error` (the Recall flow's own state) since this renders inline in the main
     // pane rather than inside a confirmation modal — the two flows never need to share one message.
     const [cancelError, setCancelError] = useState<string | null>(null);
+    const [classifying, setClassifying] = useState(false);
+    const [classifyError, setClassifyError] = useState<string | null>(null);
+    const [alwaysForSender, setAlwaysForSender] = useState(false);
+    // Names which pending receipt (`"delivery"`/`"read"`) is currently being approved/declined, if any —
+    // `deliveryReceiptPending`/`readReceiptPending` can both be true independently, so a single boolean
+    // wouldn't distinguish which row's buttons should show a loading state.
+    const [receiptBusy, setReceiptBusy] = useState<ReceiptType | null>(null);
+    const [receiptError, setReceiptError] = useState<string | null>(null);
 
     if (!message) {
         return <p className="p-8 text-sm text-text-muted">Select a message to read it.</p>;
@@ -144,6 +179,37 @@ export default function MessageDetailPane({
         }
     }
 
+    // Only ever invoked from the classification button below, which itself only renders once `message`
+    // is loaded and `isInbox` is true — the non-null assertion reflects the same real invariant as
+    // `handleRecall`/`handleCancelScheduledSend` above.
+    async function handleClassify(classifyAs: MessageClassification) {
+        setClassifying(true);
+        setClassifyError(null);
+        try {
+            const updated = await classifyMessage(message!.uid, classifyAs, alwaysForSender);
+            onClassified?.(updated);
+        } catch (err) {
+            setClassifyError(err instanceof ApiRequestError ? err.message : "Could not reclassify this message.");
+        } finally {
+            setClassifying(false);
+        }
+    }
+
+    // Only ever invoked from the pending-receipt banner below, which itself only renders once `message`
+    // is loaded — same real invariant as every other handler above.
+    async function handleReceipt(type: ReceiptType, action: "approve" | "decline") {
+        setReceiptBusy(type);
+        setReceiptError(null);
+        try {
+            const updated = await (action === "approve" ? approveReceipt : declineReceipt)(message!.uid, type);
+            onReceiptHandled?.(updated);
+        } catch (err) {
+            setReceiptError(err instanceof ApiRequestError ? err.message : "Could not handle this receipt request.");
+        } finally {
+            setReceiptBusy(null);
+        }
+    }
+
     return (
         <div className="flex-1 min-w-0 flex flex-col">
             <div className="border-b border-border p-4">
@@ -210,6 +276,70 @@ export default function MessageDetailPane({
                         Forward
                     </Button>
                 </div>
+                {isInbox && (
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                        <Button
+                            type="button"
+                            variant="text"
+                            loading={classifying}
+                            disabled={classifying}
+                            onClick={() =>
+                                handleClassify(message.inferenceClassification === "other" ? "focused" : "other")
+                            }
+                        >
+                            {message.inferenceClassification === "other" ? "Move to Focused" : "Move to Other"}
+                        </Button>
+                        <label className="flex items-center gap-1.5 text-xs text-text-muted">
+                            <input
+                                type="checkbox"
+                                checked={alwaysForSender}
+                                onChange={(e) => setAlwaysForSender(e.target.checked)}
+                            />
+                            Always for this sender
+                        </label>
+                    </div>
+                )}
+                {classifyError && (
+                    <div className="mt-2">
+                        <Alert>{classifyError}</Alert>
+                    </div>
+                )}
+                {(["delivery", "read"] as const)
+                    .filter((type) => (type === "delivery" ? message.deliveryReceiptPending : message.readReceiptPending))
+                    .map((type) => (
+                        <div
+                            key={type}
+                            className="flex flex-wrap items-center gap-2 mt-2 py-2 px-3 rounded-sm bg-surface-alt text-sm"
+                        >
+                            <span>
+                                {message.from.displayName || message.from.address} requested a {type} receipt for this
+                                message.
+                            </span>
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                className="!w-auto"
+                                loading={receiptBusy === type}
+                                disabled={receiptBusy !== null}
+                                onClick={() => handleReceipt(type, "approve")}
+                            >
+                                Send receipt
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="text"
+                                disabled={receiptBusy !== null}
+                                onClick={() => handleReceipt(type, "decline")}
+                            >
+                                Decline
+                            </Button>
+                        </div>
+                    ))}
+                {receiptError && (
+                    <div className="mt-2">
+                        <Alert>{receiptError}</Alert>
+                    </div>
+                )}
                 {attachments.length > 0 && (
                     <ul className="flex flex-wrap gap-2 mt-3">
                         {attachments.map((attachment) => (

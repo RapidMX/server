@@ -56,6 +56,18 @@ export interface Mailbox {
      * indefinitely while `oofEnabled` is `true`. */
     oofStartTime?: string;
     oofEndTime?: string;
+    /** Whether `send()` attaches a real RFC 3798 receipt request to every outgoing message by default, for
+     * internal vs. external recipients respectively — a per-draft `Message.requestReceipt` (see
+     * `setMessageRequestReceipt()`) always overrides both at once when explicitly set. Always present on a
+     * real `Mailbox` (defaults `true`/`false` server-side respectively), same optional-for-old-fixtures
+     * caveat as `oofEnabled`. */
+    alwaysRequestReceiptInternal?: boolean;
+    alwaysRequestReceiptExternal?: boolean;
+    /** Whether this mailbox, as the *recipient* of a receipt request, sends one back immediately versus
+     * holding it for the owner's explicit approval (`approveReceipt()`/`declineReceipt()`) — classifies the
+     * requester, not the recipient. Always present (defaults `true`/`false` respectively), same caveat. */
+    autoSendReceiptsInternal?: boolean;
+    autoSendReceiptsExternal?: boolean;
 }
 
 /** Lists mailboxes the caller can access (owned, shared with them, or — for a trusted caller — every one). */
@@ -146,6 +158,10 @@ export interface UpdateMailboxInput {
     oofMessage?: string;
     oofStartTime?: string;
     oofEndTime?: string;
+    alwaysRequestReceiptInternal?: boolean;
+    alwaysRequestReceiptExternal?: boolean;
+    autoSendReceiptsInternal?: boolean;
+    autoSendReceiptsExternal?: boolean;
 }
 
 export function updateMailbox(input: UpdateMailboxInput): Promise<Mailbox> {
@@ -337,6 +353,10 @@ export interface MessageFlags {
 
 export type MessageImportance = "low" | "normal" | "high";
 
+/** Mirrors `@rapidmx/restapi`'s `MessageClassification` enum values exactly (`classify()`'s `classifyAs`
+ * body field only accepts these two literal strings). */
+export type MessageClassification = "focused" | "other";
+
 export interface Message {
     uid: string;
     version: number;
@@ -364,6 +384,28 @@ export interface Message {
      * Drafts/Sent Items are) until `@rapidmx/restapi`'s own `ScheduledSendJob` relays it and clears
      * this field. */
     scheduledSendTime?: string;
+    /** Absent means Focused — see `classifyMessage()` and `@rapidmx/restapi`'s own
+     * `FocusedInboxUtils.classifyMessage()` doc comment for the full precedence rule this reflects. */
+    inferenceClassification?: MessageClassification;
+    /** Set on a draft before `sendMessage()` to request a receipt, overriding the mailbox's own
+     * `alwaysRequestReceiptInternal`/`External` defaults — see `setMessageRequestReceipt()`. Meaningless
+     * once the message has actually been sent. */
+    requestReceipt?: boolean;
+    /** `true` when a delivery/read receipt was requested but this (recipient) mailbox's
+     * `autoSendReceiptsInternal`/`External` setting held it for the owner's explicit approval instead of
+     * sending it immediately — see `approveReceipt()`/`declineReceipt()`. Always present on a real
+     * delivered `Message` (defaults `false`), same optional-for-old-fixtures caveat as `Mailbox.oofEnabled`. */
+    deliveryReceiptPending?: boolean;
+    readReceiptPending?: boolean;
+    /** The per-recipient delivery/read roster on a *sent* message — the client-visible tracking indicator.
+     * `undefined` (not an empty array) when no receipt was ever requested for this message. */
+    receiptStatus?: MessageReceiptEntry[];
+}
+
+export interface MessageReceiptEntry {
+    recipientAddress: string;
+    deliveredAt?: string;
+    readAt?: string;
 }
 
 /** Lists messages in a folder, newest first. */
@@ -386,6 +428,18 @@ export function getMessage(uid: string): Promise<Message> {
  */
 export function recallMessage(uid: string): Promise<Message> {
     return apiFetch(`/mail/messages/${encodeURIComponent(uid)}/recall`, { method: "POST" });
+}
+
+/**
+ * Moves a message between the Focused and Other halves of the Inbox — Outlook's "Move to Other" gesture.
+ * With `applyToSender: true` ("Always move to Other"), also upserts a standing `FocusedInboxOverride` for
+ * every future message from the same sender (see `focusedInboxOverridesApi.ts`) in the same round trip.
+ */
+export function classifyMessage(uid: string, classifyAs: MessageClassification, applyToSender = false): Promise<Message> {
+    return apiFetch(`/mail/messages/${encodeURIComponent(uid)}/classify`, {
+        method: "POST",
+        body: JSON.stringify({ classifyAs, applyToSender }),
+    });
 }
 
 /**
@@ -426,6 +480,37 @@ export function cancelScheduledSend(message: Message, draftsFolderUid: string): 
     return apiFetch(`/mail/messages/${encodeURIComponent(message.uid)}`, {
         method: "PUT",
         body: JSON.stringify({ uid: message.uid, version: message.version, scheduledSendTime: null, folderUid: draftsFolderUid }),
+    });
+}
+
+/**
+ * Sets a draft's `requestReceipt` ahead of calling `sendMessage()`, overriding the mailbox's own
+ * `alwaysRequestReceiptInternal`/`External` defaults for this one message — same ordinary-`PUT`-before-
+ * `send()` convention as `setMessageScheduledSendTime()`.
+ */
+export function setMessageRequestReceipt(message: Message, requestReceipt: boolean): Promise<Message> {
+    return apiFetch(`/mail/messages/${encodeURIComponent(message.uid)}`, {
+        method: "PUT",
+        body: JSON.stringify({ uid: message.uid, version: message.version, requestReceipt }),
+    });
+}
+
+export type ReceiptType = "delivery" | "read";
+
+/** Sends a delivery/read receipt this mailbox held pending the owner's explicit approval (see
+ * `Message.deliveryReceiptPending`/`readReceiptPending`). */
+export function approveReceipt(uid: string, type: ReceiptType): Promise<Message> {
+    return apiFetch(`/mail/messages/${encodeURIComponent(uid)}/receipt/approve`, {
+        method: "POST",
+        body: JSON.stringify({ type }),
+    });
+}
+
+/** Permanently declines a pending receipt — no later re-prompt for that same event. */
+export function declineReceipt(uid: string, type: ReceiptType): Promise<Message> {
+    return apiFetch(`/mail/messages/${encodeURIComponent(uid)}/receipt/decline`, {
+        method: "POST",
+        body: JSON.stringify({ type }),
     });
 }
 

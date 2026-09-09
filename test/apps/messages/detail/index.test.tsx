@@ -222,4 +222,56 @@ describe("MessageDetailPage", () => {
             await waitFor(() => expect(screen.queryByText(/Scheduled for/)).not.toBeInTheDocument());
         });
     });
+
+    describe("classify", () => {
+        it("does not show the classify control for a message outside the Inbox", async () => {
+            mockFetch((url) => {
+                if (url.startsWith("/api/mail/mailboxes/auto-provision")) return jsonResponse(404, { message: "not enabled" });
+                if (url.startsWith("/api/mail/mailboxes")) return jsonResponse(200, [mailbox]);
+                if (url.startsWith("/api/mail/folders")) return jsonResponse(200, [sentItemsFolder]);
+                if (url === "/api/mail/messages/m1") return jsonResponse(200, { ...message, folderUid: "f2" });
+                throw new Error(`unexpected ${url}`);
+            });
+            render(<MessageDetailPage userUid="u1" />);
+
+            await screen.findByRole("heading", { name: "Hello there" });
+            expect(screen.queryByRole("button", { name: /Move to/ })).not.toBeInTheDocument();
+        });
+
+        it("classifies the message in the Inbox and updates the page's own state", async () => {
+            mockShell((url, init) => {
+                if (url === "/api/mail/messages/m1" && (init?.method ?? "GET") === "GET") {
+                    return jsonResponse(200, { ...message, flags: { ...message.flags, read: true } });
+                }
+                if (url === "/api/mail/messages/m1/classify" && init?.method === "POST") {
+                    return jsonResponse(200, { ...message, flags: { ...message.flags, read: true }, inferenceClassification: "other" });
+                }
+                return undefined;
+            });
+            const user = userEvent.setup();
+            render(<MessageDetailPage userUid="u1" />);
+
+            await user.click(await screen.findByRole("button", { name: "Move to Other" }));
+            expect(await screen.findByRole("button", { name: "Move to Focused" })).toBeInTheDocument();
+        });
+    });
+
+    describe("receipts", () => {
+        it("approves a pending receipt and updates the page's own state", async () => {
+            mockShell((url, init) => {
+                if (url === "/api/mail/messages/m1" && (init?.method ?? "GET") === "GET") {
+                    return jsonResponse(200, { ...message, flags: { ...message.flags, read: true }, deliveryReceiptPending: true });
+                }
+                if (url === "/api/mail/messages/m1/receipt/approve" && init?.method === "POST") {
+                    return jsonResponse(200, { ...message, flags: { ...message.flags, read: true }, deliveryReceiptPending: false });
+                }
+                return undefined;
+            });
+            const user = userEvent.setup();
+            render(<MessageDetailPage userUid="u1" />);
+
+            await user.click(await screen.findByRole("button", { name: "Send receipt" }));
+            await waitFor(() => expect(screen.queryByRole("button", { name: "Send receipt" })).not.toBeInTheDocument());
+        });
+    });
 });
