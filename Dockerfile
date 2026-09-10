@@ -47,6 +47,13 @@ EXPOSE 9229
 ENV PORT=3000
 ENV HOME=/home/node
 
+# /app itself is still root-owned at this point - the COPY --chown steps above only chown the files/dirs
+# they copy, not their parent - and neither /app/data (LocalFsBlobStore's root, mail:blob:local:root) nor
+# /var/lib/rspamd/dkim (FsDkimKeyProvider's mail:dkim:key_dir) exist in the image at all, so a fresh
+# docker-compose/Helm volume mounted at either path would otherwise be created root-owned on first use.
+# Without this, the `node` user (below) can't write into any of them at runtime.
+RUN mkdir -p /app/data /var/lib/rspamd/dkim && chown node:node /app /app/data /var/lib/rspamd/dkim
+
 USER node
 
 # Set a healthcheck to ensure the service is always alive

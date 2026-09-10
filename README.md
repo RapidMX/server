@@ -46,8 +46,7 @@ talk to this app's `/internal/mta` contract.
 docker compose -f docker-compose.mongo.yml up -d --build
 ```
 
-`auth-server`'s image (`ghcr.io/rapidrest/auth-server`) is pulled from GHCR, not built locally — if it's a
-private package you'll need `docker login ghcr.io` with a token that has read access first.
+`auth-server`'s image (`ghcr.io/rapidrest/auth-server`) is pulled from GHCR, not built locally.
 
 For anything beyond local evaluation, override these in a `.env` file next to the compose files (every one
 of them defaults to an insecure, publicly-known placeholder value otherwise — see `src/config.defaults.ts`):
@@ -88,7 +87,7 @@ helm install --create-namespace --namespace mail-server mail-server ./helm
 #### Single Node Cluster
 
 If you would like to run the project in a single-node Kubernetes cluster, the `single_node_install.sh` script is a
-great way to get started. This script will automatically set up everything needed to run *mail-server* in a Kubernetes
+great way to get started. This script will automatically set up everything needed to run *server* in a Kubernetes
 environment, including ingress with TLS support. Simply run the script from any linux compatible machine.
 
 ```bash

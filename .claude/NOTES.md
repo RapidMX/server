@@ -3575,3 +3575,33 @@ that repo's own NOTES.md too.
   (belongs to that repo's own release process), and no attempt to actually reach `oci://ghcr.io/rapidrest/
   charts` to confirm the real published auth-server chart's current version/content matches what this
   chart's `~1.0.0` dependency range and this session's local testing assumed.
+
+### 2026-09-09 (continued) — Same Docker-build fixes applied to `@rapidrest/auth-server`, plus one more found here too
+
+JP asked for the same docker/build fixes to be checked on `auth-server` (sibling repo), since its Docker
+image also wasn't building - full write-up lives in that repo's own NOTES.md, this entry covers only the
+one finding that ALSO applied back here.
+
+- **Real bug found in `auth-server`'s Dockerfile, then checked for and confirmed present in this repo's
+  own Dockerfile too**: the `COPY --from=builder --chown=node:node` steps only chown the specific files/
+  dirs they copy, never `/app` itself, so the non-root `node` user the container actually runs as could
+  never write a genuinely *new* file/directory directly under `/app` at runtime. In `auth-server` this
+  broke `DefaultAccountsMongo`'s one-time admin-password bootstrap outright (`EACCES` writing
+  `/app/passwords`). Checked whether this repo has the same exposure: yes, worse - `/app/data`
+  (LocalFsBlobStore's root) and `/var/lib/rspamd/dkim` (FsDkimKeyProvider's key directory) are both
+  **volume mount points that don't exist in the image at all**, so a fresh docker-compose/Helm-mounted
+  volume at either path would be created root-owned on first use, with no earlier COPY step to have ever
+  chowned them. This had gone undetected in this session's own earlier live-boot testing because nothing
+  in that testing run actually got far enough to write through either path (the JWT-auth gap noted in the
+  first Helm entry above meant domain creation - the trigger for `FsDkimKeyProvider`'s first write - was
+  never actually reached).
+- Fixed with one `RUN mkdir -p /app/data /var/lib/rspamd/dkim && chown node:node /app /app/data
+  /var/lib/rspamd/dkim` before `USER node` (non-recursive - the rest of `/app`'s contents are already
+  correctly owned per-file via the existing `COPY --chown` steps, so a recursive chown there would just
+  walk the entire `node_modules` tree for no benefit). Confirmed fixed directly against a live container
+  via `docker exec ... touch /app/data/test-write` and the same for `/var/lib/rspamd/dkim` - both
+  succeeded post-fix (neither was tried pre-fix here, but the identical pre-fix failure was directly
+  observed and root-caused in `auth-server`, which shares the exact same Dockerfile structure).
+- Also re-confirmed the earlier fixes still hold: full `docker build` clean, `docker compose up` reaches
+  `healthy` with zero errors in the boot log.
+- Not committed - same standing rule.
