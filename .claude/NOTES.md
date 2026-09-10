@@ -3604,4 +3604,42 @@ one finding that ALSO applied back here.
   observed and root-caused in `auth-server`, which shares the exact same Dockerfile structure).
 - Also re-confirmed the earlier fixes still hold: full `docker build` clean, `docker compose up` reaches
   `healthy` with zero errors in the boot log.
-- Not committed - same standing rule.
+
+### 2026-09-09 (continued) — `scripts/test-run-mongo.sh`/`test-run-sql.sh` were completely broken; two more real bugs found fixing them
+
+JP reported real CI failures from `test-run-mongo.sh` ("unknown shorthand flag: 'f' in -f", "no
+configuration file provided: not found") - this turned out to affect `auth-server` primarily (that's
+where the reported CI run actually was), but the identical script exists in both repos (same scaffold),
+so both got checked and fixed.
+
+- **`docker compose up -f <file> -d --build`** - `-f` is a *global* docker-compose flag; it must come
+  before the subcommand (`docker compose -f <file> up`), not after it. The CLI rejects the old ordering
+  outright. Every *subsequent* `docker compose ps`/`down` call in the script also had no `-f` at all, so
+  each one fell back to looking for a nonexistent default `docker-compose.yml` in the CWD - this script
+  had presumably never actually worked, end to end, ever. Fixed by assigning `COMPOSE="docker compose -f
+  <file>"` once and using `$COMPOSE` everywhere. Also fixed a wrong relative path bug specific to this
+  repo's copy (`../docker-compose.mongo.yml` from a script invoked as `./scripts/test-run-mongo.sh` - i.e.
+  from the repo root - is one directory too high).
+- **Fixing the syntax error immediately surfaced a second, real problem**: getting this far now means the
+  script actually tries to pull `auth-server`'s dependency graph via docker-compose's own
+  `depends_on`/`include` wiring, and `ghcr.io/rapidrest/auth-server` isn't reliably pullable from every
+  environment (confirmed "denied" locally this session - a different org's registry namespace, possibly
+  private or simply not published, not something this smoke test should depend on either way). Fixed by
+  bringing up every service EXCEPT `auth-server` explicitly with `--no-deps` - this test's actual job is
+  "does the `server` image itself build and boot", which doesn't need a real auth-server at all.
+- **A third, genuinely new regression, found only because the script's Postgres path had *never
+  successfully run* until the `-f` fix above**: `postgres_data:/var/lib/postgresql/data` (added earlier
+  this session for persistence) crash-loops the `postgres:latest` (18+) image outright - "these Docker
+  images are configured to store database data in a format which is compatible with pg_ctlcluster...
+  there appears to be PostgreSQL data in /var/lib/postgresql/data (unused mount/volume)" - triggered by
+  *anything* externally mounted at that exact path, even an empty freshly-created volume, not just real
+  old-format data. Fixed by mounting the *parent* directory instead (`postgres_data:/var/lib/postgresql`),
+  matching the image's own suggested fix. Confirmed live: `postgres` crash-looped before, stayed up after.
+- **One more real finding, not a bug**: the SQL variant's healthcheck-polling loop needed longer than the
+  script's original 60s timeout to reach `healthy` in one live run (Postgres's own first-boot `initdb` is
+  slower than Mongo's equivalent cold start) - bumped to 120s. Not chasing this further; it's a timing
+  margin, not a functional defect, and the loop already reports a clean pass/fail either way.
+- Verification: all four combinations (`test-run-mongo.sh`, `test-run-sql.sh`, in this repo and
+  `auth-server`) run for real, end to end, locally - `docker ps -a`/`docker logs` inspected directly
+  (not just trusting the script's own "started successfully" message) to confirm each one actually reaches
+  `healthy` with no errors, then torn down cleanly. Not committed - same standing rule.
