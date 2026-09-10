@@ -3684,3 +3684,32 @@ internet and increasingly mandate TLS on their own end.
   branch instead) - verified against a locally-packaged stub `auth-server` dependency chart since the real
   one isn't pullable from this sandbox (same limitation noted in earlier entries), removed after. Not
   committed - same standing rule.
+
+### 2026-09-10 (continued) — `include:` can't extend a same-named service; real CI break, not a regression from the TLS work
+
+JP hit a real CI failure right after the TLS commit landed: `services.server conflicts with imported
+resource` from `test-run-mongo.sh` (and confirmed the same applies to `test-run-sql.sh`). This was NOT
+caused by the TLS changes - it's a latent bug in this file's original `include:` design (docker-compose.
+mail.yml declaring a *partial* `server:` block purely to add mail-scanning env vars/volumes/links onto the
+`server:` service the including file - mongo.yml/sql.yml - fully defines).
+
+- **Root cause, confirmed against the actual spec, not assumed**: Docker's own `include:` docs state
+  plainly that "Compose displays a warning if resource names conflict and doesn't try to merge them" - i.e.
+  a same-named service on both sides of an `include:` boundary was never a supported way to extend a
+  service. There's no documented mechanism to add fields to an included service from the including file.
+  This had been silently working locally (this session's own local Compose v5.2.0 apparently merges
+  permissively) but hard-errors on whatever Compose version GitHub Actions' runner has - not a difference
+  worth chasing further, since the fix is to stop relying on unsupported behavior either way.
+- **Fix**: removed the `server:` block from docker-compose.mail.yml entirely (left a comment explaining
+  why, pointing at this entry) and moved its four `mail__*` env vars, the `dkim_rspamd_keys` volume mount,
+  and the `rspamd`/`clamav`/`postfix` links/depends_on directly into docker-compose.mongo.yml's and sql.
+  yml's own `server:` blocks. No other service in docker-compose.mail.yml shares a name with anything in
+  the including files, so this was the only conflict.
+- Verified: `docker compose -f docker-compose.{mongo,sql}.yml config` both exit 0 (previously would have
+  reproduced the same conflict once actually attempted at that Compose CLI version) and the merged `server`
+  service was inspected directly to confirm every env var/volume/link/depends_on entry from the removed
+  block survived the move. Then ran `scripts/test-run-mongo.sh` and `test-run-sql.sh` for real, end to end -
+  both reach `healthy` and report "Service started successfully" with the mail stack (rspamd/clamav/
+  postfix/mta-bridge) fully wired up, same as before.
+- Checked whether this also affects `auth-server`: no - none of its four compose files use `include:` at
+  all, so this specific failure mode can't occur there. Not committed - same standing rule.
