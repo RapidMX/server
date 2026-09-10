@@ -4,9 +4,12 @@ dependencies:
   version: 18.4.8
 - name: postgresql
   repository: https://charts.bitnami.com/bitnami
-  version: 18.8.13
+  version: 18.8.17
 - name: redis
   repository: https://charts.bitnami.com/bitnami
   version: 24.1.8
-digest: sha256:0cf5795ef201a67d909e18151cf13b27be03e73793b3f0ca5345b6bfb2e56e96
-generated: "2026-08-27T10:18:57.3528663-07:00"
+- name: auth-server
+  repository: oci://ghcr.io/rapidrest/charts
+  version: 1.0.0-beta.0
+digest: sha256:c4f00ac599f74e441f3fad35d186ec7e8243be1b4adee078090920b8066b69b0
+generated: "2026-09-10T00:09:48.2530968-07:00"
