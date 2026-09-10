@@ -203,6 +203,12 @@ mail:
   # keep in sync with the Domains added via the admin console. Independent of INBOUND acceptance, which
   # mta-bridge backs dynamically from this app's own Domain database - see postfix.yaml's own comment.
   domains: example.com
+  # Postfix's public MX hostname - drives both its HELO/EHLO identity (POSTFIX_myhostname) and the TLS
+  # certificate's CN/dnsNames (see mail-tls-certs.yaml). Left at a `.local`-style placeholder here, exactly
+  # like the top-level `host` default, so a fresh install gets a self-signed dev cert instead of an
+  # unobtainable real one (mail-tls-certs.yaml only requests a real cert-manager Certificate once this is
+  # overridden to an actual publicly resolvable hostname).
+  hostname: mail.localhost
   dkim:
     selector: mail
     # Fallback safety net only - see docker-compose.mail.yml's identical DKIM_AUTOGENERATE comment for

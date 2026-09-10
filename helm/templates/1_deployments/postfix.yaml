@@ -6,6 +6,12 @@
 # service's /internal/mta contract - see src/mta-bridge/index.ts's own doc comment. OUTBOUND mail from the
 # main service Deployment reaches this container over plain SMTP on port 25 (see that Deployment's own
 # SENDMAIL_RELAY_HOST env var, defaulting to the "postfix" Service name this file also creates).
+#
+# TLS: both of Postfix's *internet-facing* directions - inbound smtpd on 25 and outbound smtp client - are
+# mandatory TLS ("encrypt" security level, not the image's opportunistic "may" default), backed by the
+# mail-tls-certs.yaml Secret. The two hops that stay plaintext on purpose are internal to the cluster
+# network (main service Deployment -> here, and here -> mta-bridge via smtp_tls_policy_maps) - see
+# mail-tls-policy.yaml for why mta-bridge specifically is exempted.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -29,6 +35,11 @@ spec:
             # acceptance, which mta-bridge backs dynamically from this app's own Domain database.
             - name: ALLOWED_SENDER_DOMAINS
               value: {{ $.Values.mail.domains | quote }}
+            # Postfix's own SMTP identity (HELO/EHLO name, Received headers) - deliberately kept in sync
+            # with the TLS certificate's CN below (both driven by mail.hostname). A HELO name that doesn't
+            # match the presented certificate is a common deliverability red flag with receiving providers.
+            - name: POSTFIX_myhostname
+              value: {{ $.Values.mail.hostname | quote }}
             # rspamd (this image's bundled DKIM backend since v6, distinct from the standalone rspamd
             # Deployment used only for spam scoring - see rspamd.yaml) signs outbound mail using whatever
             # key file it finds at /var/lib/rspamd/dkim/<domain>.<selector>.key. In this deployment that
@@ -52,6 +63,24 @@ spec:
               value: tcp:mta-bridge:10041
             - name: POSTFIX_transport_maps
               value: static:smtp:mta-bridge:2525
+            # Mandatory TLS, both directions - see this file's own top-of-file comment for why "encrypt"
+            # (not the image's opportunistic "may" default) is deliberate here.
+            - name: POSTFIX_smtpd_tls_security_level
+              value: encrypt
+            - name: POSTFIX_smtpd_tls_cert_file
+              value: /etc/postfix/tls/tls.crt
+            - name: POSTFIX_smtpd_tls_key_file
+              value: /etc/postfix/tls/tls.key
+            - name: POSTFIX_smtp_tls_security_level
+              value: encrypt
+            - name: POSTFIX_smtp_tls_cert_file
+              value: /etc/postfix/tls/tls.crt
+            - name: POSTFIX_smtp_tls_key_file
+              value: /etc/postfix/tls/tls.key
+            # Carves out the one destination that's actually internal (mta-bridge) from the mandatory
+            # outbound TLS default above - see mail-tls-policy.yaml for the full explanation.
+            - name: POSTFIX_smtp_tls_policy_maps
+              value: texthash:/etc/postfix/tls_policy.txt
           ports:
             - containerPort: 25
           resources:
@@ -67,6 +96,13 @@ spec:
             # doc comment. The image's own startup script imports it into dkim-keys above on next restart.
             - name: dkim-opendkim-keys
               mountPath: /etc/opendkim/keys
+            - name: mail-tls
+              mountPath: /etc/postfix/tls
+              readOnly: true
+            - name: mail-tls-policy
+              mountPath: /etc/postfix/tls_policy.txt
+              subPath: tls_policy.txt
+              readOnly: true
       volumes:
         - name: dkim-keys
           persistentVolumeClaim:
@@ -74,3 +110,9 @@ spec:
         - name: dkim-opendkim-keys
           persistentVolumeClaim:
             claimName: {{ include "rrst.fullname" . }}-dkim-opendkim-keys
+        - name: mail-tls
+          secret:
+            secretName: {{ include "rrst.fullname" . }}-mail-tls-cert
+        - name: mail-tls-policy
+          configMap:
+            name: {{ include "rrst.fullname" . }}-mail-tls-policy

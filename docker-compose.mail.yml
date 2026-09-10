@@ -52,16 +52,50 @@ services:
         image: clamav/clamav:stable
         ports:
             - "3310:3310"
+    # Generates a self-signed TLS certificate for Postfix's own public MX hostname (MAIL_HOSTNAME) into the
+    # shared `postfix_tls` volume, if one isn't already there — see the `postfix` service below for how
+    # it's consumed. This is a bootstrap default only, so the stack has working TLS with zero setup: for a
+    # real deployment, drop a real certificate (e.g. Let's Encrypt) covering this deployment's actual public
+    # MX hostname into the same volume at the same two filenames — anything already present at container
+    # start is left untouched, so a real cert is never overwritten.
+    postfix-tls-init:
+        image: alpine:3.20
+        volumes:
+            - postfix_tls:/tls
+        entrypoint: ["/bin/sh", "-c"]
+        command:
+            - |
+                set -e
+                if [ ! -f /tls/tls.crt ] || [ ! -f /tls/tls.key ]; then
+                    apk add --no-cache openssl >/dev/null
+                    openssl req -x509 -nodes -newkey rsa:2048 -days 825 \
+                        -subj "/CN=${MAIL_HOSTNAME:-mail.example.com}" \
+                        -keyout /tls/tls.key -out /tls/tls.crt
+                    chmod 600 /tls/tls.key
+                fi
     # The MTA — real inbound/outbound SMTP is intentionally out of scope for @rapidmx/restapi itself (see its
     # README); this is the "dedicated MTA" it hands off to. OUTBOUND: the `server` image's `sendmail` binary
     # (see Dockerfile/scripts/docker-entrypoint.sh) is msmtp, configured at container start to relay through
     # this container over plain SMTP on 25 — Postfix's default `mynetworks` already trusts Docker's private
-    # bridge subnets, so no additional auth is needed for that hop. INBOUND delivery routes through the
+    # bridge subnets, so no additional auth is needed for that hop; it's the same compose-internal network
+    # the mta-bridge hand-off below relies on being trusted. INBOUND delivery routes through the
     # `mta-bridge` service below (recipient/domain validation via Postfix's own `tcp_table` lookup protocol,
     # final delivery via plain SMTP), which translates both into calls against `server`'s
     # `GET /internal/mta/domain`/`GET /internal/mta/resolve`/`POST /internal/mta/deliver` contract.
+    #
+    # TLS: both of Postfix's *internet-facing* directions — inbound smtpd on 25 and outbound smtp client —
+    # are configured below with `_tls_security_level=encrypt`, i.e. mandatory TLS, not opportunistic. That's
+    # deliberate: nothing should arrive from or leave to another mail server in the clear, and virtually
+    # every real-world mail provider today supports (often mandates) TLS on their end too. The trade-off is
+    # real, though — any sender/receiver that genuinely can't do TLS will bounce instead of being accepted/
+    # delivered in the clear. The two hops that stay plaintext on purpose are internal to this compose
+    # network (server→postfix above, and postfix→mta-bridge below via smtp_tls_policy_maps) — see
+    # docker/postfix/tls_policy.txt for why mta-bridge specifically is exempted.
     postfix:
         image: boky/postfix:latest
+        depends_on:
+            postfix-tls-init:
+                condition: service_completed_successfully
         environment:
             # Comma-separated list of domains this Postfix instance will accept/relay outbound mail for.
             # Keep this in sync with the `Domain`s added via the admin console (Domains page) — Postfix
@@ -69,6 +103,10 @@ services:
             # dynamically by relay_domains/mta-bridge below and does NOT depend on this list; this list is
             # purely the anti-spoofing check on OUTBOUND submission - see boky/postfix's own README.)
             - ALLOWED_SENDER_DOMAINS=${MAIL_DOMAINS:-example.com}
+            # Postfix's own SMTP identity (HELO/EHLO name, Received headers) — deliberately kept in sync
+            # with the TLS certificate's CN above (both driven by MAIL_HOSTNAME). A HELO name that doesn't
+            # match the presented certificate is a common deliverability red flag with receiving providers.
+            - POSTFIX_myhostname=${MAIL_HOSTNAME:-mail.example.com}
             # Inbound recipient/domain acceptance - both back this deployment's own `Domain`/mailbox
             # database dynamically via the `mta-bridge` service's `tcp_table` listeners, so a domain/mailbox
             # added through the admin console is accepted here with no Postfix restart needed. Final
@@ -77,6 +115,17 @@ services:
             - POSTFIX_relay_domains=tcp:mta-bridge:10040
             - POSTFIX_relay_recipient_maps=tcp:mta-bridge:10041
             - POSTFIX_transport_maps=static:smtp:mta-bridge:2525
+            # Mandatory TLS, both directions — see this service's own comment above for why "encrypt" (not
+            # the image's opportunistic "may" default) is deliberate here.
+            - POSTFIX_smtpd_tls_security_level=encrypt
+            - POSTFIX_smtpd_tls_cert_file=/etc/postfix/tls/tls.crt
+            - POSTFIX_smtpd_tls_key_file=/etc/postfix/tls/tls.key
+            - POSTFIX_smtp_tls_security_level=encrypt
+            - POSTFIX_smtp_tls_cert_file=/etc/postfix/tls/tls.crt
+            - POSTFIX_smtp_tls_key_file=/etc/postfix/tls/tls.key
+            # Carves out the one destination that's actually internal (mta-bridge) from the mandatory
+            # outbound TLS default above — see docker/postfix/tls_policy.txt for the full explanation.
+            - POSTFIX_smtp_tls_policy_maps=texthash:/etc/postfix/tls_policy.txt
             # rspamd (the image's default DKIM backend since v6) signs outbound mail using whatever key
             # file it finds at /var/lib/rspamd/dkim/<domain>.<selector>.key. In this deployment that file
             # is normally already there by the time a domain is added to ALLOWED_SENDER_DOMAINS above -
@@ -102,6 +151,9 @@ services:
             # rspamd's own live signing directory - the other end of the `server` service's own mount of
             # this same volume above. Also where DKIM_AUTOGENERATE and the opendkim import above write.
             - dkim_rspamd_keys:/var/lib/rspamd/dkim
+            # See the `postfix-tls-init` service above for how this gets populated.
+            - postfix_tls:/etc/postfix/tls:ro
+            - ./docker/postfix/tls_policy.txt:/etc/postfix/tls_policy.txt:ro
         ports:
             - "25:25"
     # DMARC has no key/cert artifact of its own — it's a DNS-published policy plus SPF/DKIM alignment,
@@ -115,3 +167,4 @@ services:
 volumes:
     dkim_opendkim_keys:
     dkim_rspamd_keys:
+    postfix_tls:

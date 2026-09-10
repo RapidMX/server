@@ -3643,3 +3643,44 @@ so both got checked and fixed.
   `auth-server`) run for real, end to end, locally - `docker ps -a`/`docker logs` inspected directly
   (not just trusting the script's own "started successfully" message) to confirm each one actually reaches
   `healthy` with no errors, then torn down cleanly. Not committed - same standing rule.
+
+### 2026-09-10 — Mandatory TLS on Postfix's internet-facing SMTP, both directions
+
+JP asked whether the mail stack enforced SMTP over TLS after a walkthrough of the current setup surfaced
+that it didn't: no port 587 anywhere, `docker-entrypoint.sh`'s msmtp config defaulted `tls off`, and nothing
+set `POSTFIX_smtp(d)_tls_security_level` at all (leaving boky/postfix's own opportunistic "may" default,
+with no certificate ever provisioned). JP then asked to build real enforcement, clarifying scope mid-turn:
+container-to-container hops (server↔postfix, postfix↔mta-bridge) are fine to stay plaintext - only the
+external-facing side needs to be secure, since that's the side other providers actually reach over the
+internet and increasingly mandate TLS on their own end.
+
+- **Architecture**: the only two hops that touch the public internet are Postfix's own inbound `smtpd`
+  (port 25) and outbound `smtp` client delivery - both now set `_tls_security_level=encrypt` (mandatory,
+  not opportunistic). `server`→Postfix (msmtp, already `tls off` by default) and Postfix→`mta-bridge`
+  (which has no TLS/STARTTLS support at all - see `SmtpDeliveryServer.ts`'s `disabledCommands`) are both
+  internal-only and were deliberately left alone.
+- **The one real trap**: `smtp_tls_security_level=encrypt` is global - it would also force TLS on the
+  Postfix→mta-bridge hop, which can't speak TLS at all, breaking 100% of internal delivery. Fixed with
+  `smtp_tls_policy_maps` (texthash) carrying an explicit `mta-bridge:2525 none` / `mta-bridge none`
+  override, confirmed live via `postmap -q` returning "none" for both key forms while an arbitrary
+  unrelated hostname correctly falls through to no match (i.e. the global "encrypt" default).
+- **Certificates**: Postfix always needs a cert file to exist just to advertise STARTTLS, so - unlike the
+  HTTP Gateway's tls-certs.yaml, which just skips TLS entirely for a `localhost`/`.local` dev host - the
+  mail equivalent needs a real fallback cert in that case, not a no-op. Docker Compose: a new
+  `postfix-tls-init` service generates a self-signed cert into a persistent `postfix_tls` volume on first
+  boot only (leaves an operator-supplied real cert alone). Helm: `mail-tls-certs.yaml` mirrors
+  `tls-certs.yaml`'s real-cert-manager-Certificate-vs-not split, but the "not" branch is a real
+  `genSelfSignedCert`-backed `Secret` instead of doing nothing. New `mail.hostname` value (default
+  `mail.localhost`, deliberately `.local`-suffixed for the same reason `host: localhost` is) drives both
+  the cert CN/dnsNames and `POSTFIX_myhostname` (HELO identity) together, since a HELO/cert mismatch is
+  itself a common deliverability red flag with receiving providers - not just cosmetic.
+- Verified live end to end (not just rendered/reviewed): built and ran the full mongo compose stack;
+  `openssl s_client -starttls smtp` against `localhost:25` completed a real TLS 1.3 handshake presenting
+  `CN=mail.example.com` (the `MAIL_HOSTNAME` default); a raw SMTP transcript sending `MAIL FROM` before
+  `STARTTLS` got a hard `530 5.7.0 Must issue a STARTTLS command first` (proving "encrypt", not "may");
+  `postconf` confirmed both security levels and `myhostname`; `postmap -q` confirmed the mta-bridge policy
+  override. `helm template`/`helm lint` both clean (the `mail.hostname=mail.localhost` default renders the
+  self-signed `Secret` branch; overriding to a real hostname renders the `cert-manager` `Certificate`
+  branch instead) - verified against a locally-packaged stub `auth-server` dependency chart since the real
+  one isn't pullable from this sandbox (same limitation noted in earlier entries), removed after. Not
+  committed - same standing rule.

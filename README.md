@@ -59,11 +59,24 @@ of them defaults to an insecure, publicly-known placeholder value otherwise — 
 | `COOKIE_SECRET` | Shared cookie-signing secret |
 | `MAIL_INGEST_SECRET` | Bearer secret authenticating `mta-bridge`'s calls to this app's `/internal/mta` routes |
 | `MAIL_DOMAINS` | Comma-separated domains Postfix accepts *outbound* submissions for (`ALLOWED_SENDER_DOMAINS`) — keep in sync with the `Domain`s added via the admin console |
+| `MAIL_HOSTNAME` | Postfix's public MX hostname — drives its HELO/EHLO identity and the CN of the TLS certificate `postfix-tls-init` bootstraps (see below); set this to your real MX hostname for anything beyond local evaluation |
 | `DKIM_AUTOGENERATE` / `DKIM_SELECTOR` | DKIM key handling — see `docker-compose.mail.yml`'s own comments for how this interacts with the app's own automatic per-`Domain` key generation |
 
-The `dkim_rspamd_keys`/`dkim_opendkim_keys`/`mongo_data`/`postgres_data`/`blob_data` named volumes persist
-DKIM keys, database contents, and message/attachment storage across `docker compose down`/`up` — don't
-remove them (`docker compose down -v`) unless you actually want to start over.
+The `dkim_rspamd_keys`/`dkim_opendkim_keys`/`postfix_tls`/`mongo_data`/`postgres_data`/`blob_data` named
+volumes persist DKIM keys, the Postfix TLS certificate, database contents, and message/attachment storage
+across `docker compose down`/`up` — don't remove them (`docker compose down -v`) unless you actually want
+to start over.
+
+**Mail transport security:** Postfix's two internet-facing directions — inbound `smtpd` on port 25 and
+outbound `smtp` client delivery — both require TLS (`_tls_security_level=encrypt`), not just offer it
+opportunistically. `postfix-tls-init` bootstraps a self-signed certificate for `MAIL_HOSTNAME` on first
+start so this works with zero setup; replace the `postfix_tls` volume's `tls.crt`/`tls.key` with a real
+certificate (e.g. Let's Encrypt) for anything beyond local evaluation. The one hop deliberately exempted
+from mandatory TLS is Postfix → `mta-bridge` (see `docker/postfix/tls_policy.txt`), since that's internal
+to the compose network and has no TLS support of its own by design — the `server` → Postfix hop is also
+unencrypted by default (`SENDMAIL_RELAY_TLS`, defaulting to `off`) for the same reason. Because inbound/
+outbound TLS is mandatory rather than opportunistic, a sender or receiving server that genuinely can't
+speak TLS will bounce instead of being accepted/delivered in the clear.
 
 ### Kubernetes
 
