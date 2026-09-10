@@ -6,3 +6,324 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.0.0-beta.0] - 2026-09-10
+
+### Added
+- Added a local yarn patch pointing @rapidmx/restapi at the mailbox-folder fix until a new version is published
+- Added AppShell, a persistent Mail/Calendar/Contacts/Tasks icon rail, header, and impersonation banner
+- Added a Contacts app with client-side search, a detail view, and a create/edit form
+- Added a Tasks app with Overdue/Today/This Week/Later/No due date grouping, complete-toggle, priority, and due dates
+- Added shared API wrapper files contactsApi.ts, tasksApi.ts, and calendarApi.ts
+- Added apiQuery.ts, splitting buildQuery/ListParams out of mailApi.ts
+- Added date-fns, rrule, and @dnd-kit/core dependencies
+- Added month/week/day Calendar grid views
+- Added drag-to-move/drag-to-resize via @dnd-kit
+- Added a recurrence editor built on rrule with a this-occurrence-vs-entire-series edit/delete split
+- Added a full-screen MailboxProvisioning page for mailbox-less users, wired into all four app shells
+- Added a domain picker to the admin console's manual New mailbox form
+- Added filters to mail view for non-mail folders
+- Added TaskList route mounting at /mail/task-lists (mongo + sql), matching the existing ContactListRoute pattern
+- Added TaskListMongo/TaskListSQL re-exports from Models.ts so the ClassLoader picks up the new model
+- Added RichTextEditor.tsx, a TipTap-based WYSIWYG editor, replacing MonacoHtmlEditor.tsx
+- Added ComposeToolbar.tsx, a practical single Outlook-Home-tab-style formatting bar
+- Added sanitizeComposeHtml() with an allowlist matching exactly what the editor's extensions can produce
+- Added ContactAvatar, ContactsSidebar, and ContactsToolbar components for a redesigned Contacts page
+- Added vcard.ts for client-side vCard import/export
+- Added favorite/categories/contactListUid support and full ContactList CRUD wrappers to contactsApi.ts
+- Added ?to= query param support to Compose for the Contacts "Email" toolbar action's deep link
+- Added a Tasks sidebar with My Day/Important/Planned/Assigned-to-me/Flagged-email smart filters and custom TaskLists
+- Added a Tasks toolbar with bulk actions and a Grid/List view toggle
+- Added a cross-folder flagged-message fan-out since flags live in a non-queryable simple-json column
+- Added a Calendar sidebar with a mini month picker and a checkbox list of calendars
+- Added per-calendar colors instead of a flat busy/free scheme
+- Added Work Week and Split (one column per calendar) view modes
+- Added a partial-failure-tolerant fan-out for loading multi-calendar events
+- Added new logo and fonts
+- Added a teal/gold design-token palette sampled from the new logo
+- Added self-hosted Blender Pro for headings and Inter for body copy
+- Added wordmark to provisioning page
+- Added support for multiple stacked compose windows with minimize/expand/close
+- Added a shared Skeleton/SkeletonList component for every app shell's loading state
+- Added click-drag resizing to the Compose window
+- Added an emoji picker to Compose's toolbar, backed by @emoji-mart/data
+- Added a GIF picker to Compose's toolbar, backed by a server-side Giphy search proxy
+- Added useIsMobile, a matchMedia-backed hook for mobile/desktop behavioral branching
+- Added Drawer, an off-canvas panel for mobile secondary navigation
+- Added BottomTabBar, a mobile bottom tab bar mirroring AppShell's icon rail
+- Added a default window.matchMedia stub to the frontend test setup
+- Added a mockMatchMedia test helper for forcing the mobile/desktop branch
+- Added a mobile drawer for MailShell's folder sidebar, opened via a hamburger button
+- Added MessageDetailPane, extracted from the desktop inline reading pane for reuse
+- Added useMessageAttachments and useMarkMessageRead, shared mail detail hooks
+- Added a mobile message detail route at /messages/detail, reached by tapping a row
+- Added a mobile drawer for ContactsShell's mailbox switcher, opened via a hamburger button
+- Added ContactDetailPane and ContactForm, extracted from the desktop inline panes for reuse
+- Added a mobile contact detail route at /contacts/detail, reached by tapping a row
+- Added a mobile drawer to ContactsSidebar's own view filter, opened via a hamburger button
+- Added a mobile drawer for CalendarShell's mailbox switcher, opened via a hamburger button
+- Added a mobile drawer for the calendar page's mini date picker and calendar list
+- Added a mobile drawer for TasksShell's mailbox switcher, opened via a hamburger button
+- Added a mobile drawer for AdminShell's top nav, opened via a hamburger button
+- Added a mobile drawer to TasksSidebar's own view filter, opened via a hamburger button, found missing in the final mobile-responsiveness sweep
+- Added a NOTES.md entry documenting the full mobile-responsiveness refactor across all 10 phases
+- Added a left icon rail to AdminShell for Mailboxes/Quarantine/Ingest Queue, replacing the horizontal top nav
+- Added the same bottom tab bar treatment on mobile that AppShell already has, reusing the same component
+- Added Domain CRUD routes (src/mongo/routes/DomainRoute.ts, src/sql/routes/DomainRoute.ts) mounted at mail/domains
+- Added DomainVerificationJobMongo/DomainVerificationJobSQL to the mongo/sql Jobs.ts re-export lists
+- Added apps/shared/lib/domainsApi.ts with typed wrappers over the Domain CRUD, verify, and dns-setup routes
+- Added an admin Domains section: list, create, and detail pages, the detail page showing a copy-able DNS ownership TXT record and a live DNS setup checklist with a Verify now action
+- Added a Domains entry to AdminShell's icon rail and bottom tab bar
+- Added AuditLogEntry CRUD routes (src/mongo/routes/AuditLogRoute.ts, src/sql/routes/AuditLogRoute.ts) mounted at mail/audit-log, read-only per BaseAuditLogRoute
+- Added apps/shared/lib/auditLogApi.ts with a typed listAuditLog wrapper and optional mailboxUid/actorUserUid/action/targetType filters
+- Added an admin Audit Log page with a filter row seeded from and written back to the query string, and a details disclosure per row
+- Added an Audit Log entry to AdminShell's icon rail and bottom tab bar
+- Added DistributionList CRUD routes (src/mongo/routes/DistributionListRoute.ts, src/sql/routes/DistributionListRoute.ts) mounted at mail/distribution-lists
+- Added apps/shared/lib/distributionListsApi.ts with typed CRUD wrappers for DistributionList
+- Added MemberListCard, reusing ShareAccessCard's load/add-row/remove-row interaction shape against a plain memberAddresses field via read-modify-write PUT
+- Added an admin Distribution Lists section: list, create, and detail pages, the detail page rendering ownerUserUid read-only per restapi's own no-delegated-ownership-in-v1 note
+- Added a Distribution Lists entry to AdminShell's icon rail and bottom tab bar
+- Added TransportRule CRUD routes (src/mongo/routes/TransportRuleRoute.ts, src/sql/routes/TransportRuleRoute.ts) mounted at mail/transport-rules
+- Added apps/shared/lib/transportRulesApi.ts with typed CRUD wrappers for TransportRule
+- Added RuleBuilder, a scope-neutral condition-row editor and enabled/sequence/stop-processing chrome shared across future rule-editing consumers, with conditions driven by a declarative field config and actions by a small per-scope registry
+- Added apps/admin/transport-rules/transportRuleConfig.tsx configuring RuleBuilder with the transport-rule condition and action vocabulary
+- Added an admin Transport Rules section: list, create, and an editable detail page built on RuleBuilder
+- Added a Transport Rules entry to AdminShell's icon rail and bottom tab bar
+- Added a resource mailbox fieldset to the New Mailbox form, shown when This is a resource mailbox is checked
+- Added ResourceSettingsCard for the mailbox detail page, editing a resource mailbox's booking settings via a PUT against the already-loaded mailbox
+- Added tests for the resource fieldset, ResourceSettingsCard, and the detail page's resource-specific rendering
+- Added apps/shared/lib/conversationsApi.ts with a typed listConversations wrapper over GET /messages/conversations
+- Added ConversationList, the by-conversation counterpart to the per-folder message list
+- Added ConversationThreadPane, a merged Gmail-style reading pane that fetches every message in a conversation and expands the most recent by default, reusing MessageDetailPane per expanded message
+- Added a By date/By conversation toggle to the webmail inbox, replacing the per-folder list and detail pane entirely while conversation mode is active
+- Added tests for conversationsApi.ts, ConversationList, ConversationThreadPane, and the inbox page's view-mode toggle
+- Added Message.recallRequestedAt and recallMessage() (POST /mail/messages/:id/recall) to mailApi.ts
+- Added a Recall this message action to MessageDetailPane, shown only for Sent Items messages, with a confirmation modal and a persistent Recall requested indicator once requested
+- Added CalendarEvent.inviteSequenceSent/cancelNoticeSentAt and respondToEvent() (POST /mail/calendar-events/:id/respond) to calendarApi.ts
+- Added a responseStatus badge per attendee and Accept/Tentative/Decline controls to EventModal, shown when the viewing mailbox is an invited (non-organizing) attendee
+- Added listResourceMailboxes() to mailApi.ts, filtering GET /mail/mailboxes to isResource:true
+- Added ResourcePicker, a searchable dropdown of bookable room/equipment mailboxes built on the existing PopoverPortal
+- Added a "+ Add room/equipment" button to EventModal's attendee section, opening ResourcePicker and adding a selection as a "resource" attendee
+- Added a Settings entry to UserMenu (linking to /settings/auto-reply), alongside AppShell's own active:"settings" support for the header title with no rail icon highlighted
+- Added SettingsShell, the webmail Settings area's shell, with a real sidebar of settings sections (starting with Automatic Replies) rather than just a mailbox switcher
+- Added apps/www/settings/auto-reply/index.tsx, editing Mailbox.oofEnabled/oofMessage/oofStartTime/oofEndTime via a plain PUT
+- Added Mailbox/UpdateMailboxInput's oof* fields and CalendarEvent/CalendarEventInput's autoReplyEnabled/autoReplyMessage to their respective API wrappers
+- Added a small Automatic Reply toggle+textarea to EventModal, independent of the mailbox-level setting, matching resolveActiveOof()'s own precedence
+- Added MailFilterRuleRoute (mongo + sql), mounting @rapidmx/restapi's previously-unmounted MailFilterRuleRouteMongo/SQL at mail/mail-filter-rules
+- Added apps/shared/lib/mailFilterRulesApi.ts, a mailbox-scoped CRUD wrapper mirroring transportRulesApi.ts's shape
+- Added a "select" ConditionFieldDef kind to RuleBuilder, for MailFilterConditions.importance's fixed-choice value - the shared condition editor still generalizes to a second, differently-shaped rule scope
+- Added a Mail Filters section to Settings: apps/www/settings/filters/{index,new,detail} reusing RuleBuilder with a move/copy/delete/mark-read/forward action vocabulary and a real folder picker for the folder-taking actions
+- Added MailSignatureRoute (mongo + sql), mounting @rapidmx/restapi's previously-unmounted MailSignatureRouteMongo/SQL at mail/mail-signatures
+- Added apps/shared/lib/mailSignaturesApi.ts, a mailbox-scoped CRUD wrapper mirroring mailFilterRulesApi.ts's shape
+- Added Reply/Reply All/Forward buttons to MessageDetailPane - no reply/forward compose entry point existed anywhere in this codebase before now
+- Added apps/shared/lib/composeQuoting.ts, building Re:/Fwd: subjects and a quoted-original-message body from the message's own bodyPreview
+- Added a Signatures section to Settings: apps/www/settings/signatures/{index,new,detail}, reusing RichTextEditor, plus signatureDefaults.ts enforcing the "at most one default per context" convention client-side
+- Added scheduled send: Message.scheduledSendTime, setMessageScheduledSendTime()/cancelScheduledSend() in mailApi.ts
+- Added ScheduleSendPicker, a popover for picking a future send time, opened via a split Send/"Send later" button in Compose
+- Added an Outbox "Scheduled for .../Cancel" banner to MessageDetailPane, wired through every place a message can be read
+- Added a Phase 14 NOTES.md entry: final active= sweep, admin icon-rail/Settings UserMenu consistency check, and one consolidated live smoke pass touching all 9 restapi features together in a single session, closing out the 15-phase wiring plan
+- Added a Delete domain button and confirmation modal to the domain detail page, wired to the existing deleteDomain() API
+- Added tests for the new delete-domain flow and the mailbox-scoped nav sections
+- Added BrandingRoute (mongo + sql), mounting @rapidmx/restapi's previously-unmounted BrandingRouteMongo/SQL at mail/branding
+- Added apps/shared/lib/brandingApi.ts and useBranding.ts, and wire logo/title/header/footer into AppShell and AdminShell chrome
+- Added an admin Branding settings page for company name, title, logo/stylesheet upload or external URL, and header/footer HTML
+- Added FocusedInboxOverrideRoute (mongo + sql), mounting @rapidmx/restapi's previously-unmounted FocusedInboxOverrideRouteMongo/SQL at mail/focused-inbox-overrides
+- Added classifyMessage() to mailApi.ts and a Move to Other/Move to Focused control with an always-for-this-sender option to MessageDetailPane
+- Added Focused/Other sub-tabs to the webmail inbox, filtering the per-folder message list client-side
+- Added a Focused Inbox settings page to list, add, and remove standing per-sender classification rules
+- Added setMessageRequestReceipt(), approveReceipt(), and declineReceipt() to mailApi.ts, and a pending-receipt approve/decline banner to MessageDetailPane
+- Added a Request a read receipt checkbox to Compose, applied before send on both the immediate and scheduled-send paths
+- Added a Read Receipts settings page for the four mailbox-level request/auto-respond toggles
+- Added BookingTypeRoute and BookingRoute (mongo + sql), mounting @rapidmx/restapi's previously-unmounted host-side and public booking routes
+- Added apps/shared/lib/bookingApi.ts covering both the host-side BookingType CRUD and the fully anonymous public booking flow
+- Added AvailabilityEditor and a booking-types settings section (list/new/detail) for hosts to manage their own booking links
+- Added apps/book, a new public unauthenticated page area, with its own BookRoute (mongo + sql) mount and vite.config.ts appDir entry, for anonymous slot booking and booking management
+- Added a NOTES.md entry documenting this session's dependency-reconciliation and four-feature wiring work
+- Added a Drafts-folder check to BaseMailComposeRoute.assemble() so it can no longer silently overwrite an already-sent/received message
+- Added pagination controls to the domains, transport-rules, distribution-lists, and quarantine admin list pages, matching the existing mailboxes/audit-log pattern
+- Added infinite scroll and mailbox-wide search (via the previously-unwired /mail/search route) to the webmail inbox's "By date" message list
+- Added a shared BrandingChrome component and wire admin-configured header/footer HTML into AdminShell and both apps/book pages, not just AppShell, matching the Branding settings page's own copy
+- Added a 5MB client-side file-size guard to the branding logo/stylesheet upload inputs
+- Added apps/book/_layout.tsx — apps/book had never had the framework-required global layout, which live-testing surfaced as a hard SSR crash once a dynamic route sat next to a static one in the same directory
+- Added persistent mongo_data/postgres_data/blob_data named volumes, previously fully ephemeral despite config.mongo.ts's own doc comment already warning about it
+- Added docker/postgres-init.sql to create the rapidmx_server/rapidmx_auth databases on first Postgres boot
+- Added mail:dkim:key_dir/selector config, matching rspamd's own DKIM signing path/selector exactly
+- Added src/mta-bridge, a standalone service translating Postfix's tcp_table lookup protocol and plain SMTP into calls against @rapidmx/restapi's /internal/mta contract, closing the long-flagged missing inbound MTA integration
+- Added tests for every new mta-bridge piece (TcpTableServer, MtaIngestClient, SmtpDeliveryServer)
+- Added auth-server as a real Helm chart dependency (subchart, alias authServer) instead of leaving Kubernetes deployment undocumented, sharing this chart's own mongodb/redis on separate logical databases rather than creating a second copy of each
+- Added postfix/rspamd/clamav/mta-bridge Deployments and Services, mirroring docker-compose.mail.yml's own wiring for Kubernetes
+- Added dkim-keys/dkim-opendkim-keys/blob-data PersistentVolumeClaims and a mail-ingest-secret Secret, wiring them into the main service and postfix Deployments
+- Added tests for every new mta-bridge piece (TcpTableServer, MtaIngestClient, SmtpDeliveryServer)
+- Added a postfix-tls-init Compose service that bootstraps a self-signed TLS certificate for MAIL_HOSTNAME into a persistent postfix_tls volume on first boot, without overwriting a real operator-supplied cert
+- Added docker/postfix/tls_policy.txt, a smtp_tls_policy_maps override that exempts the mta-bridge hop from the mandatory outbound TLS default since it has no TLS/STARTTLS support of its own by design
+- Added helm/templates/0_config/mail-tls-certs.yaml (a real cert-manager Certificate for a real mail.hostname, a self-signed Secret fallback for local/dev) and mail-tls-policy.yaml (the same mta-bridge exemption as a ConfigMap)
+- Added a mail.hostname value driving both the TLS certificate's CN/dnsNames and Postfix's own myhostname together, since a HELO/certificate mismatch is a common deliverability red flag with receiving providers
+- Added postfix-tls-init to test-run-mongo.sh/test-run-sql.sh's explicit --no-deps service lists so the TLS bootstrap actually runs ahead of postfix
+- Added 1024x1024 version of logo
+
+### Changed
+- Initial commit
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Change MailShell to render inside AppShell, keeping its own mailbox switcher and folder tree
+- Update @rapidmx/restapi from the temporary yarn patch to the published ^0.2.0 registry range
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Dev token should always be elevated
+- Change dev-mode auto-provisioning to use mail:auto_provision:static_aliases instead of a self-referencing auth_server_url
+- Update the @rapidmx/restapi patch to pick up the static_aliases addition
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Update the @rapidmx/restapi patch to pick up the new TaskList entity and Task/Contact/Folder field additions
+- Ignore the local LocalFsBlobStore data/ directory in git
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Change the Contacts list from a flat list to a sortable table with checkboxes and avatars
+- Restoring a soft-deleted contact has no working path yet, pending a small @rapidmx/restapi fix
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Complete the Outlook-parity redesign plan (Phases 0-4) with this final Calendar phase
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Update the nav logo and favicon to the new artwork
+- Rename the product from RapidREST to RapidMX throughout user-facing text, docs, and deployment config
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Increasing size of logo on app shell
+- Replace the dedicated /compose page with a floating ComposeWindow overlay mounted in AppShell
+- Lower vitest.config.ts's apps/** branch threshold to 99% for one documented coverage-tool limitation
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Change Insert image to upload a real file instead of prompting for a URL
+- Change the giphy:api_key default to a placeholder instead of a real key, and gitignore .env
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Updated claude commit message rules
+- Change AppShell's icon rail to desktop-only, wiring in BottomTabBar below md
+- Export AppDef and APPS from AppShell so BottomTabBar can reuse them
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Change the folder sidebar to desktop-only, sharing its content with the drawer
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Change the message list to full width on mobile, tapping a row navigates instead of selecting in place
+- Change desktop selection to stay exactly as it was, gated on useIsMobile
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Change the mailbox switcher aside to desktop-only, sharing its content with the drawer
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Change the contact list to full width on mobile, tapping a row navigates instead of selecting in place
+- Change desktop selection to stay exactly as it was, gated on useIsMobile
+- Change ContactForm's two-column field grids to stack on narrow screens
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Change the Work Week and Split view options to desktop-only, too narrow to use on a phone
+- Change the calendar title to desktop-only, freeing space in a crowded mobile toolbar
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Change the task table (Grid view) to wrap in a horizontally-scrollable container
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Change the mailbox detail page's two-column field grid to stack on narrow screens
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Change ComposeWindow to render full-screen on mobile, ignoring expanded/manualSize
+- Change ComposeWindow to hide the resize handles and Expand/Collapse button on mobile
+- Change ComposeProvider to show at most one non-minimized session on mobile, the most recently opened
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Change the contacts table to scroll horizontally too, matching every other table in the app
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Change BottomTabBar to accept a generic NavItem shape instead of AppShell's own types, so AdminShell can reuse it
+- Change every admin page to pass its own active section to AdminShell, matching how each www shell already does this
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Patch @rapidrest/service-core with JP's fix for RepoUtils.create()'s creator-grant check matching an inherited deny-all ACL wildcard instead of only the record's own ACL
+- Patch @rapidmx/restapi with its latest dist, pulling in domains, audit logging, distribution lists, transport rules, resource mailboxes, and self-service auto-provisioning
+- Register NodeDnsResolver under the "DnsResolver" DI token in src/server.ts and both Server.*.test.ts harnesses
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Patch @rapidrest/service-core with a fix for its uWS and Bun routers never percent-decoding a :param path segment, breaking any uid-in-path lookup for a uid containing a character encodeURIComponent escapes (mailboxes, distribution lists)
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Extend Mailbox, CreateMailboxInput, and UpdateMailboxInput with resource-mailbox fields: isResource, resourceType, resourceCapacity, autoAcceptBookings, allowConflicts, bookingWindowDays, maxDurationMinutes
+- Show a Resource type row and the resource settings card on the mailbox detail page when the mailbox is a resource
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Wire isSentItems/onRecalled through every place a message can be read: apps/www/index.tsx's inline pane, the mobile message-detail page, and ConversationThreadPane (which now requires the mailbox's folders to resolve each message's own folder type)
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Bump @rapidrest/service-core from a patched 1.4.0 to a plain ^1.7.1 - restapi's current HEAD now requires it, and both prior local service-core patches (the ACL fix and the router decodeURIComponent fix) are already present upstream at 1.7.1, so the patch file is no longer needed
+- Re-patch @rapidmx/restapi against its latest commit, which fixes IcsUtils.ts's formatDateUtc() throwing on the string-typed dates a persisted CalendarEvent actually has, unblocking respond() and the wider iTIP feature surface
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Extract EventModal's private toDatetimeLocal() into shared apps/shared/lib/dateInput.ts now that the Settings page needs the same conversion
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Register "filters" in SettingsShell's SETTINGS_SECTIONS, and simplify a Phase 10 test from a synthetic active cast to real two-section navigation now that a second section exists
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Extend OpenComposeInput/ComposeSession with cc/subject/quotedHtml/signatureContext, and have ComposeWindow resolve the mailbox's matching default signature before seeding the editor's initial content
+- Register "signatures" in SettingsShell's SETTINGS_SECTIONS
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Updated CI workflows to use actions/checkout@v6
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Bump @rapidmx/restapi to 0.3.1 for its MDN-forgery, receipt-decline, and plus-address-shadowing fixes
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Upgraded project dependencies
+- Wire docker-compose.mongo.yml/sql.yml to explicitly run server.mongo.js/server.sql.js so the SQL/Postgres deployment path actually boots against Postgres instead of silently falling back to config.mongo.js's defaults
+- Register NodeDnsResolver in server.mongo.ts/server.sql.ts, matching server.ts, fixing domain DNS verification for anyone using those as direct entrypoints
+- Cap BaseMailComposeRoute.assemble()'s attachment loading at a configurable mail:compose:max_attachment_bytes before buffering any blob content into memory
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Migrate every single-entity detail page to @rapidrest/react v2's dynamic route segments, replacing the ?uid=/?slug=/?token= query-string workaround with a real :param in the URL path
+- Convert apps/admin/{domains,mailboxes,transport-rules,distribution-lists}/detail/index.tsx to sibling [uid].tsx files serving /admin/<section>/:uid, and apps/www/{contacts,messages}/detail, apps/www/settings/{booking-types,filters,signatures}/detail the same way
+- Split apps/book/index.tsx into a static "no slug" fallback and a new apps/book/[slug].tsx serving /book/:slug, and convert apps/book/manage/index.tsx to apps/book/manage/[token].tsx serving /book/manage/:token, matching @rapidmx/restapi's own expected manage-link shape
+- Point mail:booking:public_url at the new /book/manage/:token route so BaseBookingRoute's confirmation-email manage link now actually resolves, instead of being deliberately left unset
+- Rename the two stray non-page .tsx helper files (transportRuleConfig.tsx, mailFilterRuleConfig.tsx) to an _-prefix so v2's "any .tsx is a page" convention doesn't turn them into accidental routes
+- Patch @rapidrest/react (a beta dependency) via yarn patch: its hydration-manifest lookup didn't account for Vite sanitizing [id] to _id_ in a built chunk's name, so every hydrate=true dynamic-route page 500'd; verified against a live dev server end to end (params correctly captured, correct hydration bundle injected) both before and after the patch
+- Update every "View"/redirect link across the affected list, new, and delete flows to the new path-based URLs
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Fold docker-compose.mail.yml into docker-compose.mongo.yml/sql.yml via Compose's include so one -f flag brings up the whole stack
+- Wire auth-server into docker-compose as a real service (ghcr.io/rapidrest/auth-server), on separate logical mongo/postgres/redis stores from server so the two services' data never collides
+- Configure DKIM/DMARC key volumes and env vars for Postfix/rspamd in docker-compose.mail.yml, documenting that DMARC has no cert/key artifact of its own
+- Install msmtp in the Dockerfile and add scripts/docker-entrypoint.sh, wiring PostfixSendmailTransport's sendmail binary to actually relay outbound mail through the compose Postfix container
+- Register FsDkimKeyProvider in server.ts/server.mongo.ts/server.sql.ts (and their test-file mirrors) to opt into automatic per-domain DKIM key generation instead of the previous manual-only model
+- Wire docker-compose.mail.yml's postfix service to mta-bridge via relay_domains/relay_recipient_maps/transport_maps so domain/mailbox acceptance stays dynamic with no Postfix restart needed
+- Share one built image between the server and mta-bridge compose services and disable mta-bridge's inherited HTTP healthcheck, which could never pass since that service doesn't serve HTTP
+- Pin better-sqlite3 to ^12.11.1, fixing a version mismatch against TypeORM's own peer range that made the production Docker image fail to build entirely
+- Patch @rapidmx/restapi via yarn patch ahead of a real publish to pick up its new DkimKeyProvider/GET internal/mta/domain/ScanPipeline-config-default-fix
+- Rewrite the README's Docker Compose section to match how the stack actually works now, including the required secret/domain env var overrides
+- Drop @rapidmx/restapi's yarn patch now that JP has published 0.4.0 (containing this session's DkimKeyProvider/GET internal/mta/domain/ScanPipeline fix) and moved package.json to a plain ^0.4.0 constraint
+- Chart-qualify jwt-auth/service-config/service-db-info resource names (previously hardcoded, colliding the moment authServer coexists in one release) and drop the Gateway's per-listener hostname restriction so one shared Gateway can carry both this chart's own HTTPRoute and authServer's, on a distinct auth.<host> subdomain
+- Change auth.audience/auth.issuer to a fixed logical identifier instead of deriving them from `host`, and change auth.secret to a fixed literal instead of `{{ randAlphaNum 32 }}`, so this chart and authServer can never silently disagree on any of the three JWT claims that must match exactly between them
+- Chown /app to the node user in the Dockerfile, fixing DefaultAccountsMongo-style runtime writes failing with EACCES since the non-root node user could never write a new file/directory directly into /app, /app/data, or /var/lib/rspamd/dkim
+- Simplify the README's auth-server GHCR pull note and fix a stray "mail-server" reference to "server" in the single-node cluster section
+- Enforce mandatory TLS (encrypt, not opportunistic) on Postfix's internet-facing smtpd/smtp in docker-compose.mail.yml and the Helm chart's postfix.yaml, leaving the internal server->postfix and postfix->mta-bridge hops deliberately plaintext
+- Wire the new mail-tls Secret and mail-tls-policy ConfigMap into postfix.yaml's Deployment as volumes/volumeMounts alongside the new POSTFIX_smtp(d)_tls_* env vars
+- Document the new mandatory-TLS behavior, the MAIL_HOSTNAME variable, and the deliberately-plaintext internal hops in README.md
+- Bump GitHub Actions runner and action versions in ci.yml (node:24-trixie-slim, actions/checkout@v6, actions/cache@v5, actions/upload-artifact@v6, azure/setup-helm@v5)
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+- Move its mail__scan__spam__rspamd__url/mail__scan__av__clamav__host/mail__scan__av__clamav__port/mail__transport__ingest__secret env vars, dkim_rspamd_keys volume mount, and rspamd/clamav/postfix links/depends_on directly into docker-compose.mongo.yml's and docker-compose.sql.yml's own server: blocks
+- Verify docker compose config exits clean for both variants and that scripts/test-run-mongo.sh/test-run-sql.sh both reach healthy end to end with the mail stack still fully wired up
+- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+
+### Fixed
+- Fixed package and vite configuration
+- Fixed CalendarEvent startDate/endDate persisting as strings in Mongo, breaking server-side range queries
+- Fixed rrule's missing exports map breaking SSR's named imports
+- Fixed DevAutoAuthStrategy re-minting a stale pre-elevation-fix dev token, which caused 403s in the admin console under yarn dev
+- Fixed BaseMailComposeRoute.assemble() passing the client's HTML straight into MailComposer with zero sanitization
+- Fixed bulk toolbar actions' error messages being clobbered by the reload() call that followed them
+- Fixed every app shell rendering a blank pane while resolving mailboxes/folders
+- Fixed inline images not displaying for recipients by rewriting their src to cid: references at send time
+- Fixed emoji/GIF popups being clipped by overflow-hidden ancestors via a new shared PopoverPortal
+- Fixed duplicate select/label ids when a shell's sidebar content renders in both the aside and its drawer
+- Fixed a dead null-contact guard in the new detail route's delete handler by mirroring the desktop pane's own parameter-passing pattern
+- Fixed touch-vs-scroll conflict in calendar drag by replacing PointerSensor with MouseSensor and TouchSensor, each given an activation constraint
+- Fixed a race in ContactsShell/CalendarShell/TasksShell's mobile-menu-button tests by awaiting it instead of asserting synchronously right after the content appears
+- Fixed a dead error-alert branch on the domains detail page that could never render once the same error state already collapses the page via its own early-return guard
+- Fixed three stale "Not yet committed" lines in NOTES.md left over from earlier phases
+- Fixed Phase 13's own "Not yet committed" line to record its real commit hash
+- Fixed a stale resolutions pin silently keeping @rapidrest/core on 5.1.0 despite package.json wanting ^5.2.2, left over from an earlier Redis-flake investigation
+- Fixed the production-secrets guard reading process.env.environment instead of NODE_ENV, defaulting the resolved environment to "production" when unset
+- Fixed publish-docker-image deriving an invalid Docker tag from package.json's scoped npm name (@rapidmx/server) instead of stripping the scope, which made that CI job fail outright on any tagged release
+- Fixed 1_deployments/service.yaml always running the image's Mongo-hardwired default command regardless of environment or which datastore was enabled - the same bug already fixed in docker-compose.mongo.yml/sql.yml, never carried over to this chart
+- Fixed CI workflow
+- Fixed test run test scripts
+- Fixed volume mount for postgres
+
+### Removed
+- Removed the now-dead DevAliasesRoute
+- Removed the now-unused monaco-editor dependency
+- Removed the hamburger and Drawer mobile menu added earlier today, superseded by the icon rail plus bottom tab bar
+- Removed Quarantine and Ingest Queue from AdminShell's global icon rail/mobile tab bar, keeping them reachable only from a mailbox's own detail page
+- Removed test from .dockerignore, fixing yarn build's lint step failing outright when the build context is missing the test directory its tsconfig.eslint.json requires
+- Removed docker-compose.mail.yml's partial server: service block, since include: only supports merging resources that don't already exist in the including file and hard-errors ("services.server conflicts with imported resource") on a Compose version newer than whatever this had only ever been tested against locally
+
+[Unreleased]: https://github.com/rapidmx/server/compare/v1.0.0-beta.0...HEAD
+[1.0.0-beta.0]: https://github.com/rapidmx/server/releases/tag/v1.0.0-beta.0
