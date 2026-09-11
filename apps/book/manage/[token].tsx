@@ -8,7 +8,7 @@
  * `mail:booking:public_url` can now point at this route directly (see `config.mongo.ts`/`config.sql.ts`).
  */
 import React, { useEffect, useState } from "react";
-import { ApiRequestError } from "@rapidmx/react-shared/api.js";
+import { ApiRequestError } from "@rapidmx/react-shared/util/api.js";
 import {
     BookingSlot,
     BookingStatus,
@@ -17,12 +17,12 @@ import {
     getBookingByToken,
     getBookingSlots,
     rescheduleBooking,
-} from "@rapidmx/react-shared/bookingApi.js";
-import useBranding from "@rapidmx/react-shared/useBranding.js";
+} from "@rapidmx/react-shared/booking/bookingApi.js";
+import useBranding from "@rapidmx/react-shared/branding/useBranding.js";
 import Alert from "@rapidmx/web-client/shared/components/feedback/Alert.js";
 import Button from "@rapidmx/web-client/shared/components/buttons/Button.js";
 import { BrandingFooter, BrandingHeader } from "@rapidmx/web-client/shared/components/layout/BrandingChrome.js";
-import Modal from "@rapidmx/react-shared/Modal.js";
+import Modal from "@rapidmx/react-shared/components/overlays/Modal.js";
 
 export default function ManageBookingPage({ params }: { params: { token: string } }) {
     const { branding, logoSrc } = useBranding();

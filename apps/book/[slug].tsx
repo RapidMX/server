@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { FormEvent, useEffect, useMemo, useState } from "react";
-import { ApiRequestError } from "@rapidmx/react-shared/api.js";
+import { ApiRequestError } from "@rapidmx/react-shared/util/api.js";
 import {
     BookingSlot,
     PublicBookingType,
@@ -11,8 +11,8 @@ import {
     bookingManageUrl,
     getBookingSlots,
     getPublicBookingType,
-} from "@rapidmx/react-shared/bookingApi.js";
-import useBranding from "@rapidmx/react-shared/useBranding.js";
+} from "@rapidmx/react-shared/booking/bookingApi.js";
+import useBranding from "@rapidmx/react-shared/branding/useBranding.js";
 import Alert from "@rapidmx/web-client/shared/components/feedback/Alert.js";
 import Button from "@rapidmx/web-client/shared/components/buttons/Button.js";
 import { BrandingFooter, BrandingHeader } from "@rapidmx/web-client/shared/components/layout/BrandingChrome.js";
