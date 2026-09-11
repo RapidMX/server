@@ -6,10 +6,12 @@ import React, { ChangeEvent, FormEvent, useEffect, useRef, useState } from "reac
 import { ApiRequestError } from "../../shared/lib/api.js";
 import {
     Branding,
+    deleteBrandingIcon,
     deleteBrandingLogo,
     deleteBrandingStylesheet,
     getBranding,
     updateBranding,
+    uploadBrandingIcon,
     uploadBrandingLogo,
     uploadBrandingStylesheet,
 } from "../../shared/lib/brandingApi.js";
@@ -57,6 +59,7 @@ function BrandingForm({ branding, onChange }: { branding: Branding; onChange: (b
     const [headerHtml, setHeaderHtml] = useState(branding.headerHtml ?? "");
     const [footerHtml, setFooterHtml] = useState(branding.footerHtml ?? "");
     const [logoUrlInput, setLogoUrlInput] = useState(branding.logoUrl ?? "");
+    const [iconUrlInput, setIconUrlInput] = useState(branding.iconUrl ?? "");
     const [stylesheetUrlInput, setStylesheetUrlInput] = useState(branding.stylesheetUrl ?? "");
 
     const [error, setError] = useState<string | null>(null);
@@ -65,6 +68,7 @@ function BrandingForm({ branding, onChange }: { branding: Branding; onChange: (b
     const [assetBusy, setAssetBusy] = useState<string | null>(null);
 
     const logoFileRef = useRef<HTMLInputElement>(null);
+    const iconFileRef = useRef<HTMLInputElement>(null);
     const stylesheetFileRef = useRef<HTMLInputElement>(null);
 
     function runAsset(name: string, action: () => Promise<Branding>) {
@@ -74,6 +78,7 @@ function BrandingForm({ branding, onChange }: { branding: Branding; onChange: (b
             .then((updated) => {
                 onChange(updated);
                 setLogoUrlInput(updated.logoUrl ?? "");
+                setIconUrlInput(updated.iconUrl ?? "");
                 setStylesheetUrlInput(updated.stylesheetUrl ?? "");
             })
             .catch((err) => setError(err instanceof ApiRequestError ? err.message : "Could not update branding."))
@@ -87,6 +92,17 @@ function BrandingForm({ branding, onChange }: { branding: Branding; onChange: (b
             setError(`"${file.name}" is too large — logos must be 5MB or smaller.`);
         } else {
             void runAsset("logo-upload", () => uploadBrandingLogo(file));
+        }
+        e.target.value = "";
+    }
+
+    function handleIconFileChange(e: ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size > MAX_UPLOAD_BYTES) {
+            setError(`"${file.name}" is too large — icons must be 5MB or smaller.`);
+        } else {
+            void runAsset("icon-upload", () => uploadBrandingIcon(file));
         }
         e.target.value = "";
     }
@@ -122,8 +138,8 @@ function BrandingForm({ branding, onChange }: { branding: Branding; onChange: (b
         <div className="max-w-2xl">
             <h1 className="text-xl font-bold uppercase tracking-wide mb-1">Branding</h1>
             <p className="text-sm text-text-muted mb-5">
-                Customize the logo, product name, and chrome shown to every visitor of the webmail and admin
-                console — including anonymous booking-page visitors.
+                Customize the logo, nav-header icon, product name, and chrome shown to every visitor of the
+                webmail and admin console — including anonymous booking-page visitors.
             </p>
 
             {error && <Alert>{error}</Alert>}
@@ -191,6 +207,78 @@ function BrandingForm({ branding, onChange }: { branding: Branding; onChange: (b
                                 disabled={assetBusy !== null || logoUrlInput === (branding.logoUrl ?? "")}
                                 loading={assetBusy === "logo-url"}
                                 onClick={() => void runAsset("logo-url", () => updateBranding({ logoUrl: logoUrlInput }))}
+                            >
+                                Set
+                            </Button>
+                        </div>
+                    </label>
+                </section>
+
+                <section className="flex flex-col gap-3">
+                    <h2 className="text-sm font-bold uppercase tracking-wide text-text-muted">Icon</h2>
+                    <p className="text-xs text-text-muted -mt-1">
+                        A compact mark for navigation headers, independent of the full logo above. Falls back to
+                        the logo, then a default asset, when not set.
+                    </p>
+                    <div className="flex items-center gap-4">
+                        <img
+                            src={branding.iconUrl || branding.logoUrl || "/images/logo.svg"}
+                            alt="Current icon"
+                            width="64"
+                            height="64"
+                            className="border border-border rounded-sm bg-surface-alt p-1"
+                        />
+                        <div className="flex flex-col gap-2">
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                className="!w-auto"
+                                loading={assetBusy === "icon-upload"}
+                                disabled={assetBusy !== null}
+                                onClick={() => iconFileRef.current?.click()}
+                            >
+                                Upload icon
+                            </Button>
+                            <input
+                                ref={iconFileRef}
+                                type="file"
+                                accept="image/*"
+                                aria-label="Upload icon"
+                                className="hidden"
+                                onChange={handleIconFileChange}
+                            />
+                            {branding.iconUrl && (
+                                <Button
+                                    type="button"
+                                    variant="text"
+                                    disabled={assetBusy !== null}
+                                    loading={assetBusy === "icon-delete"}
+                                    onClick={() => void runAsset("icon-delete", async () => {
+                                        await deleteBrandingIcon();
+                                        return { ...branding, iconUrl: undefined };
+                                    })}
+                                >
+                                    Remove icon
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                    <label className="flex flex-col gap-1.5 text-sm">
+                        <span className="font-semibold">Or use an external image URL</span>
+                        <div className="flex gap-2">
+                            <input
+                                aria-label="Icon URL"
+                                className={INPUT_CLASS}
+                                value={iconUrlInput}
+                                onChange={(e) => setIconUrlInput(e.target.value)}
+                            />
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                className="!w-auto"
+                                disabled={assetBusy !== null || iconUrlInput === (branding.iconUrl ?? "")}
+                                loading={assetBusy === "icon-url"}
+                                onClick={() => void runAsset("icon-url", () => updateBranding({ iconUrl: iconUrlInput }))}
                             >
                                 Set
                             </Button>

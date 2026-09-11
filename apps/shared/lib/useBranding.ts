@@ -6,12 +6,19 @@ import { useEffect, useState } from "react";
 import { Branding, getBranding } from "./brandingApi.js";
 
 const DEFAULT_LOGO_SRC = "/images/logo.svg";
-const STYLESHEET_LINK_ID = "branding-stylesheet";
+
+/** `id` of the `<link>` for an uploaded/referenced custom stylesheet — server-rendered directly by
+ * `apps/*​/_layout.tsx` (with this exact id) when one is configured, and kept live by this hook's
+ * background refresh thereafter (matched by this id, rather than always appending a duplicate). */
+export const CUSTOM_STYLESHEET_LINK_ID = "branding-stylesheet";
 
 export interface UseBrandingResult {
     branding: Branding | null;
     /** `branding.logoUrl` once loaded, else the built-in default — always a usable `<img src>`. */
     logoSrc: string;
+    /** `branding.iconUrl` once loaded, falling back to the full logo and then the built-in default — the
+     * compact mark for nav headers (see `Branding.iconUrl`'s doc comment). Always a usable `<img src>`. */
+    iconSrc: string;
 }
 
 /**
@@ -50,18 +57,25 @@ export default function useBranding(): UseBrandingResult {
     }, [branding?.title]);
 
     useEffect(() => {
+        // Reuses an existing `<link>` (server-rendered by `apps/*​/_layout.tsx` when a stylesheet is already
+        // configured) rather than always appending a duplicate — see `CUSTOM_STYLESHEET_LINK_ID`'s doc comment.
+        let link = document.getElementById(CUSTOM_STYLESHEET_LINK_ID) as HTMLLinkElement | null;
         if (!branding?.stylesheetUrl) {
+            link?.remove();
             return;
         }
-        const link = document.createElement("link");
-        link.id = STYLESHEET_LINK_ID;
-        link.rel = "stylesheet";
+        if (!link) {
+            link = document.createElement("link");
+            link.id = CUSTOM_STYLESHEET_LINK_ID;
+            link.rel = "stylesheet";
+            document.head.appendChild(link);
+        }
         link.href = branding.stylesheetUrl;
-        document.head.appendChild(link);
-        return () => {
-            link.remove();
-        };
     }, [branding?.stylesheetUrl]);
 
-    return { branding, logoSrc: branding?.logoUrl || DEFAULT_LOGO_SRC };
+    return {
+        branding,
+        logoSrc: branding?.logoUrl || DEFAULT_LOGO_SRC,
+        iconSrc: branding?.iconUrl || branding?.logoUrl || DEFAULT_LOGO_SRC,
+    };
 }

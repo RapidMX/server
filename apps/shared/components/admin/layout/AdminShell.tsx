@@ -90,7 +90,7 @@ const ALL_ITEMS: NavItem[] = [...NAV_ITEMS, ...MAILBOX_SCOPED_ITEMS];
 export default function AdminShell({ active, userUid, authServerUrl, children }: PropsWithChildren<AdminShellProps>) {
     const [status, setStatus] = useState<Status>("checking");
     const [error, setError] = useState<string | null>(null);
-    const { branding, logoSrc } = useBranding();
+    const { branding, iconSrc } = useBranding();
 
     useRedirectIfUnauthenticated(userUid, authServerUrl);
 
@@ -142,7 +142,7 @@ export default function AdminShell({ active, userUid, authServerUrl, children }:
                         aria-label="Admin sections"
                         className="hidden md:flex w-16 shrink-0 bg-surface border-r border-border flex-col items-center py-3 gap-1"
                     >
-                        <img src={logoSrc} width="96" height="96" alt="" className="mb-3" />
+                        <img src={iconSrc} width="96" height="96" alt="" className="mb-3" />
                         {NAV_ITEMS.map(({ id, href, label, icon: Icon }) => (
                             <a
                                 key={id}

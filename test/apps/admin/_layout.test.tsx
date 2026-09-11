@@ -20,4 +20,21 @@ describe("Layout", () => {
         expect(html).toContain('href="/favicon.ico"');
         expect(html).toContain("<body><p>page content</p></body>");
     });
+
+    it("renders the configured title and icon when branding is supplied", () => {
+        const html = renderToStaticMarkup(
+            <Layout
+                branding={{
+                    companyName: "Acme",
+                    title: "Acme Mail",
+                    iconUrl: "https://cdn.example.com/icon.png",
+                }}
+            >
+                <p>page content</p>
+            </Layout>,
+        );
+
+        expect(html).toContain("<title>Acme Mail: Mail Admin Console</title>");
+        expect(html).toContain('href="https://cdn.example.com/icon.png"');
+    });
 });

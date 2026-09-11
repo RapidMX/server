@@ -3,11 +3,13 @@
 ///////////////////////////////////////////////////////////////////////////////
 import { ObjectDecorators } from "@rapidrest/core";
 import { ReactRoute } from "@rapidrest/react";
-import { RouteDecorators, type HttpRequest } from "@rapidrest/service-core";
+import { ObjectFactory, RouteDecorators, type HttpRequest } from "@rapidrest/service-core";
+import { fetchBrandingPropsForSSR } from "@rapidmx/restapi";
+import { BrandingMongo } from "@rapidmx/restapi/mongo";
 import { isRunningUnderYarnDev } from "../../dev/enableDevAutoLogin.js";
 
 const { Route } = RouteDecorators;
-const { Config } = ObjectDecorators;
+const { Config, Inject } = ObjectDecorators;
 
 @Route("/admin")
 export class AdminConsoleRoute extends ReactRoute {
@@ -17,10 +19,15 @@ export class AdminConsoleRoute extends ReactRoute {
     @Config("mail:auth_server_url")
     private authServerUrl?: string;
 
+    @Inject(ObjectFactory)
+    private brandingObjectFactory!: ObjectFactory;
+
+    /** See `WwwRoute.fetchProps()` (`src/mongo/routes/wwwRoute.ts`) — identical purpose, for the admin console. */
     protected async fetchProps(_req: HttpRequest): Promise<any> {
         // Empty string under `yarn dev` tells the client to call this app's own local dev-only impersonation
         // endpoint (see `DevImpersonationRoute`) instead of a real auth-server that isn't running locally.
         const impersonationBaseUrl = isRunningUnderYarnDev() ? "" : (this.authServerUrl ?? "");
-        return { authServerUrl: this.authServerUrl, impersonationBaseUrl };
+        const { branding } = await fetchBrandingPropsForSSR(this.brandingObjectFactory, BrandingMongo);
+        return { authServerUrl: this.authServerUrl, impersonationBaseUrl, branding };
     }
 }

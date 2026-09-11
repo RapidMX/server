@@ -17,6 +17,10 @@ export interface Branding {
     /** Already a directly-usable `<img src>` value — either an admin-set external URL, or (once uploaded via
      * `uploadBrandingLogo()`) this server's own resolved asset URL. Never a bare blob key. */
     logoUrl?: string;
+    /** The compact mark for navigation headers, independently configurable from `logoUrl`'s full logo -
+     * same directly-usable shape as `logoUrl`. Falls back to `logoUrl`, then a built-in default, when unset
+     * (see `useBranding()`'s `iconSrc`) - no fallback is applied here. */
+    iconUrl?: string;
     /** Same shape as `logoUrl`, directly usable as a `<link href>`. */
     stylesheetUrl?: string;
     headerHtml?: string;
@@ -31,6 +35,7 @@ export interface UpdateBrandingInput {
     companyName?: string;
     title?: string;
     logoUrl?: string;
+    iconUrl?: string;
     stylesheetUrl?: string;
     headerHtml?: string;
     footerHtml?: string;
@@ -65,12 +70,21 @@ export function uploadBrandingLogo(file: File): Promise<Branding> {
     return uploadBrandingAsset("/mail/branding/logo", file);
 }
 
+/** Uploads `file` as the compact nav-header icon, independently of `uploadBrandingLogo()`'s full logo. */
+export function uploadBrandingIcon(file: File): Promise<Branding> {
+    return uploadBrandingAsset("/mail/branding/icon", file);
+}
+
 export function uploadBrandingStylesheet(file: File): Promise<Branding> {
     return uploadBrandingAsset("/mail/branding/stylesheet", file);
 }
 
 export function deleteBrandingLogo(): Promise<void> {
     return apiFetch("/mail/branding/logo", { method: "DELETE" });
+}
+
+export function deleteBrandingIcon(): Promise<void> {
+    return apiFetch("/mail/branding/icon", { method: "DELETE" });
 }
 
 export function deleteBrandingStylesheet(): Promise<void> {

@@ -234,7 +234,7 @@ describe("BrandingPage", () => {
 
         await user.type(screen.getByLabelText("Stylesheet URL"), "https://cdn.example.com/theme.css");
         const setButtons = screen.getAllByRole("button", { name: "Set" });
-        await user.click(setButtons[1]);
+        await user.click(setButtons[setButtons.length - 1]);
 
         expect(await screen.findByText("https://cdn.example.com/theme.css")).toBeInTheDocument();
     });
