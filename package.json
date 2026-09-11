@@ -37,7 +37,7 @@
     "@rapidmx/autodiscover": "1.0.0-beta.0",
     "@rapidmx/mapi": "1.0.0-beta.0",
     "@rapidmx/react-shared": "link:../react-shared",
-    "@rapidmx/restapi": "^0.4.0",
+    "@rapidmx/restapi": "^0.6.0",
     "@rapidmx/web-client": "link:../web-client",
     "@rapidrest/core": "^5.2.2",
     "@rapidrest/react": "2.0.0-beta.2",
@@ -60,7 +60,7 @@
     "winston-transport": "^4.9.0"
   },
   "devDependencies": {
-    "@rapidrest/cli": "^1.0.1",
+    "@rapidrest/cli": "^2.0.0",
     "@swc/core": "^1.16.2",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/dom": "^10.4.1",
