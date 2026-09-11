@@ -5,7 +5,7 @@ description: >-
   into a Kubernetes cluster. Real inbound/outbound MTA (Postfix + postfix-bridge)
   is a separate chart - see https://github.com/rapidmx/postfix-bridge - deploy it
   alongside this one, not instead of it.
-name: mail-server
+name: server
 version: 1.0.0
 appVersion: 1.0.0-beta.2
 dependencies:

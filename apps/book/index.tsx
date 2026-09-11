@@ -5,9 +5,9 @@
 /** Reached only by a bare `/book` visit with no slug (e.g. a mistyped/incomplete link) — the real booking
  * flow lives at `apps/book/[slug].tsx`, `GET /book/:slug`. */
 import React from "react";
-import useBranding from "../shared/lib/useBranding.js";
-import Alert from "../shared/components/feedback/Alert.js";
-import { BrandingFooter, BrandingHeader } from "../shared/components/layout/BrandingChrome.js";
+import useBranding from "@rapidmx/react-shared/branding/useBranding.js";
+import Alert from "@rapidmx/react-shared/components/feedback/Alert.js";
+import { BrandingFooter, BrandingHeader } from "@rapidmx/web-client/shared/components/layout/BrandingChrome.js";
 
 export default function NoBookingSlugPage() {
     const { branding } = useBranding();

@@ -57,7 +57,7 @@ export async function enableDevAutoLoginIfApplicable(objectFactory: ObjectFactor
  * `DevImpersonationRoute`'s own doc comment) so the admin console's "Access this mailbox" button and the
  * webmail client's "stop impersonating" banner both work against `yarn dev` without a real auth-server
  * running — production always calls the real auth-server for this instead (see
- * `apps/shared/lib/mailApi.ts`).
+ * `@rapidmx/react-shared`'s `mailApi.ts`).
  *
  * Unlike `enableDevAutoLoginIfApplicable()` (which registers an auth *strategy* before `server.start()`),
  * mounting a *route* needs a real `Server` instance to attach to — call this once, immediately after

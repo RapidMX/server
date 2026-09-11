@@ -8,7 +8,7 @@
  * `mail:booking:public_url` can now point at this route directly (see `config.mongo.ts`/`config.sql.ts`).
  */
 import React, { useEffect, useState } from "react";
-import { ApiRequestError } from "../../shared/lib/api.js";
+import { ApiRequestError } from "@rapidmx/react-shared/util/api.js";
 import {
     BookingSlot,
     BookingStatus,
@@ -17,12 +17,12 @@ import {
     getBookingByToken,
     getBookingSlots,
     rescheduleBooking,
-} from "../../shared/lib/bookingApi.js";
-import useBranding from "../../shared/lib/useBranding.js";
-import Alert from "../../shared/components/feedback/Alert.js";
-import Button from "../../shared/components/buttons/Button.js";
-import { BrandingFooter, BrandingHeader } from "../../shared/components/layout/BrandingChrome.js";
-import Modal from "../../shared/lib/Modal.js";
+} from "@rapidmx/react-shared/booking/bookingApi.js";
+import useBranding from "@rapidmx/react-shared/branding/useBranding.js";
+import Alert from "@rapidmx/react-shared/components/feedback/Alert.js";
+import Button from "@rapidmx/react-shared/components/buttons/Button.js";
+import { BrandingFooter, BrandingHeader } from "@rapidmx/web-client/shared/components/layout/BrandingChrome.js";
+import Modal from "@rapidmx/react-shared/components/overlays/Modal.js";
 
 export default function ManageBookingPage({ params }: { params: { token: string } }) {
     const { branding, logoSrc } = useBranding();

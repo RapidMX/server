@@ -3,6 +3,11 @@
 // Copyright (C) 2026 Jean-Philippe Steinmetz
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
+import { register } from "module";
+// See server.ts's identical registration for the full rationale (reactDedupeHooks.ts's own doc
+// comment has the complete explanation of why this is necessary and why `--preserve-symlinks`
+// does not substitute for it).
+register(import.meta.url.endsWith(".ts") ? "./lib/reactDedupeHooks.ts" : "./lib/reactDedupeHooks.js", import.meta.url);
 import config from "./config.sql.js";
 import { fileURLToPath } from "url";
 import { dirname } from "path";

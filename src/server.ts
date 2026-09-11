@@ -3,6 +3,15 @@
 // Copyright (C) 2026 Jean-Philippe Steinmetz
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
+import { register } from "module";
+// Forces every `react`/`react-dom` resolution (from this project's own code AND from the
+// `link:`-ed @rapidmx/react-shared / @rapidmx/web-client packages' own SSR'd modules) onto this
+// project's single installed copy — see reactDedupeHooks.ts's own doc comment for why this is
+// necessary (Vite's `resolve.dedupe` only covers the client bundle, not ReactRoute's plain-Node
+// SSR `import()` path) and why `--preserve-symlinks` does not substitute for it. Must run before
+// any page/layout module is ever dynamically imported — registering it here, at the top of this
+// process's own entry point, guarantees that.
+register(import.meta.url.endsWith(".ts") ? "./lib/reactDedupeHooks.ts" : "./lib/reactDedupeHooks.js", import.meta.url);
 import config from "./config.js";
 import { fileURLToPath } from "url";
 import { dirname } from "path";

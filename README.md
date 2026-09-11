@@ -1,8 +1,8 @@
 # RapidMX: Mail Server
 
-[![CI](https://github.com/rapidmx/server/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/rapidmx/server/actions/workflows/build.yml)
+[![CI](https://github.com/rapidmx/server/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/rapidmx/server/actions/workflows/ci.yml)
 [![Coverage Status](https://coveralls.io/repos/github/rapidmx/server/badge.svg?branch=main)](https://coveralls.io/github/rapidmx/server?branch=main)
-[![npm version](https://img.shields.io/npm/v/@rapidmx/server)](https://www.npmjs.com/package/@rapidmx/server)
+[![package version](https://ghcr-badge.egpl.dev/rapidmx/server/latest_tag?trim=major&label=latest)](https://github.com/rapidmx/server/pkgs/container/server)
 
 A reference implementation of a RapidMX mail server, providing a complete, deployable mail service that includes a web mail (React) client as well as Exchange ActiveSync, and MAPI support.
 

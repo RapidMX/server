@@ -7,13 +7,14 @@ import { ObjectFactory, RouteDecorators, type HttpRequest } from "@rapidrest/ser
 import { fetchBrandingPropsForSSR } from "@rapidmx/restapi";
 import { BrandingMongo } from "@rapidmx/restapi/mongo";
 import { isRunningUnderYarnDev } from "../../dev/enableDevAutoLogin.js";
+import { webClientAppDir } from "../../routes/webClientAppDir.js";
 
 const { Route } = RouteDecorators;
 const { Config, Inject } = ObjectDecorators;
 
 @Route("/")
 export class WwwRoute extends ReactRoute {
-    protected readonly appDir: string = "apps/www";
+    protected readonly appDir: string = webClientAppDir("www");
     protected readonly hydrate: boolean = true;
 
     @Config("mail:auth_server_url")

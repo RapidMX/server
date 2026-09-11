@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { FormEvent, useEffect, useMemo, useState } from "react";
-import { ApiRequestError } from "../shared/lib/api.js";
+import { ApiRequestError } from "@rapidmx/react-shared/util/api.js";
 import {
     BookingSlot,
     PublicBookingType,
@@ -11,11 +11,11 @@ import {
     bookingManageUrl,
     getBookingSlots,
     getPublicBookingType,
-} from "../shared/lib/bookingApi.js";
-import useBranding from "../shared/lib/useBranding.js";
-import Alert from "../shared/components/feedback/Alert.js";
-import Button from "../shared/components/buttons/Button.js";
-import { BrandingFooter, BrandingHeader } from "../shared/components/layout/BrandingChrome.js";
+} from "@rapidmx/react-shared/booking/bookingApi.js";
+import useBranding from "@rapidmx/react-shared/branding/useBranding.js";
+import Alert from "@rapidmx/react-shared/components/feedback/Alert.js";
+import Button from "@rapidmx/react-shared/components/buttons/Button.js";
+import { BrandingFooter, BrandingHeader } from "@rapidmx/web-client/shared/components/layout/BrandingChrome.js";
 
 const INPUT_CLASS =
     "w-full text-sm py-2.5 px-3 border border-border rounded-sm bg-surface text-text focus:outline-none focus:border-primary";
