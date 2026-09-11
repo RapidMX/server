@@ -27,7 +27,7 @@ git clone https://github.com/rapidmx/server
 | ------------ | :-------------------: |
 | Registry     | ghcr.io |
 | Repository   | /rapidmx/server |
-| Tag          | 1.0.0-beta.1 |
+| Tag          | 1.0.0-beta.2 |
 
 This project provides scripts for running in Docker or Kubernetes. For Docker, you will find *docker-compose* scripts
 in the project source. For Kubernetes, a *helm* chart is available both in the project source and via GitHub Container
@@ -86,7 +86,11 @@ is easy using either the published helm chart in GitHub or install from the helm
 #### From GHCR
 
 ```bash
+<<<<<<< HEAD
 helm install --create-namespace --namespace mail-server mail-server oci://ghcr.io/rapidrest/charts/mail-server --version 1.0.0-beta.1
+=======
+helm install --create-namespace --namespace mail-server mail-server oci://ghcr.io/rapidrest/charts/mail-server --version 1.0.0-beta.2
+>>>>>>> 4175d8d5690d5a2903b56b48549e02eb029bdc5d
 ```
 
 #### From Local

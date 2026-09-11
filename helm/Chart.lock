@@ -12,4 +12,4 @@ dependencies:
   repository: oci://ghcr.io/rapidrest/charts
   version: 1.0.0-beta.1
 digest: sha256:252076def93e6d58c0f81f637c1970f1b712ab02103f31e2c756fa6cc47a4c34
-generated: "2026-09-10T17:19:36.9996781-07:00"
+generated: "2026-09-10T17:49:06.7831697-07:00"

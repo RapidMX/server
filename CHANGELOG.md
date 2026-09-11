@@ -7,35 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.0-beta.1] - 2026-09-11
-
-### Added
-- Added nav icon branding and server-rendered site branding
+## [1.0.0-beta.2] - 2026-09-10
 
 ### Changed
-- Splits the persistent nav-rail mark (AppShell/AdminShell) into a
-- dedicated, independently configurable icon, separate from the full logo
-- - mirrors auth-server's own logo/icon split: brandingApi.ts/useBranding.ts
-- gain iconUrl/iconSrc (falling back to the logo, then a built-in default),
-- AppShell/AdminShell's nav rail renders iconSrc instead of logoSrc, and the
-- admin Branding settings page gains an Icon section mirroring the Logo one.
-- Also makes branding (title, favicon, custom stylesheet) render correctly
-- on the very first byte of the response instead of flashing in after a
-- client-side fetch, and be visible to crawlers reading the raw HTML:
-- wwwRoute/AdminConsoleRoute/BookRoute (mongo + sql) now fetch branding via
-- @rapidmx/restapi's new fetchBrandingPropsForSSR() and feed it into
-- apps/*/_layout.tsx, which renders <title>/<link rel="icon">/the custom
-- stylesheet <link> directly from that prop. useBranding()'s stylesheet
-- effect now matches by the same <link> id rather than always appending a
-- duplicate, so it can pick up and keep live a stylesheet _layout.tsx
-- already server-rendered.
-- Requires @rapidmx/restapi's new icon field/SSR helper - not yet published,
-- so pointed at via a temporary portal:../restapi dependency until it is
-- (swap back to a real registry range once released) - and @rapidrest/react
-- 2.0.0-beta.2, which now spreads a route's fetchProps() onto _layout.tsx as
-- well as the page component.
-- Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
-- Upgraded helm deps
+- Specifying helm version for auth-server
+
+## [1.0.0-beta.1] - 2026-09-10
+
+### Fixed
+- Fixed package name
 
 ## [1.0.0-beta.0] - 2026-09-10
 
@@ -355,6 +335,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed test from .dockerignore, fixing yarn build's lint step failing outright when the build context is missing the test directory its tsconfig.eslint.json requires
 - Removed docker-compose.mail.yml's partial server: service block, since include: only supports merging resources that don't already exist in the including file and hard-errors ("services.server conflicts with imported resource") on a Compose version newer than whatever this had only ever been tested against locally
 
-[Unreleased]: https://github.com/rapidmx/server/compare/v1.0.0-beta.1...HEAD
+[Unreleased]: https://github.com/rapidmx/server/compare/v1.0.0-beta.2...HEAD
+[1.0.0-beta.2]: https://github.com/rapidmx/server/compare/v1.0.0-beta.1...v1.0.0-beta.2
 [1.0.0-beta.1]: https://github.com/rapidmx/server/compare/v1.0.0-beta.0...v1.0.0-beta.1
 [1.0.0-beta.0]: https://github.com/rapidmx/server/releases/tag/v1.0.0-beta.0
