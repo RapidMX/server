@@ -3,14 +3,14 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { FormEvent, useEffect, useState } from "react";
-import { ApiRequestError } from "../../shared/lib/api.js";
+import { ApiRequestError } from "@rapidmx/react-shared/api.js";
 import {
     getTransportRule,
     TransportRule,
     TransportRuleAction,
     TransportRuleConditions,
     updateTransportRule,
-} from "../../shared/lib/transportRulesApi.js";
+} from "@rapidmx/react-shared/transportRulesApi.js";
 import AdminShell, { AdminShellProps } from "../../shared/components/admin/layout/AdminShell.js";
 import RuleBuilder, { RuleBuilderValue } from "../../shared/components/rules/RuleBuilder.js";
 import { TRANSPORT_RULE_ACTION_TYPES, TRANSPORT_RULE_CONDITION_FIELDS } from "./_transportRuleConfig.js";

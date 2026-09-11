@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { FormEvent, useState } from "react";
-import { ApiRequestError } from "../../../lib/api.js";
-import { DistributionList, updateDistributionList } from "../../../lib/distributionListsApi.js";
+import { ApiRequestError } from "@rapidmx/react-shared/api.js";
+import { DistributionList, updateDistributionList } from "@rapidmx/react-shared/distributionListsApi.js";
 import Alert from "../../feedback/Alert.js";
 import Button from "../../buttons/Button.js";
 

@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { FormEvent, useState } from "react";
-import { ApiRequestError } from "../../../shared/lib/api.js";
-import { createDomain } from "../../../shared/lib/domainsApi.js";
+import { ApiRequestError } from "@rapidmx/react-shared/api.js";
+import { createDomain } from "@rapidmx/react-shared/domainsApi.js";
 import AdminShell, { AdminShellProps } from "../../../shared/components/admin/layout/AdminShell.js";
 import Alert from "../../../shared/components/feedback/Alert.js";
 import Button from "../../../shared/components/buttons/Button.js";

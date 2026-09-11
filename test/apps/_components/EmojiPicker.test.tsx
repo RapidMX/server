@@ -50,7 +50,7 @@ describe("EmojiPicker", () => {
 });
 
 describe("EmojiPicker with an unrecognized category id", () => {
-    vi.doMock("../../../apps/shared/lib/emojiData.js", () => ({
+    vi.doMock("@rapidmx/react-shared/emojiData.js", () => ({
         EMOJI_CATEGORIES: [{ id: "mystery", emojis: [{ id: "e1", native: "🦄", name: "Unicorn" }] }],
     }));
 

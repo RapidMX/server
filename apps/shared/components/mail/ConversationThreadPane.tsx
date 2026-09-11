@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { useEffect, useState } from "react";
-import { ApiRequestError } from "../../lib/api.js";
-import { Attachment, Folder, Message, getMessage, listAttachments, setMessageRead } from "../../lib/mailApi.js";
-import { ConversationSummary } from "../../lib/conversationsApi.js";
+import { ApiRequestError } from "@rapidmx/react-shared/api.js";
+import { Attachment, Folder, Message, getMessage, listAttachments, setMessageRead } from "@rapidmx/react-shared/mailApi.js";
+import { ConversationSummary } from "@rapidmx/react-shared/conversationsApi.js";
 import MessageDetailPane from "./MessageDetailPane.js";
 import Alert from "../feedback/Alert.js";
 

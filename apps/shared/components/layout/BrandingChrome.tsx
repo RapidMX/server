@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React from "react";
-import { Branding } from "../../lib/brandingApi.js";
+import { Branding } from "@rapidmx/react-shared/brandingApi.js";
 
 /**
  * Renders the admin-configured `Branding.headerHtml`/`footerHtml` (see `useBranding()`) — shared by every

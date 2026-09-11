@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { RefObject, useEffect, useState } from "react";
-import { ApiRequestError } from "../../lib/api.js";
-import { Mailbox, listResourceMailboxes } from "../../lib/mailApi.js";
+import { ApiRequestError } from "@rapidmx/react-shared/api.js";
+import { Mailbox, listResourceMailboxes } from "@rapidmx/react-shared/mailApi.js";
 import PopoverPortal from "../mail/compose/PopoverPortal.js";
 
 export interface ResourcePickerProps {

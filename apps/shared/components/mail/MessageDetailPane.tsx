@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { useState } from "react";
-import { ApiRequestError } from "../../lib/api.js";
+import { ApiRequestError } from "@rapidmx/react-shared/api.js";
 import {
     Attachment,
     Message,
@@ -15,10 +15,10 @@ import {
     classifyMessage,
     declineReceipt,
     recallMessage,
-} from "../../lib/mailApi.js";
-import { buildForwardQuote, buildReplyQuote, forwardSubject, replySubject } from "../../lib/composeQuoting.js";
+} from "@rapidmx/react-shared/mailApi.js";
+import { buildForwardQuote, buildReplyQuote, forwardSubject, replySubject } from "@rapidmx/react-shared/composeQuoting.js";
 import { useCompose } from "./compose/ComposeContext.js";
-import Modal from "../../lib/Modal.js";
+import Modal from "@rapidmx/react-shared/Modal.js";
 import Alert from "../feedback/Alert.js";
 import Button from "../buttons/Button.js";
 

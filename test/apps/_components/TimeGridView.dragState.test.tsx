@@ -7,7 +7,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import TimeGridView from "../../../apps/shared/components/calendar/TimeGridView.js";
-import { CalendarOccurrence } from "../../../apps/shared/lib/recurrence.js";
+import { CalendarOccurrence } from "@rapidmx/react-shared/recurrence.js";
 
 const mockUseDroppable = vi.fn();
 const mockUseDraggable = vi.fn();

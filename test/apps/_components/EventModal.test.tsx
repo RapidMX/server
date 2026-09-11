@@ -8,8 +8,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { jsonResponse, mockFetch } from "../testUtils.js";
 import EventModal from "../../../apps/shared/components/calendar/EventModal.js";
-import { CalendarOccurrence } from "../../../apps/shared/lib/recurrence.js";
-import { Mailbox } from "../../../apps/shared/lib/mailApi.js";
+import { CalendarOccurrence } from "@rapidmx/react-shared/recurrence.js";
+import { Mailbox } from "@rapidmx/react-shared/mailApi.js";
 
 // `ResourcePicker`'s own loading/filtering/error rendering is tested in its own file — mocked here so
 // this file only exercises how `EventModal` opens it and reacts to a selection.

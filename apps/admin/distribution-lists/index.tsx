@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { useEffect, useState } from "react";
-import { ApiRequestError } from "../../shared/lib/api.js";
-import { DistributionList, listDistributionLists } from "../../shared/lib/distributionListsApi.js";
+import { ApiRequestError } from "@rapidmx/react-shared/api.js";
+import { DistributionList, listDistributionLists } from "@rapidmx/react-shared/distributionListsApi.js";
 import AdminShell, { AdminShellProps } from "../../shared/components/admin/layout/AdminShell.js";
 import Alert from "../../shared/components/feedback/Alert.js";
 import Button from "../../shared/components/buttons/Button.js";

@@ -4,7 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 import React, { FormEvent, useEffect, useMemo, useState } from "react";
 import { endOfWeek, isAfter, isBefore, isToday, startOfDay } from "date-fns";
-import { ApiRequestError } from "../../shared/lib/api.js";
+import { ApiRequestError } from "@rapidmx/react-shared/api.js";
 import {
     Task,
     TaskPriority,
@@ -14,9 +14,9 @@ import {
     setTaskCompleted,
     setTaskMyDay,
     updateTask,
-} from "../../shared/lib/tasksApi.js";
-import { listFlaggedMessages } from "../../shared/lib/flaggedMessages.js";
-import { Message } from "../../shared/lib/mailApi.js";
+} from "@rapidmx/react-shared/tasksApi.js";
+import { listFlaggedMessages } from "@rapidmx/react-shared/flaggedMessages.js";
+import { Message } from "@rapidmx/react-shared/mailApi.js";
 import TasksShell, { TasksShellProps, useTasksShell } from "../../shared/components/tasks/layout/TasksShell.js";
 import TasksSidebar, { TasksView } from "../../shared/components/tasks/TasksSidebar.js";
 import TasksToolbar, { TasksViewMode } from "../../shared/components/tasks/TasksToolbar.js";

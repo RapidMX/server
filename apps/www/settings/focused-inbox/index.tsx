@@ -3,14 +3,14 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { FormEvent, useEffect, useState } from "react";
-import { ApiRequestError } from "../../../shared/lib/api.js";
-import { MessageClassification } from "../../../shared/lib/mailApi.js";
+import { ApiRequestError } from "@rapidmx/react-shared/api.js";
+import { MessageClassification } from "@rapidmx/react-shared/mailApi.js";
 import {
     FocusedInboxOverride,
     createFocusedInboxOverride,
     deleteFocusedInboxOverride,
     listFocusedInboxOverrides,
-} from "../../../shared/lib/focusedInboxOverridesApi.js";
+} from "@rapidmx/react-shared/focusedInboxOverridesApi.js";
 import SettingsShell, { SettingsShellProps, useSettingsShell } from "../../../shared/components/settings/layout/SettingsShell.js";
 import Alert from "../../../shared/components/feedback/Alert.js";
 import Button from "../../../shared/components/buttons/Button.js";

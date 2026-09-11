@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { PropsWithChildren } from "react";
-import { Branding } from "../shared/lib/brandingApi.js";
-import { CUSTOM_STYLESHEET_LINK_ID } from "../shared/lib/useBranding.js";
+import { Branding } from "@rapidmx/react-shared/brandingApi.js";
+import { CUSTOM_STYLESHEET_LINK_ID } from "@rapidmx/react-shared/useBranding.js";
 
 export interface LayoutProps {
     /**

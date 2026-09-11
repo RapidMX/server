@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { useEffect, useMemo, useState } from "react";
-import { ApiRequestError } from "../../shared/lib/api.js";
+import { ApiRequestError } from "@rapidmx/react-shared/api.js";
 import {
     Contact,
     createContact,
@@ -12,9 +12,9 @@ import {
     listDeletedContacts,
     setContactFavorite,
     updateContact,
-} from "../../shared/lib/contactsApi.js";
-import { contactsToVCardFile, contactToVCard, parseVCards } from "../../shared/lib/vcard.js";
-import useIsMobile from "../../shared/lib/useIsMobile.js";
+} from "@rapidmx/react-shared/contactsApi.js";
+import { contactsToVCardFile, contactToVCard, parseVCards } from "@rapidmx/react-shared/vcard.js";
+import useIsMobile from "@rapidmx/react-shared/useIsMobile.js";
 import { useCompose } from "../../shared/components/mail/compose/ComposeContext.js";
 import ContactsShell, { ContactsShellProps, useContactsShell } from "../../shared/components/contacts/layout/ContactsShell.js";
 import ContactsSidebar, { ContactsView } from "../../shared/components/contacts/ContactsSidebar.js";

@@ -3,12 +3,12 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ApiRequestError } from "../shared/lib/api.js";
-import { Message, MessageClassification, getMessage, listMessages } from "../shared/lib/mailApi.js";
-import { ConversationSummary, listConversations } from "../shared/lib/conversationsApi.js";
-import { search as searchMailbox } from "../shared/lib/searchApi.js";
-import { useMarkMessageRead, useMessageAttachments } from "../shared/lib/mailDetailHooks.js";
-import useIsMobile from "../shared/lib/useIsMobile.js";
+import { ApiRequestError } from "@rapidmx/react-shared/api.js";
+import { Message, MessageClassification, getMessage, listMessages } from "@rapidmx/react-shared/mailApi.js";
+import { ConversationSummary, listConversations } from "@rapidmx/react-shared/conversationsApi.js";
+import { search as searchMailbox } from "@rapidmx/react-shared/searchApi.js";
+import { useMarkMessageRead, useMessageAttachments } from "@rapidmx/react-shared/mailDetailHooks.js";
+import useIsMobile from "@rapidmx/react-shared/useIsMobile.js";
 import MailShell, { MailShellProps, useMailShell } from "../shared/components/mail/layout/MailShell.js";
 import MessageDetailPane from "../shared/components/mail/MessageDetailPane.js";
 import ConversationList from "../shared/components/mail/ConversationList.js";

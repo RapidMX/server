@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { useEffect, useState } from "react";
-import { ApiRequestError } from "../../../shared/lib/api.js";
-import { BookingType, listBookingTypes } from "../../../shared/lib/bookingApi.js";
+import { ApiRequestError } from "@rapidmx/react-shared/api.js";
+import { BookingType, listBookingTypes } from "@rapidmx/react-shared/bookingApi.js";
 import SettingsShell, { SettingsShellProps, useSettingsShell } from "../../../shared/components/settings/layout/SettingsShell.js";
 import Alert from "../../../shared/components/feedback/Alert.js";
 import Button from "../../../shared/components/buttons/Button.js";

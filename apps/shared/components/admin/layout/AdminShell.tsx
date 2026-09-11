@@ -14,9 +14,9 @@ import {
     HiOutlineShieldExclamation,
     HiOutlineUserGroup,
 } from "react-icons/hi2";
-import { apiFetch, ApiRequestError } from "../../../lib/api.js";
-import { useRedirectIfUnauthenticated } from "../../../lib/session.js";
-import useBranding from "../../../lib/useBranding.js";
+import { apiFetch, ApiRequestError } from "@rapidmx/react-shared/api.js";
+import { useRedirectIfUnauthenticated } from "@rapidmx/react-shared/session.js";
+import useBranding from "@rapidmx/react-shared/useBranding.js";
 import Alert from "../../feedback/Alert.js";
 import BottomTabBar, { NavItem } from "../../layout/BottomTabBar.js";
 import { BrandingFooter, BrandingHeader } from "../../layout/BrandingChrome.js";

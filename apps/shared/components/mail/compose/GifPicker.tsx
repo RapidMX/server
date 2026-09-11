@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { RefObject, useEffect, useState } from "react";
-import { ApiRequestError } from "../../../lib/api.js";
-import { GiphyGif, searchGifs } from "../../../lib/giphyApi.js";
+import { ApiRequestError } from "@rapidmx/react-shared/api.js";
+import { GiphyGif, searchGifs } from "@rapidmx/react-shared/giphyApi.js";
 import PopoverPortal from "./PopoverPortal.js";
 
 export interface GifPickerProps {

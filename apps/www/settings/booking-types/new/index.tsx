@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { FormEvent, useEffect, useState } from "react";
-import { ApiRequestError } from "../../../../shared/lib/api.js";
-import { Folder, listFolders } from "../../../../shared/lib/mailApi.js";
-import { BookingAvailabilityWindow, createBookingType } from "../../../../shared/lib/bookingApi.js";
+import { ApiRequestError } from "@rapidmx/react-shared/api.js";
+import { Folder, listFolders } from "@rapidmx/react-shared/mailApi.js";
+import { BookingAvailabilityWindow, createBookingType } from "@rapidmx/react-shared/bookingApi.js";
 import SettingsShell, { SettingsShellProps, useSettingsShell } from "../../../../shared/components/settings/layout/SettingsShell.js";
 import AvailabilityEditor from "../../../../shared/components/booking/AvailabilityEditor.js";
 import Alert from "../../../../shared/components/feedback/Alert.js";

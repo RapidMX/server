@@ -21,7 +21,7 @@ const { Config, Inject } = ObjectDecorators;
 const { Description, Returns, Summary } = DocDecorators;
 const { Auth, Param, Post, User: AuthUser } = RouteDecorators;
 
-/** The structured compose input a webmail client submits — see `apps/shared/lib/mailApi.ts`'s `assembleDraft`. */
+/** The structured compose input a webmail client submits — see `assembleDraft()` in `@rapidmx/react-shared`'s `mailApi.ts`. */
 export interface ComposeAssembleInput {
     to: Recipient[];
     cc?: Recipient[];
@@ -102,7 +102,7 @@ export function sanitizeComposeHtml(html: string): string {
 
 /**
  * Rewrites `<img>` references to this draft's own already-uploaded attachments (by their
- * `/mail/attachments/:uid/content` URL — see `apps/shared/lib/mailApi.ts`'s `attachmentContentUrl()`)
+ * `/mail/attachments/:uid/content` URL — see `attachmentContentUrl()` in `@rapidmx/react-shared`'s `mailApi.ts`)
  * into `cid:` references instead, matching each attachment's own `contentId`.
  *
  * The client's rich-text editor can't render a `cid:` URL at all (browsers only resolve that scheme

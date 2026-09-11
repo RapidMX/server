@@ -3767,3 +3767,76 @@ session to bring `server` in line with that new standard rather than doing the s
   wholly unrelated to this split - not touched, not this session's to fix. `npx vitest run` kicked off to
   confirm the rest of the suite is unaffected by the mta-bridge removal.
 - Not committed - same standing rule; JP reviews and commits when ready.
+
+### 2026-09-10 (continued) — Spike: extracted `@rapidmx/react-shared`, wired `server` to consume it
+
+New branch `spike/web-client-electron-split` (explicitly NOT `main` - JP wants this kept isolated given
+how divergent the eventual full split will be). First concrete step of a larger plan: split RapidMX's
+React frontend into a portable data/logic layer (`react-shared`) and a UI layer (`web-client`, not
+started yet) so the same source can build the web client, the existing SSR `server`, and a future
+Electron desktop client. `apps/book` is explicitly staying in `server` - JP confirmed it does not need
+to be shared.
+
+- **Extracted `apps/shared/lib` (34 files) + its tests (`test/apps/_lib`, 31 files) verbatim** into a new
+  sibling repo `d:\github\rapidmx\react-shared`, published as `@rapidmx/react-shared`. Fully
+  self-contained already - confirmed via grep before moving anything that nothing in `apps/shared/lib`
+  reaches into `apps/shared/components`/`apps/www`/`apps/admin`. `react`/`react-dom` are
+  `peerDependencies` (this package has two DOM-touching files - `Modal.tsx`/`Drawer.tsx`, using
+  `createPortal`). Verified standalone: `yarn build` clean, `yarn test` → 291/291 passing, 96%+ coverage
+  - identical numbers to what these files reported living inside `server`.
+- **Real bug found and fixed**: the package's first `exports` map (`"./*": {"import": "./dist/*.js"}`)
+  double-appended `.js` onto specifiers that already carry the NodeNext `.js` extension (every consumer
+  import is e.g. `@rapidmx/react-shared/mailApi.js`), resolving to a literal `dist/mailApi.js.js` that
+  never existed. Fixed to the documented TS/Node pattern for this exact scenario - match the extension
+  as a literal part of the export key instead: `"./*.js": {"types": "./dist/*.d.ts", "import":
+  "./dist/*.js"}`. Only caught by actually wiring up a real consumer, not by react-shared's own build/test
+  (which never round-trips through its own package.json `exports`).
+- **Wired `server` to consume it via `portal:../react-shared`** (not a real publish - this is an
+  in-progress spike). This is a KNOWN HAZARD per this file's own standing history further up (the
+  `@rapidmx/restapi`/`portal:../mail` `instanceof`-breaking incident) - the general shape of that bug
+  (a portal-linked package's own `devDependencies`-installed `node_modules` shadowing the consumer's
+  copy of something both share) applies here too, but for **React itself**, not `@rapidrest/core`'s DI:
+  react-shared's hooks (`useIsMobile`, `useBranding`, `mailDetailHooks`) needed to resolve the exact same
+  `react` module instance as every component calling them, or every one of those hooks would fail with
+  "Invalid hook call" the moment they ran inside `server`'s component tree.
+  - **Fix applied preemptively, then verified empirically rather than assumed**: added
+    `resolve.dedupe: ['react', 'react-dom']` to both `vite.config.ts` (production build) and
+    `vitest.config.ts` (test runs) - the standard, documented Vite mechanism for exactly this
+    linked-monorepo-duplicate-peer-dependency scenario. Also added `@rapidmx/react-shared` to
+    `vitest.config.ts`'s `ssr.noExternal` list, matching the existing entries there for the identical
+    reason (force it through the same module graph as everything else, don't let Vite's SSR loader treat
+    it as an untransformed external).
+  - **Confirmed working, not just plausible**: full `npx vitest run` → 112 test files, 1109 tests, all
+    passing, zero hook-related failures anywhere (including every `apps/www`/`apps/admin`/
+    `apps/shared/components` test that exercises `useIsMobile`/`useBranding`/`SettingsShell` transitively).
+    `npx vite build` (isolated from the unrelated backend `tsc` failure below) → 574 modules transformed,
+    clean production bundle, `@rapidmx/react-shared`'s modules (`mailApi-*.js`, `bookingApi-*.js`, etc.)
+    each correctly resolved and code-split as their own chunks through the portal link.
+  - Yarn itself warned on install: `--preserve-symlinks` is recommended for launching an app that uses
+    portals. Not yet applied/verified for a real `node dist/src/server.js` production run (only Vite's
+    own build and Vitest's own test runner were exercised this session, both of which do their own
+    resolution independent of that flag) - revisit before trusting a portal-linked `react-shared` in an
+    actual running server process, not just its build/test tooling.
+- **Import rewrite, 92 files total across `server`**: every `apps/www`/`apps/admin`/
+  `apps/shared/components`/`test/apps/**` file that imported anything from the old `apps/shared/lib`
+  now imports the identical named export from `@rapidmx/react-shared/<name>.js` instead. **Caught a real
+  gap in the first pass**: searching for the literal substring `shared/lib/` missed every file living
+  *inside* `apps/shared/components/**` itself, since a relative import from there never spells out
+  "shared" again on its way to a sibling `lib/` directory (e.g. `../../lib/mailApi.js`, not
+  `../../shared/lib/mailApi.js`) - 32 additional files, all under `apps/shared/components/`, needed a
+  second pass matching by the known react-shared module basenames instead of by path substring. Worth
+  remembering for the next phase (`web-client` extraction) - the same class of miss is likely there too.
+- Deleted `apps/shared/lib` and `test/apps/_lib` from this repo entirely; removed `@emoji-mart/data`/
+  `rrule` from `package.json` (moved with the code, confirmed unused elsewhere first). Removed the
+  now-dangling `'apps/shared/lib/mailApi.ts'` per-file coverage threshold from `vitest.config.ts`.
+- **Not yet done** (next phases of this same spike, not started this session): extracting `web-client`
+  (`apps/www` + `apps/admin` + `apps/shared/components`) into its own repo - confirmed via
+  `SettingsShell.tsx`'s own import chain that this is NOT a small/partial extraction, since `AppShell`
+  (the common chrome every page wraps in) transitively pulls in most of the component tree including
+  compose/tiptap; pointing `WwwRoute`/`AdminConsoleRoute`'s `appDir` at the resulting linked package
+  (confirmed via reading `@rapidrest/react`'s own `ReactRoute.js`/`appDirScan.js`/`vite.js` that this is
+  pure `fs`-path-driven on both the SSR and Vite-build sides, so it should work identically to a local
+  folder - not yet tried against a *moved* app tree, only reasoned from source); and a minimal Electron
+  shell rendering `SettingsReadReceiptsPage` against a real running `server`, authenticated over
+  `react-shared`'s cookie-based `api.ts`.
+- Not committed - same standing rule; JP reviews and commits when ready.

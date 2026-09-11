@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { FormEvent, useEffect, useState } from "react";
-import { ApiRequestError } from "../../../shared/lib/api.js";
-import { MailSignature, getMailSignature, listMailSignatures, updateMailSignature } from "../../../shared/lib/mailSignaturesApi.js";
+import { ApiRequestError } from "@rapidmx/react-shared/api.js";
+import { MailSignature, getMailSignature, listMailSignatures, updateMailSignature } from "@rapidmx/react-shared/mailSignaturesApi.js";
 import { clearPreviousDefaults } from "./signatureDefaults.js";
 import SettingsShell, { SettingsShellProps, useSettingsShell } from "../../../shared/components/settings/layout/SettingsShell.js";
 import RichTextEditor from "../../../shared/components/mail/compose/RichTextEditor.js";

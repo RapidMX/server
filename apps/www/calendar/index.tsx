@@ -18,14 +18,14 @@ import {
     startOfMonth,
     startOfWeek,
 } from "date-fns";
-import { ApiRequestError } from "../../shared/lib/api.js";
-import { colorForFolder } from "../../shared/lib/calendarColors.js";
-import { CalendarEvent, listCalendarEvents } from "../../shared/lib/calendarApi.js";
-import { moveOccurrence, resizeOccurrenceEnd } from "../../shared/lib/calendarMutations.js";
-import { resolveDragAction } from "../../shared/lib/calendarDragIds.js";
-import { createFolder } from "../../shared/lib/mailApi.js";
-import { CalendarOccurrence, expandAllOccurrences } from "../../shared/lib/recurrence.js";
-import Drawer from "../../shared/lib/Drawer.js";
+import { ApiRequestError } from "@rapidmx/react-shared/api.js";
+import { colorForFolder } from "@rapidmx/react-shared/calendarColors.js";
+import { CalendarEvent, listCalendarEvents } from "@rapidmx/react-shared/calendarApi.js";
+import { moveOccurrence, resizeOccurrenceEnd } from "@rapidmx/react-shared/calendarMutations.js";
+import { resolveDragAction } from "@rapidmx/react-shared/calendarDragIds.js";
+import { createFolder } from "@rapidmx/react-shared/mailApi.js";
+import { CalendarOccurrence, expandAllOccurrences } from "@rapidmx/react-shared/recurrence.js";
+import Drawer from "@rapidmx/react-shared/Drawer.js";
 import CalendarShell, { CalendarShellProps, useCalendarShell } from "../../shared/components/calendar/layout/CalendarShell.js";
 import CalendarListSidebar from "../../shared/components/calendar/CalendarListSidebar.js";
 import EventModal from "../../shared/components/calendar/EventModal.js";

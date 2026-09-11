@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
-import { ApiRequestError } from "../../shared/lib/api.js";
+import { ApiRequestError } from "@rapidmx/react-shared/api.js";
 import {
     Branding,
     deleteBrandingIcon,
@@ -14,7 +14,7 @@ import {
     uploadBrandingIcon,
     uploadBrandingLogo,
     uploadBrandingStylesheet,
-} from "../../shared/lib/brandingApi.js";
+} from "@rapidmx/react-shared/brandingApi.js";
 import AdminShell, { AdminShellProps } from "../../shared/components/admin/layout/AdminShell.js";
 import Alert from "../../shared/components/feedback/Alert.js";
 import Button from "../../shared/components/buttons/Button.js";

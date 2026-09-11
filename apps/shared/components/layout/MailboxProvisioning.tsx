@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { useEffect, useState } from "react";
-import { ApiRequestError } from "../../lib/api.js";
-import { MailboxAutoProvisionAliasOption, autoProvisionMailbox } from "../../lib/mailApi.js";
+import { ApiRequestError } from "@rapidmx/react-shared/api.js";
+import { MailboxAutoProvisionAliasOption, autoProvisionMailbox } from "@rapidmx/react-shared/mailApi.js";
 import Alert from "../feedback/Alert.js";
 import Button from "../buttons/Button.js";
 

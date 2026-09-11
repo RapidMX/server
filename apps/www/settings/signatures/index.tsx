@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { useEffect, useState } from "react";
-import { ApiRequestError } from "../../../shared/lib/api.js";
-import { MailSignature, listMailSignatures } from "../../../shared/lib/mailSignaturesApi.js";
+import { ApiRequestError } from "@rapidmx/react-shared/api.js";
+import { MailSignature, listMailSignatures } from "@rapidmx/react-shared/mailSignaturesApi.js";
 import SettingsShell, { SettingsShellProps, useSettingsShell } from "../../../shared/components/settings/layout/SettingsShell.js";
 import Alert from "../../../shared/components/feedback/Alert.js";
 import Button from "../../../shared/components/buttons/Button.js";

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React from "react";
-import { Contact } from "../../lib/contactsApi.js";
+import { Contact } from "@rapidmx/react-shared/contactsApi.js";
 import Button from "../buttons/Button.js";
 import ContactAvatar from "./ContactAvatar.js";
 

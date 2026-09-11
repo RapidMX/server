@@ -12,7 +12,15 @@ export default defineConfig({
         // comes back false and `Server.start()` never schedules the job — even though the exact same code
         // works correctly outside Vite (the real, non-test `node dist/src/server.js` runtime has only one
         // module cache to begin with).
-        noExternal: ['@rapidrest/auth', '@rapidrest/service-core', '@rapidrest/core', '@rapidmx/restapi'],
+        noExternal: ['@rapidrest/auth', '@rapidrest/service-core', '@rapidrest/core', '@rapidmx/restapi', '@rapidmx/react-shared'],
+    },
+    // Forces every resolution of react/react-dom to the same physical module instance - needed now
+    // that apps/www/apps/admin pull hooks (useIsMobile, useBranding, ...) from the portal-linked
+    // @rapidmx/react-shared package, which has its own independent node_modules (needed to run its own
+    // tests standalone). Without this, a hook test could resolve two separate React instances and fail
+    // with "Invalid hook call" - see vite.config.ts's identical fix for the same root cause.
+    resolve: {
+        dedupe: ['react', 'react-dom'],
     },
     plugins: [
         swc.vite({
@@ -109,12 +117,6 @@ export default defineConfig({
                     statements: 100,
                 },
                 'apps/admin/**': {
-                    branches: 100,
-                    functions: 100,
-                    lines: 100,
-                    statements: 100,
-                },
-                'apps/shared/lib/mailApi.ts': {
                     branches: 100,
                     functions: 100,
                     lines: 100,

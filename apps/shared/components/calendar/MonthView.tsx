@@ -5,8 +5,8 @@
 import React from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, isToday, startOfMonth, startOfWeek } from "date-fns";
-import { dayDropId, eventDragId } from "../../lib/calendarDragIds.js";
-import { CalendarOccurrence } from "../../lib/recurrence.js";
+import { dayDropId, eventDragId } from "@rapidmx/react-shared/calendarDragIds.js";
+import { CalendarOccurrence } from "@rapidmx/react-shared/recurrence.js";
 
 const MAX_CHIPS_PER_DAY = 3;
 

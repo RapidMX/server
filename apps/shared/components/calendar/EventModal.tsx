@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { FormEvent, useRef, useState } from "react";
-import { ApiRequestError } from "../../lib/api.js";
+import { ApiRequestError } from "@rapidmx/react-shared/api.js";
 import {
     Attendee,
     AttendeeResponseInput,
@@ -15,12 +15,12 @@ import {
     createCalendarEvent,
     respondToEvent,
     updateCalendarEvent,
-} from "../../lib/calendarApi.js";
-import { deleteEventOccurrence, deleteEventSeries, detachOccurrence, saveEventSeries } from "../../lib/calendarMutations.js";
-import { toDatetimeLocal } from "../../lib/dateInput.js";
-import { Mailbox } from "../../lib/mailApi.js";
-import { CalendarOccurrence } from "../../lib/recurrence.js";
-import Modal from "../../lib/Modal.js";
+} from "@rapidmx/react-shared/calendarApi.js";
+import { deleteEventOccurrence, deleteEventSeries, detachOccurrence, saveEventSeries } from "@rapidmx/react-shared/calendarMutations.js";
+import { toDatetimeLocal } from "@rapidmx/react-shared/dateInput.js";
+import { Mailbox } from "@rapidmx/react-shared/mailApi.js";
+import { CalendarOccurrence } from "@rapidmx/react-shared/recurrence.js";
+import Modal from "@rapidmx/react-shared/Modal.js";
 import Alert from "../feedback/Alert.js";
 import Button from "../buttons/Button.js";
 import FormField from "../forms/FormField.js";

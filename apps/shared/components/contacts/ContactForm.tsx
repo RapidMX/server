@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MPL-2.0
 ///////////////////////////////////////////////////////////////////////////////
 import React, { FormEvent, useState } from "react";
-import { ApiRequestError } from "../../lib/api.js";
+import { ApiRequestError } from "@rapidmx/react-shared/api.js";
 import {
     Contact,
     ContactAddressKind,
@@ -12,7 +12,7 @@ import {
     ContactPostalAddress,
     createContact,
     updateContact,
-} from "../../lib/contactsApi.js";
+} from "@rapidmx/react-shared/contactsApi.js";
 import Alert from "../feedback/Alert.js";
 import Button from "../buttons/Button.js";
 import FormField from "../forms/FormField.js";

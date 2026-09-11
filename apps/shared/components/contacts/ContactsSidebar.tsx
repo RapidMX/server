@@ -4,9 +4,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 import React, { FormEvent, useEffect, useMemo, useState } from "react";
 import { HiOutlineBars3 } from "react-icons/hi2";
-import { ApiRequestError } from "../../lib/api.js";
-import { Contact, ContactList, createContactList, listContactLists } from "../../lib/contactsApi.js";
-import Drawer from "../../lib/Drawer.js";
+import { ApiRequestError } from "@rapidmx/react-shared/api.js";
+import { Contact, ContactList, createContactList, listContactLists } from "@rapidmx/react-shared/contactsApi.js";
+import Drawer from "@rapidmx/react-shared/Drawer.js";
 
 export type ContactsView =
     | { type: "all" }
