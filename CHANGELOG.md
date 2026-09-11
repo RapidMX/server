@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- Removed src/mta-bridge (TcpTableServer, MtaIngestClient, SmtpDeliveryServer) and its tests, the postfix/mta-bridge/postfix-tls-init Docker Compose services, and the postfix/mta-bridge/mail-tls-certs/mail-tls-policy Helm templates - this functionality now lives in the standalone [postfix-bridge](https://github.com/rapidmx/postfix-bridge) repo, deployed alongside this one instead of built into its image
+- Removed the smtp-server/@types/smtp-server dependencies, no longer used now that SmtpDeliveryServer moved out
+- Removed the mail.hostname/mail.domains/mail.postfix/mail.mtaBridge Helm values and the dkim-opendkim-keys PVC - all now owned by the postfix-bridge chart
+
+### Changed
+- `server` no longer links/depends on a `postfix` Compose service or Deployment; outbound mail relay (`SENDMAIL_RELAY_HOST`) now defaults to `host.docker.internal` in Docker Compose so it still reaches the separate postfix-bridge stack's Postfix container locally
+- `dkim_rspamd_keys`/`dkim-keys` (FsDkimKeyProvider's write target) is now a chart/stack-local volume that must be pointed at the same underlying storage as postfix-bridge's own equivalent volume for DKIM signing to see what this service writes, since the two are separate Compose projects/Helm releases
+
 ## [1.0.0-beta.2] - 2026-09-10
 
 ### Changed

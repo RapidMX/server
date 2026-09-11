@@ -45,3 +45,9 @@ NOTE: After a new install, the app's datastore credentials aren't wired in until
 follow-up `helm upgrade`. Until then the {{ include "rrst.fullname" . }}-services
 pods will crash-loop on datastore auth failures.
 {{- end }}
+
+Real inbound/outbound mail (Postfix, DKIM signing, postfix-bridge) is a separate chart - install
+https://github.com/rapidmx/postfix-bridge alongside this release, with its `mail.ingestBaseUrl` pointed at
+this release's own "{{ include "rrst.fullname" . }}-services" Service and its `mail.ingestSecret` set to
+the exact same value as this release's own `mail.ingestSecret` ({{ tpl .Values.mail.ingestSecret . }}), or
+postfix-bridge's calls to /internal/mta will fail authorization.

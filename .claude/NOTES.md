@@ -3713,3 +3713,57 @@ mail.yml declaring a *partial* `server:` block purely to add mail-scanning env v
   postfix/mta-bridge) fully wired up, same as before.
 - Checked whether this also affects `auth-server`: no - none of its four compose files use `include:` at
   all, so this specific failure mode can't occur there. Not committed - same standing rule.
+
+### 2026-09-10 (continued) — `src/mta-bridge` split into its own repo (`postfix-bridge`), server conforms
+
+JP moved everything under `src/mta-bridge`/`test/mta-bridge` into a brand-new sibling repo,
+`d:\github\rapidmx\postfix-bridge`, which also absorbed Postfix itself (previously
+docker-compose.mail.yml's `postfix`/`postfix-tls-init` services and helm's `postfix.yaml`/mail-tls-certs/
+mail-tls-policy templates) — that repo now owns the entire Postfix+bridge deployment (its own Dockerfile,
+docker-compose.yml, and Helm chart, already fully built out by the time this session started). Asked this
+session to bring `server` in line with that new standard rather than doing the split itself.
+
+- **Removed from this repo**: `src/mta-bridge/*` + `test/mta-bridge/*` (4 + 3 files), the `smtp-server`/
+  `@types/smtp-server` deps (confirmed nothing else in `src`/`apps`/`test` imports either - `nodemailer`
+  stays, it's genuinely used elsewhere for `MailComposer` in `BaseMailComposeRoute.ts`), `docker/postfix/`
+  (tls_policy.txt), docker-compose.mail.yml's `postfix`/`postfix-tls-init` services and their
+  `dkim_opendkim_keys`/`postfix_tls` volumes (kept `rspamd`/`clamav` - unrelated spam/AV scanning, not
+  Postfix's own bundled DKIM rspamd), and helm's `1_deployments/{postfix,mta-bridge}.yaml` +
+  `0_config/mail-tls-{certs,policy}.yaml` + the `postfix`/`mta-bridge` Services in `mail-services.yaml` +
+  the `dkim-opendkim-keys` PVC in `mail-storage.yaml` + `mail.hostname`/`mail.domains`/`mail.postfix`/
+  `mail.mtaBridge` from values.yaml.
+- **Kept, still this repo's job**: `mail-ingest-secret.yaml`/`mail__transport__ingest__secret` (this app
+  authenticates *incoming* `/internal/mta` calls, regardless of which repo the caller lives in) and the
+  `dkim-keys` PVC / `dkim_rspamd_keys` compose volume (`FsDkimKeyProvider` still writes here) - updated
+  their comments since the reader on the other end (rspamd's `dkim_signing` module inside postfix-bridge's
+  own Postfix Deployment/container) is now a different Helm release / different Compose project, so what
+  used to be "the same PVC"/"the same named volume" is now two separate ones that must be pointed at the
+  same underlying storage for DKIM signing to actually see what gets written here - documented this
+  explicitly everywhere the old comments claimed implicit sharing (mail-storage.yaml, service.yaml,
+  docker-compose.mongo.yml/sql.yml).
+- **New problem this split creates**: `postfix` was reachable from `server`'s own container by bare
+  hostname before (same Compose project / same Helm release+namespace, both created a literal `postfix`
+  Service/service name) - `SENDMAIL_RELAY_HOST` (scripts/docker-entrypoint.sh, defaults to `postfix`) relied
+  on that. For Kubernetes this still works unchanged as long as both charts land in the same namespace
+  (postfix-bridge's own chart still names its Service literally `postfix`, unqualified) - documented this
+  as the expected topology rather than changing anything. For Docker Compose it does NOT still work -
+  Compose scopes service-name DNS per project, and postfix-bridge is now a separate `docker compose`
+  project - so added `SENDMAIL_RELAY_HOST=${SENDMAIL_RELAY_HOST:-host.docker.internal}` to both
+  docker-compose.mongo.yml's and sql.yml's `server:` blocks, symmetric with postfix-bridge's own
+  `docker-compose.yml` already defaulting `MTA_INGEST_BASE_URL` to `http://host.docker.internal:3000/...`
+  to reach this repo's `server` the same way.
+- `scripts/test-run-mongo.sh`/`test-run-sql.sh`: dropped `postfix-tls-init postfix ... mta-bridge` from the
+  explicit `--no-deps` service list (they no longer exist in this repo's compose files).
+- **Found and fixed in passing, unrelated to the split**: README.md's Kubernetes install section had actual
+  unresolved git merge-conflict markers (`<<<<<<< HEAD` / `=======` / `>>>>>>>`) committed to `main`,
+  choosing between `--version 1.0.0-beta.1` and `-beta.2` for the GHCR helm install command - resolved to
+  beta.2 (matches Chart.yaml's current appVersion) and fixed the registry org in that same line
+  (`ghcr.io/rapidrest/charts/mail-server` → `ghcr.io/rapidmx/charts/mail-server` - confirmed via
+  `.github/workflows` using `github.repository_owner`, which is `rapidmx` for this repo; `rapidrest` is
+  only correct for the separate `auth-server` chart dependency, which does live in that other org).
+- **Verified**: `yarn lint` clean. `yarn build` still fails, but confirmed via `git stash` that the failure
+  (`Module '@rapidmx/restapi' has no exported member 'fetchBrandingPropsForSSR'`, in
+  AdminConsoleRoute/BookRoute/wwwRoute.ts under both src/mongo and src/sql) is pre-existing on `main`,
+  wholly unrelated to this split - not touched, not this session's to fix. `npx vitest run` kicked off to
+  confirm the rest of the suite is unaffected by the mta-bridge removal.
+- Not committed - same standing rule; JP reviews and commits when ready.

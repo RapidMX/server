@@ -137,9 +137,11 @@ authServer:
       metrics: true
       releaseNotes: true
 mail:
+  # Must match the separate `postfix-bridge` chart's own `mail.ingestSecret` exactly - the two are
+  # separate Helm releases, so nothing keeps them in sync automatically. Postfix itself, its public MX
+  # hostname/TLS certificate (mail.hostname), and the domains it accepts outbound submissions for
+  # (mail.domains) all moved to that chart's own values - see its README/values.yaml.
   ingestSecret: ChangeMeIngestSecret
-  domains: example.com
-  hostname: mail.localhost
   dkim:
     selector: mail
     autogenerate: true
@@ -152,18 +154,6 @@ mail:
       storageClassName: '{{ .Values.common.storageClass }}'
       accessMode: ReadWriteOnce
       size: 20Gi
-  postfix:
-    image:
-      registry: docker.io
-      repository: boky/postfix
-      tag: latest
-    resources:
-      requests:
-        cpu: 100m
-        memory: 128Mi
-      limits:
-        memory: 256Mi
-    serviceType: LoadBalancer
   rspamd:
     image:
       registry: docker.io
@@ -186,10 +176,3 @@ mail:
         memory: 1Gi
       limits:
         memory: 2Gi
-  mtaBridge:
-    resources:
-      requests:
-        cpu: 50m
-        memory: 64Mi
-      limits:
-        memory: 128Mi

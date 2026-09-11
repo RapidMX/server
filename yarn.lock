@@ -2697,7 +2697,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/nodemailer@npm:*, @types/nodemailer@npm:^8.0.1":
+"@types/nodemailer@npm:^8.0.1":
   version: 8.0.1
   resolution: "@types/nodemailer@npm:8.0.1"
   dependencies:
@@ -2737,16 +2737,6 @@ __metadata:
   version: 7.8.0
   resolution: "@types/semver@npm:7.8.0"
   checksum: 10c0/46a1f38e36013448b279798e8b134e7e8de3b3630b1f40683903b9d57d36dd1d70838515570ed9a149fa09e9c381b9e39319b58d7b9f3b929b42ae2becff7aa3
-  languageName: node
-  linkType: hard
-
-"@types/smtp-server@npm:^3.5.10":
-  version: 3.5.13
-  resolution: "@types/smtp-server@npm:3.5.13"
-  dependencies:
-    "@types/node": "npm:*"
-    "@types/nodemailer": "npm:*"
-  checksum: 10c0/9fb74a327cf49e40cc4b939334e29bcb5a3d2ccebad2ea7fd730316691c0114dde1166eb208277a73b80a0aad2b19f295f4ba480a929332687c7c046c7ab4a8f
   languageName: node
   linkType: hard
 
@@ -5847,13 +5837,6 @@ __metadata:
   version: 10.7.0
   resolution: "ip-address@npm:10.7.0"
   checksum: 10c0/bb6f514708b84ec75ad4d8156f3d571a5b8e592a15359386100f4f8d7366a4b7723d54b88a30d80b3f51ca5f4dee239e94ef4b53765b9c41a8ea46b421307d14
-  languageName: node
-  linkType: hard
-
-"ipv6-normalize@npm:1.0.1":
-  version: 1.0.1
-  resolution: "ipv6-normalize@npm:1.0.1"
-  checksum: 10c0/89156fbfc4f8828b29adf8009332ec77cd93a17a6e28066d602c3154b7bbc37df07f981ab2b6debb46f9a716867262ae4ea5399f3fa9bb0fc8019e6dc2a96023
   languageName: node
   linkType: hard
 
@@ -9270,7 +9253,6 @@ __metadata:
     "@types/react-dom": "npm:^19.2.7"
     "@types/sanitize-html": "npm:^2.16.1"
     "@types/semver": "npm:^7.8.0"
-    "@types/smtp-server": "npm:^3.5.10"
     "@typescript-eslint/eslint-plugin": "npm:^8.70.0"
     "@typescript-eslint/parser": "npm:^8.70.0"
     "@vitejs/plugin-react": "npm:^6.1.1"
@@ -9302,7 +9284,6 @@ __metadata:
     rrule: "npm:^2.8.1"
     sanitize-html: "npm:^2.17.7"
     semver: "npm:^7.8.5"
-    smtp-server: "npm:^3.13.6"
     sqlite3: "npm:^6.0.1"
     tailwindcss: "npm:^4.3.3"
     tsx: "npm:^4.23.13"
@@ -9493,17 +9474,6 @@ __metadata:
   version: 4.2.0
   resolution: "smart-buffer@npm:4.2.0"
   checksum: 10c0/a16775323e1404dd43fabafe7460be13a471e021637bc7889468eb45ce6a6b207261f454e4e530a19500cc962c4cc5348583520843b363f4193cee5c00e1e539
-  languageName: node
-  linkType: hard
-
-"smtp-server@npm:^3.13.6":
-  version: 3.19.10
-  resolution: "smtp-server@npm:3.19.10"
-  dependencies:
-    ipv6-normalize: "npm:1.0.1"
-    nodemailer: "npm:10.0.3"
-    punycode.js: "npm:2.3.1"
-  checksum: 10c0/0735bb0312291f8bf7f0b1227c03f4640aa27f4bfa6cb4b4b663b46e2bbfb55fa6c0632f1f63c39a0f1cd33272bf7119bf0aa27da26dd5944db6ddace0dfacb1
   languageName: node
   linkType: hard
 

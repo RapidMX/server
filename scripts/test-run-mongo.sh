@@ -5,7 +5,7 @@ COMPOSE="docker compose -f docker-compose.mongo.yml"
 # `server` image itself builds and boots correctly, so bring up everything BUT auth-server explicitly
 # (--no-deps skips the dependency graph's own auth-server pull that `server`'s depends_on would otherwise
 # trigger).
-$COMPOSE up -d --build --no-deps mongo redis rspamd clamav postfix-tls-init postfix server mta-bridge
+$COMPOSE up -d --build --no-deps mongo redis rspamd clamav server
 startTime=`date +%s`
 
 status=`$COMPOSE ps | grep server-1 | grep 'Up' | grep '(healthy)' | wc -l`

@@ -36,11 +36,13 @@ Registry (ghcr.io).
 ### Docker Compose
 
 Pick `docker-compose.mongo.yml` or `docker-compose.sql.yml` depending on which datastore backend you want
-(MongoDB or PostgreSQL) — there is no plain `docker-compose.yml`. Either one, on its own, brings up the
-*entire* stack: this service, the separate [`auth-server`](https://github.com/rapidrest/auth-server)
-deployment it verifies JWTs against, the mail-flow stack (Postfix, rspamd for spam scoring/DKIM signing,
-ClamAV), and the `mta-bridge` service that lets Postfix's own recipient/domain lookups and final delivery
-talk to this app's `/internal/mta` contract.
+(MongoDB or PostgreSQL) — there is no plain `docker-compose.yml`. Either one, on its own, brings up this
+service, the separate [`auth-server`](https://github.com/rapidrest/auth-server) deployment it verifies
+JWTs against, and rspamd/ClamAV for inbound spam/AV scanning — but *not* real inbound/outbound mail
+transport. That's provided by the separate [`postfix-bridge`](https://github.com/rapidmx/postfix-bridge)
+repo (Postfix + DKIM signing + the bridge that lets Postfix's own recipient/domain lookups and final
+delivery talk to this app's `/internal/mta` contract) — run its own `docker compose up` alongside this
+one, not instead of it; see that repo's README for its own compose file and env vars.
 
 ```bash
 docker compose -f docker-compose.mongo.yml up -d --build
@@ -57,40 +59,34 @@ of them defaults to an insecure, publicly-known placeholder value otherwise — 
 | `AUTH_AUDIENCE` / `AUTH_ISSUER` | JWT `aud`/`iss` claims — must also match `auth-server` |
 | `AUTH_SERVER_PUBLIC_URL` | Browser-facing base URL of `auth-server` (defaults to `http://localhost:3001`, dev/single-host only) |
 | `COOKIE_SECRET` | Shared cookie-signing secret |
-| `MAIL_INGEST_SECRET` | Bearer secret authenticating `mta-bridge`'s calls to this app's `/internal/mta` routes |
-| `MAIL_DOMAINS` | Comma-separated domains Postfix accepts *outbound* submissions for (`ALLOWED_SENDER_DOMAINS`) — keep in sync with the `Domain`s added via the admin console |
-| `MAIL_HOSTNAME` | Postfix's public MX hostname — drives its HELO/EHLO identity and the CN of the TLS certificate `postfix-tls-init` bootstraps (see below); set this to your real MX hostname for anything beyond local evaluation |
-| `DKIM_AUTOGENERATE` / `DKIM_SELECTOR` | DKIM key handling — see `docker-compose.mail.yml`'s own comments for how this interacts with the app's own automatic per-`Domain` key generation |
+| `MAIL_INGEST_SECRET` | Bearer secret authenticating `postfix-bridge`'s calls to this app's `/internal/mta` routes — must match that repo's own `MTA_INGEST_SECRET` exactly |
+| `SENDMAIL_RELAY_HOST` / `_PORT` / `_TLS` | Where `PostfixSendmailTransport` relays outbound mail — defaults to `host.docker.internal:25` (TLS off), i.e. wherever the separate `postfix-bridge` stack publishes its own Postfix on the host's `localhost:25`; override for anything beyond local, single-host evaluation |
 
-The `dkim_rspamd_keys`/`dkim_opendkim_keys`/`postfix_tls`/`mongo_data`/`postgres_data`/`blob_data` named
-volumes persist DKIM keys, the Postfix TLS certificate, database contents, and message/attachment storage
-across `docker compose down`/`up` — don't remove them (`docker compose down -v`) unless you actually want
-to start over.
+The `dkim_rspamd_keys`/`mongo_data`/`postgres_data`/`blob_data` named volumes persist DKIM keys, database
+contents, and message/attachment storage across `docker compose down`/`up` — don't remove them (`docker
+compose down -v`) unless you actually want to start over. `dkim_rspamd_keys` in particular needs to be
+shared with the `postfix-bridge` repo's own compose stack (its Postfix reads DKIM keys this app's
+`FsDkimKeyProvider` writes) — point both stacks at the same underlying volume for that to work outside of
+local single-host evaluation; see that repo's own README.
 
-**Mail transport security:** Postfix's two internet-facing directions — inbound `smtpd` on port 25 and
-outbound `smtp` client delivery — both require TLS (`_tls_security_level=encrypt`), not just offer it
-opportunistically. `postfix-tls-init` bootstraps a self-signed certificate for `MAIL_HOSTNAME` on first
-start so this works with zero setup; replace the `postfix_tls` volume's `tls.crt`/`tls.key` with a real
-certificate (e.g. Let's Encrypt) for anything beyond local evaluation. The one hop deliberately exempted
-from mandatory TLS is Postfix → `mta-bridge` (see `docker/postfix/tls_policy.txt`), since that's internal
-to the compose network and has no TLS support of its own by design — the `server` → Postfix hop is also
-unencrypted by default (`SENDMAIL_RELAY_TLS`, defaulting to `off`) for the same reason. Because inbound/
-outbound TLS is mandatory rather than opportunistic, a sender or receiving server that genuinely can't
-speak TLS will bounce instead of being accepted/delivered in the clear.
+**Mail transport security** (Postfix's TLS posture, the `postfix-bridge` hop, DKIM/DMARC) is documented in
+the [`postfix-bridge`](https://github.com/rapidmx/postfix-bridge) repo's own README now that it owns
+Postfix. The one thing that lives on this side: `server` → Postfix (`PostfixSendmailTransport`/msmtp) is
+unencrypted by default (`SENDMAIL_RELAY_TLS`, defaulting to `off`), since that hop is internal to the
+compose network.
 
 ### Kubernetes
 
 A complete Helm chart is included for convenience to deploy and run on a Kubernetes cluster. Deployment to Kubernetes
-is easy using either the published helm chart in GitHub or install from the helm chart locally.
+is easy using either the published helm chart in GitHub or install from the helm chart locally. Real inbound/outbound
+mail transport (Postfix + DKIM signing + postfix-bridge) is a separate chart now — install
+[`postfix-bridge`](https://github.com/rapidmx/postfix-bridge) alongside this one; see its own README and this chart's
+`helm get notes` output for how the two are wired together (`mail.ingestSecret` must match on both sides).
 
 #### From GHCR
 
 ```bash
-<<<<<<< HEAD
-helm install --create-namespace --namespace mail-server mail-server oci://ghcr.io/rapidrest/charts/mail-server --version 1.0.0-beta.1
-=======
-helm install --create-namespace --namespace mail-server mail-server oci://ghcr.io/rapidrest/charts/mail-server --version 1.0.0-beta.2
->>>>>>> 4175d8d5690d5a2903b56b48549e02eb029bdc5d
+helm install --create-namespace --namespace mail-server mail-server oci://ghcr.io/rapidmx/charts/mail-server --version 1.0.0-beta.2
 ```
 
 #### From Local
