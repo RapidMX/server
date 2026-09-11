@@ -3950,3 +3950,43 @@ This closes out the original three-phase plan from the first 2026-09-10 entry: `
 (extracted, portal/link:-linked), `web-client` (extracted, same), `electron-client` (built, proves the
 whole premise). Nothing here was committed to `main` - all three phases live on
 `spike/web-client-electron-split` only.
+
+### 2026-09-11 — Real bug: SSR "Invalid hook call" from the `web-client`/`react-shared` split, found via an actual `yarn dev`
+
+The web-client/react-shared split above was verified via `yarn build`/`yarn test` only - **the first
+real `yarn dev` since the split** hit `Invalid hook call` on every page (`ReactRoute` SSR error
+rendering `/`, `Cannot read properties of null (reading 'useState')`). Root cause confirmed
+empirically (see below), not assumed:
+
+- `ReactRoute.renderPage()`'s SSR path loads page/layout modules via a **plain Node `import()`** -
+  no Vite bundling at all (`await import(pathToFileURL(pagePath).href)`, see `@rapidrest/react`'s
+  `ReactRoute.js`). `vite.config.ts`'s own `resolve.dedupe: ["react", "react-dom"]` (added during
+  the split specifically for this class of problem) **only affects Vite's client bundle** - it has
+  zero effect on this SSR path.
+- `@rapidmx/web-client`/`@rapidmx/react-shared` are `link:`-ed siblings, each with their own
+  independent `node_modules/react` (needed so each can run its own test suite standalone - see
+  their own NOTES.md). Node's ESM resolver, walking up from wherever a `.tsx` file *actually* lives
+  on disk (its real, symlink-resolved path - e.g. `AppShell.tsx` really lives under
+  `D:\github\rapidmx\web-client\...`), finds `web-client`'s own `node_modules/react` before it ever
+  reaches this project's - a second, independently-initialized React module instance, with its own
+  separate `ReactCurrentDispatcher`. Confirmed directly: `createRequire(fakeAppShellPath).resolve("react")`
+  returns `web-client\node_modules\react\index.js`, not this project's.
+- **`--preserve-symlinks` does NOT fix this** - tested empirically before reaching for a real fix,
+  not assumed to work. It only changes the *path string* Node's resolver reports; the physical file
+  loaded is still `web-client`'s own copy (reached transparently through the `@rapidmx/web-client`
+  symlink one directory level before this project's own `node_modules` would ever be reached), so
+  it's still a second, separately-cached module instance under a different apparent path - the hook
+  call still breaks. Confirmed by comparing `require.resolve()` output with and without the flag.
+- **Fix**: a custom Node module-customization hook, `src/lib/reactDedupeHooks.ts`, registered via
+  `register()` at the very top of `server.ts`/`server.mongo.ts`/`server.sql.ts` (mirroring
+  `ReactRoute.tsx`'s own `register()` call for its CSS-stub loader) - forces every `react`/
+  `react-dom` specifier (any subpath: `react/jsx-runtime`, `react-dom/client`, `react-dom/server`,
+  etc.), from *any* package's module graph, to resolve to this project's own installed copy via
+  `createRequire(import.meta.url).resolve(specifier)` anchored at the hook file's own location
+  inside this repo. Verified with a standalone repro (dynamically importing `AppShell.tsx` and
+  calling `renderToString` exactly like `ReactRoute.renderPage()` does): reproduces the exact
+  reported error without the hook registered, renders cleanly with it - before touching any real
+  server code, so the fix wasn't just theory.
+- Not committed alongside the unrelated concurrent `package.json`/`yarn.lock` change (JP's own,
+  pointing `@rapidmx/restapi` at `link:../restapi` - a separate fix for a separate build error)
+  sitting in the working tree at the same time - kept scoped to just this fix.
