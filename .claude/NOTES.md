@@ -3929,3 +3929,24 @@ JP's explicit instruction.
   files/1109 tests before this phase - confirmed by exact arithmetic, not assumed, that the missing 97
   files are exactly the ones intentionally moved to `web-client`, not something silently lost).
 - Not committed - same standing rule; JP reviews and commits when ready.
+
+### 2026-09-10 (continued) — Spike phase 3: `electron-client` proves the whole split actually works
+
+Third and final phase - a new repo, `d:\github\rapidmx\electron-client`, a minimal Electron shell
+rendering `web-client`'s `SettingsReadReceiptsPage` unmodified, outside `@rapidrest/react`'s SSR/
+hydration machinery entirely. Full details (the real sign-in-window flow, the `apiFetch()` base-URL
+enhancement this needed in `react-shared`, a real cross-repo asset-copy bug caught along the way, the
+Tailwind `@source` fix, and the `ELECTRON_RUN_AS_NODE=1` sandbox limitation that blocked an actual GUI
+launch this session) live in `electron-client`'s own `.claude/NOTES.md` - not duplicated here.
+
+**Two things this repo's own README documents as required, external, NOT done by any of this work**:
+`server`'s and `auth-server`'s own `cors:origins` config need the Electron renderer's origin
+(`http://localhost:5173` for local dev) added before any of this can complete a real credentialed
+request - deliberately not touched here, since it's this repo's own deployment config to decide, not
+something to change silently as a side effect of building a client. Neither `server` nor `auth-server`
+needed any code changes for this spike - only their own config.
+
+This closes out the original three-phase plan from the first 2026-09-10 entry: `react-shared`
+(extracted, portal/link:-linked), `web-client` (extracted, same), `electron-client` (built, proves the
+whole premise). Nothing here was committed to `main` - all three phases live on
+`spike/web-client-electron-split` only.
