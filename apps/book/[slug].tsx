@@ -13,8 +13,8 @@ import {
     getPublicBookingType,
 } from "@rapidmx/react-shared/booking/bookingApi.js";
 import useBranding from "@rapidmx/react-shared/branding/useBranding.js";
-import Alert from "@rapidmx/web-client/shared/components/feedback/Alert.js";
-import Button from "@rapidmx/web-client/shared/components/buttons/Button.js";
+import Alert from "@rapidmx/react-shared/components/feedback/Alert.js";
+import Button from "@rapidmx/react-shared/components/buttons/Button.js";
 import { BrandingFooter, BrandingHeader } from "@rapidmx/web-client/shared/components/layout/BrandingChrome.js";
 
 const INPUT_CLASS =

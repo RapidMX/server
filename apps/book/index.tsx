@@ -6,7 +6,7 @@
  * flow lives at `apps/book/[slug].tsx`, `GET /book/:slug`. */
 import React from "react";
 import useBranding from "@rapidmx/react-shared/branding/useBranding.js";
-import Alert from "@rapidmx/web-client/shared/components/feedback/Alert.js";
+import Alert from "@rapidmx/react-shared/components/feedback/Alert.js";
 import { BrandingFooter, BrandingHeader } from "@rapidmx/web-client/shared/components/layout/BrandingChrome.js";
 
 export default function NoBookingSlugPage() {
