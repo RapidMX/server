@@ -19,9 +19,9 @@ import {
     rescheduleBooking,
 } from "@rapidmx/react-shared/bookingApi.js";
 import useBranding from "@rapidmx/react-shared/useBranding.js";
-import Alert from "../../shared/components/feedback/Alert.js";
-import Button from "../../shared/components/buttons/Button.js";
-import { BrandingFooter, BrandingHeader } from "../../shared/components/layout/BrandingChrome.js";
+import Alert from "@rapidmx/web-client/shared/components/feedback/Alert.js";
+import Button from "@rapidmx/web-client/shared/components/buttons/Button.js";
+import { BrandingFooter, BrandingHeader } from "@rapidmx/web-client/shared/components/layout/BrandingChrome.js";
 import Modal from "@rapidmx/react-shared/Modal.js";
 
 export default function ManageBookingPage({ params }: { params: { token: string } }) {

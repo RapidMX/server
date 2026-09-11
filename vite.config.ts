@@ -9,8 +9,15 @@ import { createViteConfig } from "@rapidrest/react/vite";
 // breaking every hook react-shared exports with "Invalid hook call" - the exact class of bug
 // .claude/NOTES.md already documents for portal:-linked packages, there for @rapidrest/core's
 // instanceof-based DI instead of React's hook dispatcher, same root cause either way.
+// Vite always transforms raw TSX source directly (its own JSX transform, independent of whatever the
+// SSR runtime does) - unlike WwwRoute/AdminConsoleRoute's appDir (see webClientAppDir.ts), this never
+// needs to point at @rapidmx/web-client's compiled dist/apps/** mirror, only its source. apps/book stays
+// local to this repo (not part of the web-client/react-shared split - see .claude/NOTES.md).
 export default async function () {
-    const config = await createViteConfig({ appDir: ["apps/www", "apps/admin", "apps/book"], plugins: [tailwindcss()] });
+    const config = await createViteConfig({
+        appDir: ["node_modules/@rapidmx/web-client/apps/www", "node_modules/@rapidmx/web-client/apps/admin", "apps/book"],
+        plugins: [tailwindcss()],
+    });
     return {
         ...config,
         resolve: {
